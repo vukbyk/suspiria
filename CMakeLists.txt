@@ -1,0 +1,217 @@
+cmake_minimum_required(VERSION 3.5)
+
+project(suspiria LANGUAGES CXX)
+
+if(EMSCRIPTEN)
+#    set(CMAKE_TOOLCHAIN_FILE="/home/vuk/Desktop/Install/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
+    include(wasm.cmake)
+endif()
+
+INCLUDE_DIRECTORIES(
+    src/
+)
+file(
+    GLOB SUSPIRIA_SRCGLOB
+    src/*.h
+    src/*.c
+    src/*.hpp
+    src/*.cpp
+)
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+
+set(CMAKE_CXX_FLAGS "-O0")
+set(CMAKE_C_FLAGS "-O0")
+
+## search all source and header files deluje kao da mogu iskoristiti
+#   file(GLOB source_files *.c *.cpp *.qrc)
+#   file(GLOB header_files *.h *.hpp *.txt)
+
+#       set(CMAKE_INCLUDE_CURRENT_DIR ON)
+#       set(CMAKE_AUTOMOC ON)
+#       set(CMAKE_AUTORCC ON)
+#       set(CMAKE_AUTOUIC ON)
+#       find_package(Qt5Widgets REQUIRED)
+#       find_package(Qt5WebEngineWidgets REQUIRED)
+#       find_package(Qt5WebChannel REQUIRED)
+
+
+#       #qt5_add_resources(COLYOO_QT_RESOURCES app.qrc web.qrc)
+
+#       message(STATUS "SLEIDEBUG:${COLYOO_QT_RESOURCES}")
+
+if(EMSCRIPTEN)
+    set(Qt5_DIR "/home/vuk/Qt/5.15.0//wasm_32/lib/cmake/Qt5")
+    set(Qt5Widgets_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Widgets")
+    set(Qt5Gui_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Gui")
+    set(Qt5Core_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Core")
+    set(Qt5Svg_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Svg")
+    set(Qt5Zlib_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Zlib")
+    set(Qt5Network_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Network")
+    set(Qt5EventDispatcherSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5EventDispatcherSupport")
+    set(Qt5FontDatabaseSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5FontDatabaseSupport")
+    set(Qt5EglSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5EglSupport")
+    set(Qt5ThemeSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5ThemeSupport")
+    set(Qt5Quick_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Quick")
+    set(Qt5QmlModels_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5QmlModels")
+    set(Qt5Qml_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Qml")
+    set(Qt5WebSockets_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5WebSockets")
+    set(CMAKE_TOOLCHAIN_FILE="/home/vuk/Desktop/Install/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
+endif()
+
+
+#   # add the GUI WIN32 executable
+#   cyo_add_executable(${PROJECT_NAME} WIN32 ${source_files} ${header_files} chatwidget.ui ${COLYOO_QT_RESOURCES})
+
+# QtCreator supports the following variables for Android, which are identical to qmake Android variables.
+# Check http://doc.qt.io/qt-5/deployment-android.html for more information.
+# They need to be set before the find_package(Qt5 ...) call.
+
+#if(ANDROID)
+#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
+#    if (ANDROID_ABI STREQUAL "armeabi-v7a")
+#        set(ANDROID_EXTRA_LIBS
+#            ${CMAKE_CURRENT_SOURCE_DIR}/path/to/libcrypto.so
+#            ${CMAKE_CURRENT_SOURCE_DIR}/path/to/libssl.so)
+#    endif()
+#endif()
+
+#find_package(Qt5 COMPONENTS Widgets LinguistTools REQUIRED)
+find_package(Qt5 COMPONENTS Widgets REQUIRED)
+
+#set(TS_FILES suspiria_en_US.ts)
+
+#list (APPEND RESOURCES resource.qrc)
+#qt5_add_resources (RCC_SOURCES ${RESOURCES})
+#add_library(resource ${RCC_SOURCES} ${SOURCES})
+
+
+## set any variables you might need to set for your app and assimp
+#set(BUILD_ASSIMP_TOOLS  ON)
+#set(ASSIMP_BUILD_STATIC_LIB ON)
+
+## add assimp source dir as a subdirectory, effectively making
+## assimp's CMakeLists.txt part of your build
+#add_subdirectory(assimp)
+#include_directories(assimp/include/)
+
+#add_subdirectory(bullet)
+#find_package(Bullet REQUIRED)
+#include_directories(${BULLET_INCLUDE_DIR})
+
+
+#set(BULLET_ROOT bullet) # where to find Bullet
+#find_package(BULLET REQUIRED) # find Bullet and fill environment variables
+
+
+INCLUDE_DIRECTORIES(
+        dep/bullet/src/
+        dep/bullet/src/BulletCollision/BroadphaseCollision
+        dep/bullet/src/BulletCollision/CollisionDispatch
+        dep/bullet/src/BulletCollision/CollisionShapes
+        dep/bullet/src/BulletCollision/NarrowPhaseCollision
+        dep/bullet/src/BulletDynamics/ConstraintSolver
+        dep/bullet/src/BulletDynamics/Dynamics
+        dep/bullet/src/BulletDynamics/Vehicle
+#       dep/bullet/src/BulletSoftBody/
+        dep/bullet/src/LinearMath
+)
+
+FILE(GLOB BULLET_SRCGLOB
+        dep/bullet/src/BulletCollision/BroadphaseCollision/*.cpp
+        dep/bullet/src/BulletCollision/CollisionDispatch/*.cpp
+        dep/bullet/src/BulletCollision/CollisionShapes/*.cpp
+        dep/bullet/src/BulletCollision/NarrowPhaseCollision/*.cpp
+        dep/bullet/src/BulletDynamics/ConstraintSolver/*.cpp
+        dep/bullet/src/BulletDynamics/Dynamics/*.cpp
+        dep/bullet/src/BulletDynamics/Vehicle/*.cpp
+#       dep/bullet/src/BulletSoftBody/*.cpp
+        dep/bullet/src/LinearMath/*.cpp
+)
+INCLUDE_DIRECTORIES( dep/glm/ )
+ADD_LIBRARY(twbullet STATIC ${BULLET_SRCGLOB})
+
+#include_directories( assimp-3/include/ )
+# set variables that are needed
+
+set(ZLIB_LIBRARIES zlibstatic)
+set(ENABLE_BOOST_WORKAROUND ON)
+set(BUILD_STATIC_LIB ON)
+set(BUILD_ASSIMP_TOOLS  ON)
+set(ASSIMP_BUILD_STATIC_LIB ON)
+
+add_subdirectory(assimp)
+#Then my top level CMakeLists.txt file looks something like this:
+#CODE: SELECT ALL
+
+#CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
+#PROJECT(HelloWorld)
+#INCLUDE_DIRECTORIES(bullet/src) # Add bullet to the user include dir
+
+#SUBDIRS(bullet/) # This line will read in the CMakeLists.txt for Bullet
+
+#FILE(GLOB ALL_SRCGLOB src/*.cpp) # all .cpp files in src/
+
+#ADD_EXECUTABLE(HelloWorld ALL_SRCGLOB) # Add all those source files to HelloWorld
+#TARGET_LINK_LIBRARIES(HelloWorld twbullet)
+
+#include(FindPkgConfig)
+#pkg_check_modules(Bullet REQUIRED bullet)
+#if(Bullet_FOUND)
+#        message("bullet is found:")
+#        message("  Bullet_INCLUDE_DIRS= ${Bullet_INCLUDE_DIRS}")
+#        message("  Bullet_LIBRARIES= ${Bullet_LIBRARIES}")
+#        message("  Bullet_LIBRARY_DIRS= ${Bullet_LIBRARY_DIRS}")
+#        link_directories(${Bullet_LIBRARY_DIRS})
+#        include_directories(${Bullet_INCLUDE_DIRS})
+#else()
+#        message("Bullet is NOT found")
+#endif()
+
+if(ANDROID)
+  add_library(suspiria SHARED
+    main.cpp
+    ${SUSPIRIA_SRCGLOB}
+    ${BULLET_SRCGLOB}
+    assimp
+    resource.qrc
+#    glwindow.h
+#    glwindow.cpp
+#    logo.h
+#    logo.cpp
+#    ${TS_FILES}
+  )
+else()
+  add_executable(suspiria
+    main.cpp
+    ${SUSPIRIA_SRCGLOB}
+    ${BULLET_SRCGLOB}
+    assimp
+    resource.qrc
+#    glwindow.h
+#    glwindow.cpp
+#    logo.h
+#    logo.cpp
+#    ${TS_FILES}
+  )
+endif()
+
+if(ANDROID)
+    target_link_libraries(suspiria PRIVATE GLESv2)
+endif()
+
+if(EMSCRIPTEN)
+  link_qt_static(suspiria)
+endif()
+
+target_link_libraries(suspiria PRIVATE Qt5::Widgets twbullet assimp)# LinearMath BulletCollision BulletDynamics )
+
+#qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
