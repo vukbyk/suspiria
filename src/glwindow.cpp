@@ -104,7 +104,7 @@ QString versionedShaderCode(const QString &src)
     if (QOpenGLContext::currentContext()->isOpenGLES())
        return versionedSrc.append("#version 300 es\n" + src);
     else
-       return versionedSrc.append("#version 330\n" + src);
+       return versionedSrc.append("#version 430\n" + src);
 }
 
 void GLWindow::initShaders()
@@ -124,11 +124,8 @@ void GLWindow::initShaders()
 
     filevertexShaderSource.close();
 
-
-//    if (!program.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/vshader.glsl"))
     if (!program.addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vsSource)))
         close();
-
 
     QFile fragmentShaderSource(":/shaders/fshader.glsl");
     if (!fragmentShaderSource.open(QIODevice::ReadOnly|QFile::Text))
@@ -142,21 +139,8 @@ void GLWindow::initShaders()
     fragmentShaderSource.close();
 
     // Compile fragment shader
-//    if (!program.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/fshader.glsl"))
     if (!program.addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(fsSource)))
         close();
-
-//    // Bind shader pipeline for use
-//    if (!program.bind())
-//        close();
-
-//    // Compile vertex shader
-//    if (!program.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/vshader.glsl"))
-//        close();
-
-//    // Compile fragment shader
-//    if (!program.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/fshader.glsl"))
-//        close();
 
     // Link shader pipeline
     if (!program.link())

@@ -26,6 +26,7 @@ QT_END_NAMESPACE
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 
+
 class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 {
     Q_OBJECT
@@ -48,13 +49,15 @@ protected:
 
     void initShaders();
 
+    void keyPressEvent(QKeyEvent *event) override;
+
 private:
 
     class Mesh *mesh;
 
     QBasicTimer timer;
-    QOpenGLShaderProgram program;
 
+    QOpenGLShaderProgram program;
     GLuint textureId;
 //    QOpenGLTexture *texture = nullptr;
     class Texture *texture = nullptr;
@@ -68,8 +71,9 @@ private:
     QQuaternion rotation;
 
     GLfloat colorBack = 0.0f;
-    void keyPressEvent(QKeyEvent *event) override;
+
 };
+
 
 #endif
 
