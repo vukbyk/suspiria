@@ -25,9 +25,9 @@ AssimpLoad::AssimpLoad(const std::string aFile):fileName(aFile)
 
     QFile file( std::string(":/assets/").append(fileName).c_str() );
     if(!file.open(QIODevice::ReadOnly))
-        qDebug("Failed to load");
+        qDebug("Failed to load file %s", fileName.c_str());
     else
-        qDebug("Izgleda uspeo");
+        qDebug("File %s is loaded", fileName.c_str());
 
     QByteArray DataFile = file.readAll();
     Assimp::Importer importer;

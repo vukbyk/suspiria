@@ -17,8 +17,6 @@ class QOpenGLVertexArrayObject;
 QT_END_NAMESPACE
 
 
-#include "geometryengine.h"
-
 #include <QOpenGLWidget>
 #include <QOpenGLExtraFunctions>
 #include <QMatrix4x4>
@@ -49,7 +47,6 @@ protected:
     void paintGL() override;
 
     void initShaders();
-    void initTextures();
 
 private:
 
@@ -58,10 +55,9 @@ private:
     QBasicTimer timer;
     QOpenGLShaderProgram program;
 
-    GeometryEngine *geometries = nullptr;
-
     GLuint textureId;
-    QOpenGLTexture *texture = nullptr;
+//    QOpenGLTexture *texture = nullptr;
+    class Texture *texture = nullptr;
 
 
     QMatrix4x4 projection;
@@ -70,6 +66,9 @@ private:
     QVector3D rotationAxis;
     qreal angularSpeed = 0;
     QQuaternion rotation;
+
+    GLfloat colorBack = 0.0f;
+    void keyPressEvent(QKeyEvent *event) override;
 };
 
 #endif

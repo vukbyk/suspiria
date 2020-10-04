@@ -6,5 +6,6 @@
         <file>assets/vulture.obj</file>
         <file>assets/cube.obj</file>
         <file>assets/vulture.png</file>
+        <file>assets/defaultXY.png</file>
     </qresource>
 </RCC>

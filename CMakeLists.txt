@@ -136,8 +136,9 @@ FILE(GLOB BULLET_SRCGLOB
 #       dep/bullet/src/BulletSoftBody/*.cpp
         dep/bullet/src/LinearMath/*.cpp
 )
-INCLUDE_DIRECTORIES( dep/glm/ )
 ADD_LIBRARY(twbullet STATIC ${BULLET_SRCGLOB})
+INCLUDE_DIRECTORIES( dep/glm/ )
+INCLUDE_DIRECTORIES( dep/stb/ )
 
 #include_directories( assimp-3/include/ )
 # set variables that are needed

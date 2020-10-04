@@ -17,8 +17,7 @@
 #include <cmath>
 #include <assimpload.h>
 #include <mesh.h>
-
-
+#include <texture.h>
 
 GLWindow::GLWindow()
 {
@@ -30,7 +29,6 @@ GLWindow::~GLWindow()
     // and the buffers.
 //    makeCurrent();
     delete texture;
-    delete geometries;
 //    doneCurrent();
 }
 
@@ -83,15 +81,13 @@ void GLWindow::initializeGL()
     glClearColor(.05, 0.2, 0.3, 1);
 
     initShaders();
-    initTextures();
+    texture = new Texture();
 
     // Enable depth buffer
     glEnable(GL_DEPTH_TEST);
 
     // Enable back face culling
     glEnable(GL_CULL_FACE);
-
-//    geometries = new GeometryEngine;
 
     AssimpLoad a("vulture.obj");
     auto mp = a.sceneMeshRendererDataCache.at("vulture.obj")[0];
@@ -113,14 +109,6 @@ QString versionedShaderCode(const QString &src)
 
 void GLWindow::initShaders()
 {
-
-//    rootEntity = new Qt3DCore::QEntity();
-//    sceneLoaderEntity = new Qt3DCore::QEntity(rootEntity);
-//    loader = new Qt3DRender::QSceneLoader(sceneLoaderEntity);
-//    loader->setObjectName("cube");
-//    sceneLoaderEntity->addComponent(loader);
-//    loader->setSource(QUrl(QString("file:../../assets/cube.obj")));
-
     // Compile vertex shader
 
 //    stream.setCodec("UTF-8");
@@ -179,42 +167,6 @@ void GLWindow::initShaders()
         close();
 }
 
-void GLWindow::initTextures()
-{
-    // Load cube.png image
-    texture = new QOpenGLTexture(QImage(":/assets/vulture.png").mirrored());
-
-
-    // Set nearest filtering mode for texture minification
-    texture->setMinificationFilter(QOpenGLTexture::Nearest);
-
-    // Set bilinear filtering mode for texture magnification
-    texture->setMagnificationFilter(QOpenGLTexture::Linear);
-
-    // Wrap texture coordinates by repeating
-    // f.ex. texture coordinate (1.1, 1.2) is same as (0.1, 0.2)
-    texture->setWrapMode(QOpenGLTexture::Repeat);
-    texture->setMipLevels(8);
-
-//    QImage qi = QImage(":/assets/vulture.png").mirrored();
-//    unsigned char *data;
-
-//    data = qi.bits();
-//    glGenTextures(1, &textureId);
-//    glBindTexture(GL_TEXTURE_2D, textureId);
-//    // set the texture wrapping/filtering options (on the currently bound texture object)
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//    int width=qi.width(), height=qi.height(), nChannels=3+qi.hasAlphaChannel();
-//    if(nChannels==3)
-//        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-//    if(nChannels==4)
-//        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-//    glGenerateMipmap(GL_TEXTURE_2D);
-}
-
 void GLWindow::resizeGL(int w, int h)
 {
     // Calculate aspect ratio
@@ -232,10 +184,14 @@ void GLWindow::resizeGL(int w, int h)
 
 void GLWindow::paintGL()
 {
+    //test
+    glClearColor(colorBack, colorBack, colorBack, 1);
+
     // Clear color and depth buffer
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    texture->bind();
+    texture->bind(0);
+
 //    glActiveTexture(GL_TEXTURE0+1);
 //    glBindTexture(GL_TEXTURE_2D, textureId);
 
@@ -251,6 +207,12 @@ void GLWindow::paintGL()
     program.setUniformValue("texture", 0);
 
     mesh->render();
-    // Draw cube geometry
-//    geometries->drawCubeGeometry(&program);
+}
+
+void GLWindow::keyPressEvent(QKeyEvent *event)
+{
+    if(event->key() == Qt::Key_R)
+    {
+        colorBack = 0.5f;
+    }
 }
