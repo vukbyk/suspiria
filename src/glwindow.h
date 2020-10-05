@@ -26,6 +26,9 @@ QT_END_NAMESPACE
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 
+//#define GLM_SWIZZLE
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 {
@@ -62,15 +65,20 @@ private:
 //    QOpenGLTexture *texture = nullptr;
     class Texture *texture = nullptr;
 
+    glm::mat4x4 gprojection;
+    glm::vec2 gmousePressPosition;
+    glm::vec3 grotationAxis;
+    glm::quat grotation;
 
-    QMatrix4x4 projection;
-
-    QVector2D mousePressPosition;
-    QVector3D rotationAxis;
-    qreal angularSpeed = 0;
-    QQuaternion rotation;
+    GLfloat gangularSpeed = 0;
 
     GLfloat colorBack = 0.0f;
+
+//    QMatrix4x4 qprojection;
+//    QVector2D qmousePressPosition;
+//    QVector3D qrotationAxis;
+//    qreal qangularSpeed = 0;
+//    QQuaternion qrotation;
 
 };
 

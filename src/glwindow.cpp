@@ -19,8 +19,16 @@
 #include <mesh.h>
 #include <texture.h>
 
+#include <glm/gtc/type_ptr.hpp>
+
 GLWindow::GLWindow()
 {
+
+    gmousePressPosition=glm::vec2(0);
+    grotationAxis = glm::vec3(1);
+    grotation = glm::quat();
+
+
 }
 
 GLWindow::~GLWindow()
@@ -35,40 +43,51 @@ GLWindow::~GLWindow()
 void GLWindow::mousePressEvent(QMouseEvent *e)
 {
     // Save mouse press position
-    mousePressPosition = QVector2D(e->localPos());
+//    qmousePressPosition = QVector2D(e->localPos());
+    gmousePressPosition = glm::vec2(e->localPos().x(), e->localPos().y());
 }
 
 void GLWindow::mouseReleaseEvent(QMouseEvent *e)
 {
     // Mouse release position - mouse press position
-    QVector2D diff = QVector2D(e->localPos()) - mousePressPosition;
-
+//    QVector2D diff = QVector2D(e->localPos()) - qmousePressPosition;
+//    QVector2D diff = QVector2D(e->localPos().x()- gmousePressPosition.x, e->localPos().y()- gmousePressPosition.y) ;
+    glm::vec2 gdiff = glm::vec2(e->localPos().x(), e->localPos().y())  - gmousePressPosition;
+//    glm::vec2 diff = glm::vec2(difff.x(), difff.y());
     // Rotation axis is perpendicular to the mouse position difference
     // vector
-    QVector3D n = QVector3D(diff.y(), diff.x(), 0.0).normalized();
-
+    QVector3D n = QVector3D(gdiff.y, gdiff.x, 0.0).normalized();
+    glm::vec3 gn = glm::normalize( glm::vec3(gdiff.y, gdiff.x, 0.0));
     // Accelerate angular speed relative to the length of the mouse sweep
-    qreal acc = diff.length() / 100.0;
-
+//    qreal acc = diff.length() / 100.0;
+    GLfloat acc = glm::length(gdiff)/100.0f;
     // Calculate new rotation axis as weighted sum
-    rotationAxis = (rotationAxis * angularSpeed + n * acc).normalized();
+//    qrotationAxis = (qrotationAxis * qangularSpeed + n * acc).normalized();
+
+    grotationAxis = glm::normalize(glm::vec3 (grotationAxis * gangularSpeed + gn * acc) );
 
     // Increase angular speed
-    angularSpeed += acc;
+//    qangularSpeed += acc;
+    gangularSpeed += acc;
 }
 
 void GLWindow::timerEvent(QTimerEvent *)
 {
     // Decrease angular speed (friction)
-    angularSpeed *= 0.99;
+//    qangularSpeed *= 0.98;
+    gangularSpeed *= 0.98;
 
     // Stop rotation when speed goes below threshold
-    if (angularSpeed < 0.01) {
-        angularSpeed = 0.0;
-    } else {
+    if (gangularSpeed < 0.01)
+    {
+        gangularSpeed = 0.0;
+    }
+    else
+    {
         // Update rotation
-        rotation = QQuaternion::fromAxisAndAngle(rotationAxis, angularSpeed) * rotation;
-
+//        qrotation = QQuaternion::fromAxisAndAngle(qrotationAxis, gangularSpeed) * qrotation;
+        grotation = glm::rotate(grotation, gangularSpeed, grotationAxis) * grotation;
+//    grotation = glm::quat(-qrotation.z(), qrotation.y(),-qrotation.x(),qrotation.scalar());
         // Request an update
         update();
     }
@@ -160,10 +179,13 @@ void GLWindow::resizeGL(int w, int h)
     const qreal zNear = 3.0, zFar = 7.0, fov = 45.0;
 
     // Reset projection
-    projection.setToIdentity();
+//    qprojection.setToIdentity();
 
     // Set perspective projection
-    projection.perspective(fov, aspect, zNear, zFar);
+//    qprojection.perspective(fov, aspect, zNear, zFar);
+    gprojection = glm::mat4(1);
+    gprojection = glm::perspective(fov, aspect, zNear, zFar);
+//    projection = QMatrix4x4( glm::value_ptr(gprojection) ).transposed();
 }
 
 void GLWindow::paintGL()
@@ -179,17 +201,32 @@ void GLWindow::paintGL()
 //    glActiveTexture(GL_TEXTURE0+1);
 //    glBindTexture(GL_TEXTURE_2D, textureId);
 
+
     // Calculate model view transformation
-    QMatrix4x4 matrix;
-    matrix.translate(0.0, 0.0, -5.0);
-    matrix.rotate(rotation);
+    glm::mat4 gmatrix = glm::mat4(1);
+    gmatrix = glm::translate(gmatrix, glm::vec3(0.0, 0.0, -5.0) );
+//    grotation = glm::quat(-rotation.z(), rotation.y(),-rotation.x(),rotation.scalar());
+    gmatrix = gmatrix * glm::toMat4(grotation);//glm::rotate(gmatrix, glm::mat4_cast(grotation));
+    glm::mat4 tmat = gprojection * gmatrix;
+    // Set modelview-projection matrix
+//    glm::mat4 glmunif = gprojection * gmatrix;
+//    QMatrix4x4 unif = QMatrix4x4( (float *) glm::value_ptr(glmunif) );
+//    program.setUniformValue("mvp_matrix", unif.transposed() );
+
+
+    // Calculate model view transformation
+//    QMatrix4x4 matrix;
+//    matrix.translate(0.0, 0.0, -5.0);
+//    matrix.rotate(qrotation);
 
     // Set modelview-projection matrix
-    program.setUniformValue("mvp_matrix", projection * matrix);
+    program.setUniformValue("mvp_matrix",  QMatrix4x4( glm::value_ptr(tmat) ).transposed());
+//    program.setUniformValue("mvp_matrix", projection * matrix);
 
     // Use texture unit 0 which contains cube.png
-    program.setUniformValue("texture", 0);
-
+//    program.setUniformValue("texture", 0);
+    GLint texLoc = program.uniformLocation("texture");
+    glUniform1i(texLoc, 0);
     mesh->render();
 }
 
