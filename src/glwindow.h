@@ -19,12 +19,9 @@ QT_END_NAMESPACE
 
 #include <QOpenGLWidget>
 #include <QOpenGLExtraFunctions>
-#include <QMatrix4x4>
-#include <QQuaternion>
-#include <QVector2D>
 #include <QBasicTimer>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLTexture>
+
+#include <shaderprogram.h>
 
 //#define GLM_SWIZZLE
 #include <glm/glm.hpp>
@@ -50,7 +47,7 @@ protected:
     void resizeGL(int w, int h) override;
     void paintGL() override;
 
-    void initShaders();
+//    void initShaders();
 
     void keyPressEvent(QKeyEvent *event) override;
 
@@ -60,26 +57,19 @@ private:
 
     QBasicTimer timer;
 
-    QOpenGLShaderProgram program;
+    ShaderProgram program;
     GLuint textureId;
 //    QOpenGLTexture *texture = nullptr;
     class Texture *texture = nullptr;
 
-    glm::mat4x4 gprojection;
-    glm::vec2 gmousePressPosition;
-    glm::vec3 grotationAxis;
-    glm::quat grotation;
+    glm::mat4x4 projection;
+    glm::vec2 mousePressPosition;
+    glm::vec3 rotationAxis;
+    glm::quat rotation;
 
     GLfloat gangularSpeed = 0;
 
     GLfloat colorBack = 0.0f;
-
-//    QMatrix4x4 qprojection;
-//    QVector2D qmousePressPosition;
-//    QVector3D qrotationAxis;
-//    qreal qangularSpeed = 0;
-//    QQuaternion qrotation;
-
 };
 
 
