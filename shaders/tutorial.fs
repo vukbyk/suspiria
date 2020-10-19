@@ -1,4 +1,9 @@
-#version 330
+#ifdef GL_ES
+// Set default precision to medium
+precision mediump int;
+precision mediump float;
+#endif
+
 out vec4 FragColor;
 
 in VSO {

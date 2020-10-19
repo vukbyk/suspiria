@@ -20,12 +20,15 @@ QT_END_NAMESPACE
 #include <QOpenGLWidget>
 #include <QOpenGLExtraFunctions>
 #include <QBasicTimer>
+#include <QTime>
 
-#include <shaderprogram.h>
+//#include <shaderprogram.h>
 
 //#define GLM_SWIZZLE
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
+
+#include "spacial.h"
 
 class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 {
@@ -47,19 +50,22 @@ protected:
     void resizeGL(int w, int h) override;
     void paintGL() override;
 
-//    void initShaders();
-
     void keyPressEvent(QKeyEvent *event) override;
+
+    void setViewMat();
+    void setProjectionMat();
 
 private:
 
+    class ShaderProgram *shaderProgram;
+
     class Mesh *mesh;
+    class Model *model;
 
     QBasicTimer timer;
 
-    ShaderProgram program;
+//    ShaderProgram shaderProgram;
     GLuint textureId;
-//    QOpenGLTexture *texture = nullptr;
     class Texture *texture = nullptr;
 
     glm::mat4x4 projection;
@@ -67,11 +73,23 @@ private:
     glm::vec3 rotationAxis;
     glm::quat rotation;
 
-    GLfloat gangularSpeed = 0;
+    GLfloat angularSpeed = 0;
 
     GLfloat colorBack = 0.0f;
-};
 
+    Spacial scene;
+
+    class Camera *camera;
+
+    // Set near plane to 3.0, far plane to 7.0, field of view 45 degrees
+    GLfloat zNear = 0.3f;
+    GLfloat zFar = 100.0f;
+    GLfloat fov = 45.0f;
+
+    QTime m_t0;
+
+    QTime m_t1;
+};
 
 #endif
 

@@ -14,12 +14,26 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include "shaderprogram.h"
+#include "model.h"
+#include "camera.h"
+
 GLWindow::GLWindow()
 {
+    zNear = 0.3f;
+    zFar = 100.0f;
 
     mousePressPosition=glm::vec2(0);
     rotationAxis = glm::vec3(1);
     rotation = glm::quat();
+
+    m_t1 = QTime::currentTime();
+    shaderProgram = new ShaderProgram();
+    camera = new Camera();
+//    camera->getTransform().setPosition(glm::vec3(0.0, 0.0, -5.0) );
+//    camera->getTransform().setRotation(glm::vec3(.2,0,0));
+    camera->getTransform().moveForward(3.0);
+//    camera->getTransform().rotate(glm::vec3(-.2,0,0));
 }
 
 GLWindow::~GLWindow()
@@ -34,22 +48,33 @@ GLWindow::~GLWindow()
 void GLWindow::initializeGL()
 {
     initializeOpenGLFunctions();
+    using namespace glm;
 
     glClearColor(.05, 0.2, 0.3, 1);
 
-    program.initShaders();
+    shaderProgram->initShaders("shader");
 
     texture = new Texture();
+
+    Model *room = new Model("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
+    room->getTransform().setPosition(vec3( 0.0, 0.0, 0.0));
+    room->getTransform().setScale( vec3(30.0, 30.0, 30.0));
+    scene.addChild(room);
+
+    Model *bike = new Model("vulture.obj", "brickwall.jpg", "brickwall_normal.jpg");
+    bike->getTransform().setPosition(vec3( 0.0, 0.0, 0.0));
+    bike->getTransform().setScale( vec3(30.0, 30.0, 30.0));
+    scene.addChild(bike);
+
+//    AssimpLoad a("vulture.obj");
+//    auto mp = a.sceneMeshRendererDataCache.at("vulture.obj")[0];
+//    mesh=mp.mesh;
 
     // Enable depth buffer
     glEnable(GL_DEPTH_TEST);
 
     // Enable back face culling
     glEnable(GL_CULL_FACE);
-
-    AssimpLoad a("vulture.obj");
-    auto mp = a.sceneMeshRendererDataCache.at("vulture.obj")[0];
-    mesh=mp.mesh;
 
     // Use QBasicTimer because its faster than QTimer
     timer.start(12, this);
@@ -58,14 +83,11 @@ void GLWindow::initializeGL()
 void GLWindow::resizeGL(int w, int h)
 {
     // Calculate aspect ratio
-    qreal aspect = qreal(w) / qreal(h ? h : 1);
-
-    // Set near plane to 3.0, far plane to 7.0, field of view 45 degrees
-    const qreal zNear = 0.3f, zFar = 7.0f, fov = 45.0f;
+    GLfloat aspect = GLfloat(w) / GLfloat(h ? h : 1);
 
     // Reset projection
-//    qprojection.setToIdentity();
     projection = glm::mat4(1);
+    //    qprojection.setToIdentity();
 
     // Set perspective projection
     projection = glm::perspective(fov, aspect, zNear, zFar);
@@ -85,33 +107,58 @@ void GLWindow::paintGL()
 //    glActiveTexture(GL_TEXTURE0+1);
 //    glBindTexture(GL_TEXTURE_2D, textureId);
 
-
-    // Calculate model view transformation
-    glm::mat4 gmatrix = glm::mat4(1);
-    gmatrix = glm::translate(gmatrix, glm::vec3(0.0, 0.0, -5.0) );
-//    grotation = glm::quat(-rotation.z(), rotation.y(),-rotation.x(),rotation.scalar());
-    gmatrix = gmatrix * glm::toMat4(rotation);//glm::rotate(gmatrix, glm::mat4_cast(grotation));
-    glm::mat4 tmat = projection * gmatrix;
-    // Set modelview-projection matrix
-//    glm::mat4 glmunif = gprojection * gmatrix;
-//    QMatrix4x4 unif = QMatrix4x4( (float *) glm::value_ptr(glmunif) );
-//    program.setUniformValue("mvp_matrix", unif.transposed() );
-
-
-    // Calculate model view transformation
-//    QMatrix4x4 matrix;
-//    matrix.translate(0.0, 0.0, -5.0);
-//    matrix.rotate(qrotation);
-
-    // Set modelview-projection matrix
-    program.setUniformValue("mvp_matrix",  QMatrix4x4( glm::value_ptr(tmat) ).transposed());
-//    program.setUniformValue("mvp_matrix", projection * matrix);
+    setProjectionMat();
+    setViewMat();
+//    GLint modelTransMat = glGetUniformLocation(shaderProgram->programId(),"model");
+//    glm::mat4 modelTempMat = glm::mat4(1);
+//    glUniformMatrix4fv(modelTransMat, 1, GL_FALSE, &modelTempMat[0][0]);//&mtm[0][0]);
 
     // Use texture unit 0 which contains cube.png
-//    program.setUniformValue("texture", 0);
-    GLint texLoc = program.uniformLocation("texture");
+//    program.setUniformValue("texture", 0); //Qt Alternative
+    GLint texLoc = shaderProgram->uniformLocation("uv");
     glUniform1i(texLoc, 0);
-    mesh->render();
+//    mesh->render();
+//    model->renderAll();
+    scene.renderAll();
+
+//    m_t1 = QTime::currentTime();
+//    int curDelta = m_t0.msecsTo(m_t1);
+//    m_t0 = m_t1;
+
+//    qDebug()<< curDelta;
+}
+
+void GLWindow::setProjectionMat()
+{
+    const float w = width();
+    const float h = height();
+    float aspect =w/h;
+    glm::mat4 projection = glm::perspective(glm::degrees(fov), aspect, zNear, zFar);
+    GLint projectionid = glGetUniformLocation(shaderProgram->programId(), "projection");
+    glUniformMatrix4fv(projectionid, 1, GL_FALSE, &projection[0][0]);
+}
+
+void GLWindow::setViewMat()
+{
+
+    GLint camPos=glGetUniformLocation(shaderProgram->programId(),"viewPos");;
+    const glm::vec3 v = camera->getTransform().getPosition();
+    glUniform3fv(camPos, 1, &v[0]);
+
+    GLint view = glGetUniformLocation(shaderProgram->programId(),"view");
+//    window.input.getKeyModState();
+
+//    if(window.getInput()->getMouseWheel().y)
+//        camera->getTransform().moveForward(window.getInput()->getMouseWheel().y);
+
+//    vec2 rotator(window.getInput()->getMouseDelta().y * glm::radians(0.5f), window.getInput()->getMouseDelta().x * glm::radians(0.5f));
+//    camera->getTransform().addYawPitch(vec3(rotator,0));
+
+    glUniformMatrix4fv(view, 1, GL_FALSE, glm::value_ptr(camera->getTransform().getCameraTransformMatrix()) );//&mtm[0][0]);
+
+//    glm::mat4 vi = camera->getTransform().getCameraTransformMatrix();
+//    shaderProgram->setUniformValue("view",
+//                             QMatrix4x4(glm::value_ptr(vi)).transposed());
 }
 
 void GLWindow::keyPressEvent(QKeyEvent *event)
@@ -145,29 +192,29 @@ void GLWindow::mouseReleaseEvent(QMouseEvent *e)
     // Calculate new rotation axis as weighted sum
 //    qrotationAxis = (qrotationAxis * qangularSpeed + n * acc).normalized();
 
-    rotationAxis = glm::normalize(glm::vec3 (rotationAxis * gangularSpeed + n * acc) );
+    rotationAxis = glm::normalize(glm::vec3 (rotationAxis * angularSpeed + n * acc) );
 
     // Increase angular speed
 //    qangularSpeed += acc;
-    gangularSpeed += acc;
+    angularSpeed += acc;
 }
 
 void GLWindow::timerEvent(QTimerEvent *)
 {
     // Decrease angular speed (friction)
 //    qangularSpeed *= 0.98;
-    gangularSpeed *= 0.98;
+    angularSpeed *= 0.98;
 
     // Stop rotation when speed goes below threshold
-    if (gangularSpeed < 0.01)
+    if (angularSpeed < 0.01)
     {
-        gangularSpeed = 0.0;
+        angularSpeed = 0.0;
     }
     else
     {
         // Update rotation
 //        qrotation = QQuaternion::fromAxisAndAngle(qrotationAxis, gangularSpeed) * qrotation;
-        rotation = glm::rotate(rotation, gangularSpeed, rotationAxis) * rotation;
+        rotation = glm::rotate(rotation, angularSpeed, rotationAxis) * rotation;
 //        grotation = glm::quat(-qrotation.z(), qrotation.y(),-qrotation.x(),qrotation.scalar());
         // Request an update
         update();

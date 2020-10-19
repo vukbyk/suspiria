@@ -1,11 +1,26 @@
 <RCC>
     <qresource prefix="/">
         <file>assets/cube.png</file>
-        <file>shaders/vshader.glsl</file>
-        <file>shaders/fshader.glsl</file>
         <file>assets/vulture.obj</file>
         <file>assets/cube.obj</file>
         <file>assets/vulture.png</file>
         <file>assets/defaultXY.png</file>
+        <file>assets/bricks2_normal.jpg</file>
+        <file>assets/bricks2_specular.png</file>
+        <file>assets/bricks2.jpg</file>
+        <file>assets/brickwall_normal.jpg</file>
+        <file>assets/brickwall_normal.png</file>
+        <file>assets/brickwall.jpg</file>
+        <file>assets/default_specular.jpg</file>
+        <file>assets/defaultComplex.png</file>
+        <file>assets/defaultNormal.png</file>
+        <file>assets/defaultrgba.png</file>
+        <file>assets/exoalbedo.jpg</file>
+        <file>assets/exoskelet_Exoskelet_BaseColor.png</file>
+        <file>assets/exoskelet_Exoskelet_Normal.png</file>
+        <file>assets/exoskelet_Exoskelet_OcclusionRoughnessMetallic.png</file>
+        <file>assets/qtlogo.png</file>
+        <file>assets/Vulture_Diffuse.alpha_normal.jpg</file>
+        <file>assets/Vulture_Diffuse.alpha.png</file>
     </qresource>
 </RCC>

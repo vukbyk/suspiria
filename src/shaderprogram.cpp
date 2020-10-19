@@ -2,6 +2,14 @@
 
 #include "shaderprogram.h"
 
+ShaderProgram::ShaderProgram()
+{
+}
+
+ShaderProgram::ShaderProgram(const std::string &shaderName)
+{
+    initShaders(shaderName);
+}
 
 QString versionedShaderCode(const QString &src)
 {
@@ -13,12 +21,13 @@ QString versionedShaderCode(const QString &src)
        return versionedSrc.append("#version 430\n" + src);
 }
 
-void ShaderProgram::initShaders()
+void ShaderProgram::initShaders(const std::string &shaderName)
 {
     // Compile vertex shader
 
 //    stream.setCodec("UTF-8");
-    QFile filevertexShaderSource(":/shaders/vshader.glsl");
+//    QFile filevertexShaderSource(std::string(":/shaders/vshader.glsl").c_str());
+    QFile filevertexShaderSource(std::string(":/shaders/").append(shaderName).append(".vs").c_str());
     if (!filevertexShaderSource.open(QIODevice::ReadOnly|QFile::Text))
     {
         qDebug() << "Can not open file ";
@@ -35,7 +44,8 @@ void ShaderProgram::initShaders()
         qDebug() << "Error: Vertex shader, versionedShaderCode(vsSource)";
 //        close();
     }
-    QFile fragmentShaderSource(":/shaders/fshader.glsl");
+//    QFile fragmentShaderSource(std::string(":/shaders/fshader.glsl").c_str());
+    QFile fragmentShaderSource(std::string(":/shaders/").append(shaderName).append(".fs").c_str());
     if (!fragmentShaderSource.open(QIODevice::ReadOnly|QFile::Text))
     {
         qDebug() << "Can not open file ";

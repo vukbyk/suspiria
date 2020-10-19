@@ -4,6 +4,7 @@
 Mesh::Mesh(const Vertex vertices[], const GLuint vertSize, const GLuint indices[], const GLuint indexSize)
 {
     initializeOpenGLFunctions();
+    initializeOpenGLFunctions();
     createMesh(vertices, vertSize, indices, indexSize);
 }
 
@@ -33,7 +34,7 @@ void Mesh::createMesh(const Vertex vertices[], const GLuint vertSize, const GLui
 
     glGenBuffers(1, &IBO);                                                                      // gl generisi bafer          |EBO|
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);                                                 // state machine to  [EAB] -> |EBO|
-//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(acubei), acubei, GL_STATIC_DRAW);                   //                   [EAB] -> |EBO|-> {________index___data________}
+//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(acubei), acubei, GL_STATIC_DRAW);            //                   [EAB] -> |EBO|-> {________index___data________}
 
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize * sizeof(GLuint), indices, GL_STATIC_DRAW);
 //    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize * sizeof(GLuint), indices, GL_STATIC_DRAW);

@@ -1,4 +1,8 @@
-#version 330
+#ifdef GL_ES
+// Set default precision to medium
+precision mediump int;
+precision mediump float;
+#endif
 
 in layout (location = 0) vec3 pos;
 in layout (location = 1) vec2 uv;
@@ -42,7 +46,7 @@ void main()
 
     gl_Position = projection * view * model * vec4(pos, 1.0);
 
-    lightPosition = vec3(light[3].xyz);
+    lightPosition = vec3(0,4,4);//light[3].xyz);
     vec3 viewPosition = viewPos;
 //    vec3 viewPosition = vec3(view[3].xyz);//??? maybe have to send real data????
 

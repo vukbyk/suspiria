@@ -1,26 +1,10 @@
 #include "glwindow.h"
 
 #include <QApplication>
-//#include "dependencies/assimp/include/assimp/scene.h"
-//#include <Qt3DRender/QSceneLoader>
-
-//#include <assimp/scene.h>
-//#include <assimp/Importer.hpp>
-//#include <assimp/postprocess.h>
-
-#include <string>
-#include <QFile>
-#include <QFileInfo>
-#include <QMessageBox>
 
 #include <btBulletDynamicsCommon.h>
 #include <btBulletCollisionCommon.h>
 //# include " btBulletDynamicsCommon .h"
-
-#include <iostream>
-#include <fstream>
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
 
 void bulletTestCopyFromMain();
 
@@ -29,13 +13,12 @@ int main(int argc, char *argv[])
 //    bulletTestCopyFromMain();
     QGuiApplication app(argc, argv);
     app.setApplicationName("Suspiria");
-
 //    app.setApplicationVersion("0.1");
 
     QSurfaceFormat format;
     format.setDepthBufferSize(24);
 
-    // Request OpenGL 3.3 core or OpenGL ES 3.0.
+    // Request OpenGL 4.3 core or OpenGL ES 3.0.
     if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL)
     {
         qDebug("Requesting 4.3 core context");
@@ -51,8 +34,11 @@ int main(int argc, char *argv[])
     QSurfaceFormat::setDefaultFormat(format);
 
     GLWindow glWindow;
-    glWindow.show();/*Maximized*/
+    glWindow.setWidth(1024);
+    glWindow.setHeight(768);
+    glWindow.show();//Maximized();
     glWindow.update();
+
     return app.exec();
 }
 

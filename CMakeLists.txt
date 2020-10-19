@@ -184,6 +184,7 @@ if(ANDROID)
     ${BULLET_SRCGLOB}
     assimp
     resource.qrc
+    shaders.qrc
 #    glwindow.h
 #    glwindow.cpp
 #    logo.h
@@ -197,6 +198,7 @@ else()
     ${BULLET_SRCGLOB}
     assimp
     resource.qrc
+    shaders.qrc
 #    glwindow.h
 #    glwindow.cpp
 #    logo.h

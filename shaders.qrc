@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/new/prefix1"/>
+    <qresource prefix="/">
+        <file>shaders/shader.fs</file>
+        <file>shaders/shader.vs</file>
+        <file>shaders/tutorial.fs</file>
+        <file>shaders/tutorial.vs</file>
+    </qresource>
+</RCC>
