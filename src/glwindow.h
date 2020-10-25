@@ -57,6 +57,7 @@ protected:
 
 private:
 
+    class Scene *scene;
     class ShaderProgram *shaderProgram;
 
     class Mesh *mesh;
@@ -76,8 +77,6 @@ private:
     GLfloat angularSpeed = 0;
 
     GLfloat colorBack = 0.0f;
-
-    Spacial scene;
 
     class Camera *camera;
 

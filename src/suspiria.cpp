@@ -33,18 +33,18 @@ Suspiria::Suspiria()
     lastFrame = 0;
     dt=0.000001f;
 //    shaderProgram = new ShaderProgram();//vert_src, frag_src);
-    camera = new Camera();
-    light = new Light(shaderProgram);
+//    camera = new Camera();
+//    light = new Light(shaderProgram);
     light->getTransform().setPosition(vec3(0.0, 0.0, -4.46));
-    addChild(light);
+//    addChild(light);
 }
 
 Suspiria::~Suspiria()
 {
-    for (auto Entity: children)
-    {
-        delete Entity;
-    }
+//    for (auto Entity: children)
+//    {
+//        delete Entity;
+//    }
 }
 
 void Suspiria::init()
@@ -66,7 +66,7 @@ void Suspiria::init()
     Model *room = new Model("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
     room->getTransform().setPosition(vec3( 0.0, 0.0, 0.0));
     room->getTransform().setScale( vec3(30.0, 30.0, 30.0));
-    addChild(room);
+//    addChild(room);
 
 //    Model *cube = new Model("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");//, "AncientUgandan.png");
 //    cube->getTransform().setPosition(vec3( 0.0, 0.0, -5.0));
@@ -74,31 +74,26 @@ void Suspiria::init()
 
     Model *vul = new Model("vulture.obj", "vulture.png", "Vulture_Diffuse.alpha_normal.jpg");
     vul->getTransform().setPosition(vec3(-2.0, 0.0, -3.0));
-    addChild(vul);
+//    addChild(vul);
 
     Model *vult = new Model("vulture.obj", "vulture.png", "Vulture_Diffuse.alpha_normal.jpg");
     vult->getTransform().setPosition(vec3(-2.0, 0.0, 3.0));
-    addChild(vult);
+//    addChild(vult);
 
 //    Model *model = new Model("AncientUgandan.obj", "AncientUgandan.png");
 //    model->getTransform().setPosition(vec3( 2.0, 0.0, -3.0));
 //    addChild(model);
 
-
-
 //    Model *sphare = new Model("megamars1od4.obj", "mars8kcompress.png");//, "marsnormal.png");
     Model *sphare = new Model("sphare.obj", "mars8kcompress.png", "marsnormal.png");
     sphare->getTransform().setPosition(vec3( 6.0, 0.0, -2.0));
 //    sphare->getTransform().setScale( vec3(0.001, 0.001, 0.001));
-    addChild(sphare);
+//    addChild(sphare);
 
 }
 
 void Suspiria::renderAll()
 {
-
-
-    GLint modelTransMat = glGetUniformLocation(shaderProgram->programId(),"model");
 
     GLint texLoc;
     texLoc = glGetUniformLocation(shaderProgram->programId(), "albedoTexture");
@@ -109,12 +104,12 @@ void Suspiria::renderAll()
 
     //Model
 
-    for (auto Entity: children)
-    {
-        glm::mat4 modelTempMat = Entity->getTransform().getTransformMatrix();
-        glUniformMatrix4fv(modelTransMat, 1, GL_FALSE, &modelTempMat[0][0]);//&mtm[0][0]);
-        Entity->renderAll();
-    }
+//    for (auto Entity: children)
+//    {
+//        glm::mat4 modelTempMat = Entity->getTransform().getTransformMatrix();
+//        glUniformMatrix4fv(modelTransMat, 1, GL_FALSE, &modelTempMat[0][0]);//&mtm[0][0]);
+//        Entity->renderAll();
+//    }
 }
 
 void Suspiria::loop()
@@ -143,7 +138,6 @@ void Suspiria::loop()
 //        light->getTransform().moveForward(lmoveSpeed * dt);
 //        light->getTransform().moveRight(lstrafeSpeed * dt);
 //        light->getTransform().moveUp(lupSpeed * dt);
-
 
         setViewMat();
         light->getTransform().getTransformMatrix();

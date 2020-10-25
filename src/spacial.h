@@ -16,23 +16,19 @@ class Spacial: protected QOpenGLExtraFunctions
 {
 protected:
     Transform transform;
+//    std::vector<Spacial *> children;
+
 //    glm::mat4 worldMatrix;
-
     Spacial *parentSpacial;
-
-    std::vector<Spacial *> children;
-
 //    Engine *sceene;
 
 public:
-//    Spacial(const std::string &tag);
     Spacial();
     virtual ~Spacial();
 
     void addChild(Spacial *child);
 
-//    virtual void updateAll(Input *input);
-    virtual void renderAll() const;
+    virtual void renderAll() {};
 
     std::vector<Spacial *> getChildren(void);
     glm::vec3 getPosition(void);
@@ -40,7 +36,12 @@ public:
     glm::vec4 getDirection(void);
 
     Transform &getTransform(void);
-//    glm::mat4 &getWorldMatrix(void);
 
+    Spacial *getParentSpacial() const;
+    void setParentSpacial(Spacial *value);
+
+//    glm::mat4 &getWorldMatrix(void);
 //    const GLfloat *getValuePtr();
+//    virtual void updateAll(Input *input);
+
 };

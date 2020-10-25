@@ -15,6 +15,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "shaderprogram.h"
+#include "scene.h"
 #include "model.h"
 #include "camera.h"
 
@@ -29,6 +30,7 @@ GLWindow::GLWindow()
 
     m_t1 = QTime::currentTime();
     shaderProgram = new ShaderProgram();
+    scene= new Scene(shaderProgram);
     camera = new Camera();
 //    camera->getTransform().setPosition(glm::vec3(0.0, 0.0, -5.0) );
 //    camera->getTransform().setRotation(glm::vec3(.2,0,0));
@@ -57,14 +59,14 @@ void GLWindow::initializeGL()
     texture = new Texture();
 
     Model *room = new Model("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
-    room->getTransform().setPosition(vec3( 0.0, 0.0, 0.0));
-    room->getTransform().setScale( vec3(30.0, 30.0, 30.0));
-    scene.addChild(room);
+    room->getTransform().setPosition(vec3( 0.0, 0.0, -15.0));
+    room->getTransform().setScale( vec3(12.0, 12.0, 12.0));
+    scene->addChild(room);
 
-    Model *bike = new Model("vulture.obj", "brickwall.jpg", "brickwall_normal.jpg");
-    bike->getTransform().setPosition(vec3( 0.0, 0.0, 0.0));
-    bike->getTransform().setScale( vec3(30.0, 30.0, 30.0));
-    scene.addChild(bike);
+    Model *bike = new Model("vulture.obj", "vulture.png", "brickwall_normal.jpg");
+    bike->getTransform().setPosition(vec3( -1.0, 0.0, 0.0));
+    bike->getTransform().setScale( vec3(1.0, 1.0, 1.0));
+    scene->addChild(bike);
 
 //    AssimpLoad a("vulture.obj");
 //    auto mp = a.sceneMeshRendererDataCache.at("vulture.obj")[0];
@@ -102,7 +104,7 @@ void GLWindow::paintGL()
     // Clear color and depth buffer
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    texture->bind(0);
+//    texture->bind(0);
 
 //    glActiveTexture(GL_TEXTURE0+1);
 //    glBindTexture(GL_TEXTURE_2D, textureId);
@@ -115,11 +117,13 @@ void GLWindow::paintGL()
 
     // Use texture unit 0 which contains cube.png
 //    program.setUniformValue("texture", 0); //Qt Alternative
-    GLint texLoc = shaderProgram->uniformLocation("uv");
-    glUniform1i(texLoc, 0);
+//    GLint texLoc = shaderProgram->uniformLocation("uv");
+//    glUniform1i(texLoc, 0);
 //    mesh->render();
 //    model->renderAll();
-    scene.renderAll();
+//    GLint view = glGetUniformLocation(shaderProgram->programId(),"view");
+    scene->setModel( glGetUniformLocation(shaderProgram->programId(),"model") );
+    scene->renderAll();
 
 //    m_t1 = QTime::currentTime();
 //    int curDelta = m_t0.msecsTo(m_t1);
@@ -146,6 +150,9 @@ void GLWindow::setViewMat()
     glUniform3fv(camPos, 1, &v[0]);
 
     GLint view = glGetUniformLocation(shaderProgram->programId(),"view");
+
+//    GLint model = glGetUniformLocation(shaderProgram->programId(),"model");
+
 //    window.input.getKeyModState();
 
 //    if(window.getInput()->getMouseWheel().y)

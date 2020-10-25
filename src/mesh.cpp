@@ -4,7 +4,6 @@
 Mesh::Mesh(const Vertex vertices[], const GLuint vertSize, const GLuint indices[], const GLuint indexSize)
 {
     initializeOpenGLFunctions();
-    initializeOpenGLFunctions();
     createMesh(vertices, vertSize, indices, indexSize);
 }
 

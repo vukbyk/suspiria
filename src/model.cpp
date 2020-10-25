@@ -41,7 +41,7 @@ Model::~Model()
 //    delete mesh;
 }
 
-void Model::renderAll() const
+void Model::renderAll()
 {
 //    if(material)
         material->bind();

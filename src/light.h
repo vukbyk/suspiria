@@ -5,7 +5,7 @@
 
 class Light: public Spacial
 {
-    class ShaderProgram *shaderProgram=nullptr;
+    class ShaderProgram *shaderProgram = nullptr;
 public:
     Light(ShaderProgram *aShaderProgram);
     void renderAll();

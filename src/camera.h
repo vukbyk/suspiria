@@ -8,10 +8,7 @@ class Camera : public Spacial
 {
 public:
     glm::mat4 getViewMatrix(void) const;
-
     virtual ~Camera(void) {}
-
-
 
 //    Transform &moveForward(const float f);
 //    glm::vec3 getForward(void) const;

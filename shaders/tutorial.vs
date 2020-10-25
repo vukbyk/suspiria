@@ -9,7 +9,6 @@ in layout (location = 1) vec2 uv;
 in layout (location = 2) vec3 nor;
 in layout (location = 3) vec3 tng;
 in layout (location = 4) vec3 bit;
-//in layout (location = 4) vec3 bit;
 
 uniform mat4 model;
 uniform mat4 view;
