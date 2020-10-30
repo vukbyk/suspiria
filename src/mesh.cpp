@@ -84,5 +84,5 @@ void Mesh::createMesh(const Vertex vertices[], const GLuint vertSize, const GLui
 void Mesh::render(void)
 {
     glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, indicesSize, GL_UNSIGNED_INT, (void*)0);
+    glDrawElements(GL_TRIANGLES, indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
 }

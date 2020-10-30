@@ -6,8 +6,9 @@
 #include <model.h>
 
 
-Spacial::Spacial()
+Spacial::Spacial():transform()
 {
+    parentSpacial = nullptr;
     //    initializeOpenGLFunctions();
 }
 

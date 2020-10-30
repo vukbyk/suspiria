@@ -1,22 +1,6 @@
-#ifndef GLWINDOW_H
-#define GLWINDOW_H
+#pragma once
 
 #include <QOpenGLWindow>
-#include <QMatrix4x4>
-#include <QVector3D>
-
-#include <QOpenGLFunctions>
-
-QT_BEGIN_NAMESPACE
-
-class QOpenGLTexture;
-class QOpenGLShaderProgram;
-class QOpenGLBuffer;
-class QOpenGLVertexArrayObject;
-
-QT_END_NAMESPACE
-
-
 #include <QOpenGLWidget>
 #include <QOpenGLExtraFunctions>
 #include <QBasicTimer>
@@ -42,15 +26,18 @@ public:
 //    float col=0.0f;
 
 protected:
+    void timerEvent(QTimerEvent *e) override;
     void mousePressEvent(QMouseEvent *e) override;
     void mouseReleaseEvent(QMouseEvent *e) override;
-    void timerEvent(QTimerEvent *e) override;
 
+    void paintGL() override;
     void initializeGL() override;
     void resizeGL(int w, int h) override;
-    void paintGL() override;
 
+    bool event(QEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *mouseEvent) override;
 
     void setViewMat();
     void setProjectionMat();
@@ -58,27 +45,25 @@ protected:
 private:
 
     class Scene *scene;
-    class ShaderProgram *shaderProgram;
-
+    class Camera *camera;
+    class Light *light;
     class Mesh *mesh;
     class Model *model;
+    class Texture *texture = nullptr;
+    class ShaderProgram *shaderProgram;
+
+    unsigned int hdrFBO;
+    unsigned int colorBuffer;
+    unsigned int rboDepth;
+
+    GLuint textureId;
 
     QBasicTimer timer;
-
-//    ShaderProgram shaderProgram;
-    GLuint textureId;
-    class Texture *texture = nullptr;
 
     glm::mat4x4 projection;
     glm::vec2 mousePressPosition;
     glm::vec3 rotationAxis;
     glm::quat rotation;
-
-    GLfloat angularSpeed = 0;
-
-    GLfloat colorBack = 0.0f;
-
-    class Camera *camera;
 
     // Set near plane to 3.0, far plane to 7.0, field of view 45 degrees
     GLfloat zNear = 0.3f;
@@ -86,12 +71,13 @@ private:
     GLfloat fov = 45.0f;
 
     QTime m_t0;
-
     QTime m_t1;
+
+    QMap<GLint, GLboolean> keys;
+    glm::ivec2 mouseDelta = glm::ivec2(-1,-1);
+    glm::ivec2 lastMousePosition = glm::ivec2(-1,-1);
+    glm::ivec2 mouseWheel = glm::ivec2(-1,-1);
 };
-
-#endif
-
 
 ////Minimal
 //#include <QOpenGLWindow>

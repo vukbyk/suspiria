@@ -1,10 +1,7 @@
 #pragma once
 
-//#include "Material.h"
-//#include "Texture.h"
 #include "mesh.h"
 
-//#include "Entity.h"
 #include <string>
 #include <map>
 #include <vector>

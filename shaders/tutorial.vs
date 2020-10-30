@@ -14,7 +14,7 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 light;
-uniform vec3 viewPos;
+//uniform vec3 viewPos;
 
 
 //uniform mat4 transforms[3];
@@ -35,33 +35,39 @@ out vec3 tg;
 out vec3 bi;
 
 out vec3 lightPosition;
+out vec3 viewPosition;
+out vec3 normalTest;
 
 void main()
 {
-    vso.FragPos = vec3(model * vec4(pos, 1.0));
-    vso.uvFrag=uv;
-    nrm=nor;
-    tg=tng;
+    normalTest = nor; //To DELETE
 
-    gl_Position = projection * view * model * vec4(pos, 1.0);
 
-    lightPosition = vec3(0,4,4);//light[3].xyz);
-    vec3 viewPosition = viewPos;
+    lightPosition = vec3(light[3].xyz);
+    viewPosition = -1*vec3(view[3].xyz);
 //    vec3 viewPosition = vec3(view[3].xyz);//??? maybe have to send real data????
 
+    vso.FragPos = vec3(model * vec4(pos, 1.0));
+    vso.uvFrag=uv;
+//    nrm=nor;
+//    tg=tng;
+//    bi=bit;
+
     mat3 normalMatrix = transpose(inverse(mat3(model)));
+
     vec3 T = normalize(normalMatrix * tng);
     vec3 N = normalize(normalMatrix * nor);
-//    T = normalize(T - dot(T, N) * N);
+    T = normalize(T - dot(T, N) * N);
     vec3 B = normalize(normalMatrix * bit);
+
 //    B = normalize(B - dot(B, T) * T);
 //    vec3 B = cross(N, T);
-//    bi=bit;
 
     mat3 TBN = transpose(mat3(T, B, N));
 
     vso.TangentLightPos = TBN * lightPosition;
-    vso.TangentViewPos  = TBN * viewPos;
+    vso.TangentViewPos  = TBN * viewPosition;
     vso.TangentFragPos  = TBN * vso.FragPos;
 
+    gl_Position = projection * view * model * vec4(pos, 1.0);
 }

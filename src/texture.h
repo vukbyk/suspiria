@@ -7,7 +7,7 @@
 class Texture: protected QOpenGLExtraFunctions
 {
     GLuint textureId;
-    GLenum textureTarget;
+//    GLenum textureTarget;
 
 //    std::shared_ptr<TextureData> textureData;
 public:

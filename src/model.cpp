@@ -19,8 +19,8 @@ Model::Model(const char *aMeshPath, const char *aAlbedoPath, const char *aNormal
 {
 //    "defaultNormal.png"
 //    std::string texturePath = aTexturePath;
-    Texture *albedo = new Texture(aAlbedoPath);//, GL_TEXTURE_2D, GL_LINEAR);
-    Texture *normal = new Texture(aNormalPath);//, GL_TEXTURE_2D, GL_LINEAR);
+    Texture *albedo = new Texture(aAlbedoPath);//GL_TEXTURE_2D, GL_LINEAR);
+    Texture *normal = new Texture(aNormalPath);//GL_TEXTURE_2D, GL_LINEAR);
     material = new Material(albedo, normal);
 //    setMaterial(tex);
 
@@ -38,7 +38,7 @@ Model::Model(const char *aMeshPath, const char *aAlbedoPath, const char *aNormal
 Model::~Model()
 {
     delete material;
-//    delete mesh;
+    delete mesh;
 }
 
 void Model::renderAll()

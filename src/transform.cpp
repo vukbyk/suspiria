@@ -106,7 +106,7 @@ glm::mat4 Transform::getTransformMatrix(void) const
 
 glm::mat4 Transform::getCameraTransformMatrix(void) const
 {
-    return glm::toMat4(rotation) * glm::translate(position) * glm::scale(scale);
+    return glm::toMat4(rotation) * glm::translate(position);
 }
 
 glm::vec4 Transform::getDirection(void) const

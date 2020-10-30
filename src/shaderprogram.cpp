@@ -75,4 +75,8 @@ void ShaderProgram::initShaders(const std::string &shaderName)
         qDebug() << "Error: Shader program bind!";
 //        close();
     }
+    initializeOpenGLFunctions();
+
+    glUniform1i(glGetUniformLocation(programId(), "albedoTexture"), 0);
+    glUniform1i(glGetUniformLocation(programId(), "normalTexture"), 1);
 }

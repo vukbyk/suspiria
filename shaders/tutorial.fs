@@ -14,27 +14,55 @@ in VSO {
     vec3 TangentFragPos;
 } fsi;
 
-in vec3 bi;
-
 uniform sampler2D albedoTexture;
 uniform sampler2D normalTexture;
 
-uniform vec3 lightPos;
-uniform vec3 viewPos;
+in vec3 lightPosition;
+in vec3 viewPosition;
+
+in vec3 normalTest;
+
+float far=100;
+float near = .3;
+
+float LinearizeDepth(float depth)
+{
+    float z = depth * 2.0 - 1.0; // back to NDC
+    return (2.0 * near * far) / (far + near - z * (far - near));
+}
 
 void main()
 {
-    vec3 lightColor = vec3(15.0,15.0,15.0);
+    vec3 lightColor = vec3(2.0, 1.8, 1.4);
 
-    float dist = length(fsi.TangentFragPos-fsi.TangentLightPos);
-    float attenuation = 1.0 / (dist /* * dist*/);
+//    float depth = LinearizeDepth(gl_FragCoord.z) / far; // divide by far for demonstration
+//    vec3 result = vec3(1,1,1)-vec3(depth);// To DELETE
 
+//    //Test: no normals
+//    vec3 colorT = texture(albedoTexture, fsi.uvFrag).rgb;
+//    vec3 ambientt = 0.1 * colorT;
+//    vec3 relVecT = lightPosition - fsi.FragPos;
+//    float distT = length(relVecT);
+
+//    vec3 lightDirT = normalize(relVecT);
+//    vec3 nnormalTest = normalize(normalTest);
+//    float diffintensT = max(dot(nnormalTest, lightDirT), 0.0);
+
+//    float attenuationT = 1 / (distT);// * distT);
+//    float diffT = diffintensT * attenuationT;
+
+//    result = diffT * colorT * lightColor;
+//    FragColor = vec4(texture(normalTexture, fsi.uvFrag).rgb, 1);//vec4(result, 1);
+//    //TEST
+
+    float dist = length(fsi.TangentFragPos - fsi.TangentLightPos);
+    float attenuation = 1.0 / (dist);// * dist );
 
      // obtain normal from normal map in range [0,1]
     vec3 normal = texture(normalTexture, fsi.uvFrag).rgb;
     // transform normal vector to range [-1,1]
     normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
-    normal*=vec3(1.0, -1.0, 1.0);
+//    normal*= vec3(1.0, -1.0, 1.0);
 
     // get diffuse color
     vec3 color = texture(albedoTexture, fsi.uvFrag).rgb;
@@ -47,21 +75,22 @@ void main()
     float diffIntensity = max(dot(lightDir, normal), 0.0) ;
     vec3 diffuse = diffIntensity * color * lightColor * attenuation;
 
-
     // specular
+//    vec3 viewDir = normalize(fsi.TangentViewPos - fsi.TangentFragPos);
     vec3 viewDir = normalize(fsi.TangentViewPos - fsi.TangentFragPos);
     vec3 reflectDir = reflect(-lightDir, normal);
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
+    vec3 specular = vec3(0.1) * spec * lightColor;
 
-    vec3 specular = vec3(0.2) * spec;
-
-//    vec4 aten = vec4(1.0 / (ambient + diffuse * dist + spec * (dist * dist)), 1.0);
+//    result = texture(albedoTexture, fsi.uvFrag).rgb;
+    //    vec4 aten = vec4(1.0 / (ambient + diffuse * dist + spec * (dist * dist)), 1.0);
     FragColor = vec4(ambient + diffuse + specular, 1.0);
+//    FragColor = vec4(result, 1);
 
-
-//    FragColor = vec4(bi , 1) ;
-//    FragColor = vec4(len,0,0,0);
+    //FragColor = vec4(ambient + diffuse , 1.0);
+    //    FragColor = vec4(bi , 1) ;
+    //    FragColor = vec4(len,0,0,0);
 }
 
 ////in vec3 FragPos;

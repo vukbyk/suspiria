@@ -1,5 +1,9 @@
 #include "camera.h"
 
+Camera::Camera()
+{
+    transform.setPosition(glm::vec3(0,0,0));
+}
 //glm::mat4 Camera::getViewMatrix(void) const
 //{
 ////    return glm::inverse(getCameraTransformMatrix());
