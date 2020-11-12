@@ -58,7 +58,6 @@ GLWindow::~GLWindow()
     // Make sure the context is current when deleting the texture
     // and the buffers.
 //    makeCurrent();
-    delete texture;
 //    doneCurrent();
 }
 
@@ -71,13 +70,18 @@ void GLWindow::initializeGL()
     shaderProgram->initShaders("tutorial");
     scene->setModel( glGetUniformLocation(shaderProgram->programId(),"model") );
 
-    texture = new Texture();
-
     Model *room = new Model("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
 //    Model *room = new Model("cube.obj", "white.png");
     room->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -20.0f) );
     room->getTransform().setScale( glm::vec3(12.0f, 12.0f, 12.0f) );
     scene->addChild(room);
+
+    Model *exo = new Model("cube.obj", "exoalbedo.jpg", "exoskelet_Exoskelet_Normal.png");
+//    Model *room = new Model("cube.obj", "white.png");
+    exo->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -2.0f) );
+    exo->getTransform().setScale( glm::vec3(2.0f, 2.0f, 2.0f) );
+    scene->addChild(exo);
+
 
 //    Model *sphare = new Model("sphare.obj", "white.png");//, "brickwall_normal.jpg");
 //    sphare->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -20.0f) );

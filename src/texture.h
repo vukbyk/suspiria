@@ -11,7 +11,7 @@ class Texture: protected QOpenGLExtraFunctions
 
 //    std::shared_ptr<TextureData> textureData;
 public:
-    Texture(const std::string &fileName="defaultXY.png");//, GLenum textureTarget = GL_TEXTURE_2D, GLfloat filter = GL_LINEAR);
+    Texture(const std::string &fileName="defaultXY.png", const bool gammaCorrection=false );//, GLenum textureTarget = GL_TEXTURE_2D, GLfloat filter = GL_LINEAR);
     ~Texture();
 
     void bind(GLushort unit);

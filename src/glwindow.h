@@ -49,7 +49,6 @@ private:
     class Light *light;
     class Mesh *mesh;
     class Model *model;
-    class Texture *texture = nullptr;
     class ShaderProgram *shaderProgram;
 
     unsigned int hdrFBO;

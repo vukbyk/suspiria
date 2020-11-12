@@ -4,11 +4,11 @@ precision mediump int;
 precision mediump float;
 #endif
 
-in layout (location = 0) vec3 pos;
-in layout (location = 1) vec2 uv;
-in layout (location = 2) vec3 nor;
-in layout (location = 3) vec3 tng;
-in layout (location = 4) vec3 bit;
+layout (location = 0) in vec3 pos;
+layout (location = 1) in vec2 uv;
+layout (location = 2) in vec3 nor;
+layout (location = 3) in vec3 tng;
+layout (location = 4) in vec3 bit;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -19,13 +19,19 @@ uniform mat4 light;
 
 //uniform mat4 transforms[3];
 //uniform uint index;
-out VSO {
-    vec3 FragPos;
-    vec2 uvFrag;
-    vec3 TangentLightPos;
-    vec3 TangentViewPos;
-    vec3 TangentFragPos;
-} vso;
+//out VSO {
+//    vec3 outFragPos;
+//    vec2 outuvFrag;
+//    vec3 outTangentLightPos;
+//    vec3 outTangentViewPos;
+//    vec3 outTangentFragPos;
+//} vso;
+
+out vec3 FragPos;
+out vec2 uvFrag;
+out vec3 TangentLightPos;
+out vec3 TangentViewPos;
+out vec3 TangentFragPos;
 
 //out vec3 FragPos;
 //out vec2 uvFrag;
@@ -44,11 +50,11 @@ void main()
 
 
     lightPosition = vec3(light[3].xyz);
-    viewPosition = -1*vec3(view[3].xyz);
+    viewPosition = -1.0 * vec3(view[3].xyz);
 //    vec3 viewPosition = vec3(view[3].xyz);//??? maybe have to send real data????
 
-    vso.FragPos = vec3(model * vec4(pos, 1.0));
-    vso.uvFrag=uv;
+    FragPos = vec3(model * vec4(pos, 1.0));
+    uvFrag=uv;
 //    nrm=nor;
 //    tg=tng;
 //    bi=bit;
@@ -65,9 +71,9 @@ void main()
 
     mat3 TBN = transpose(mat3(T, B, N));
 
-    vso.TangentLightPos = TBN * lightPosition;
-    vso.TangentViewPos  = TBN * viewPosition;
-    vso.TangentFragPos  = TBN * vso.FragPos;
+    TangentLightPos = TBN * lightPosition;
+    TangentViewPos  = TBN * viewPosition;
+    TangentFragPos  = TBN * FragPos;
 
     gl_Position = projection * view * model * vec4(pos, 1.0);
 }

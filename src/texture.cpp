@@ -6,7 +6,7 @@
 
 
 
-Texture::Texture(const std::string &fileName)//, GLenum aTextureTarget, GLfloat filter)
+Texture::Texture(const std::string &fileName, const bool gammaCorrection)//, GLenum aTextureTarget, GLfloat filter)
 {
     initializeOpenGLFunctions();
     stbi_set_flip_vertically_on_load(true);
@@ -24,29 +24,59 @@ Texture::Texture(const std::string &fileName)//, GLenum aTextureTarget, GLfloat 
     unsigned char *data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(DataFile.data()), DataFile.size(), &width, &height, &nChannels, 0);
 
     if (data == NULL)
+    {
         qDebug("Unable to load texture: %s", fileName.c_str());
+        return;
+    }
 
-        glGenTextures(1, &textureId);
-        glBindTexture(GL_TEXTURE_2D, textureId);
-        if(nChannels==3)
-        {
-            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB16F, width, height);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
-    //        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-    //        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-    //        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        }
-        if(nChannels==4)
-        {
-            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, width, height);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    //        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-    //        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-    //        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        }
 
-//    glGenTextures(1, &textureId);
-//    glBindTexture(GL_TEXTURE_2D, textureId);
+
+    GLenum internalFormat=0;
+    GLenum dataFormat = GL_RGB;
+    if (nChannels == 1)
+    {
+        internalFormat = dataFormat = GL_RED;
+    }
+    else if (nChannels == 3)
+    {
+        internalFormat = gammaCorrection ? GL_RGB8 : GL_RGB8;
+        dataFormat = GL_RGB;
+    }
+    else if (nChannels == 4)
+    {
+        internalFormat = gammaCorrection ? GL_RGBA8 : GL_RGBA8;
+        dataFormat = GL_RGBA;
+    }
+    else
+    {
+        qDebug("Unable to load texture, there is no solution if number of channels is %i", nChannels);
+        return;
+    }
+
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data);
+
+//    glTexStorage2D(GL_TEXTURE_2D, 1, internalFormat, width, height);
+//    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, internalFormat, GL_UNSIGNED_BYTE, data);
+//
+//    if(nChannels==3)
+//    {
+//        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB16F, width, height);
+//        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+////        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+////        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+////        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+//    }
+//    if(nChannels==4)
+//    {
+//        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, width, height);
+//        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+////        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+////        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+////        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+//    }
+//
 //    if(nChannels==3)
 //    {
 //        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, width, height);
@@ -63,22 +93,19 @@ Texture::Texture(const std::string &fileName)//, GLenum aTextureTarget, GLfloat 
 ////        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 ////        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 //    }
-
-
+//
 //    if(nChannels==3)
 //        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 //    if(nChannels==4)
 //        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
-    // set the texture wrapping/filtering options (on the currently bound texture object)
+
+//     set the texture wrapping/filtering options (on the currently bound texture object)
     glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-
-
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     stbi_image_free(data);
 
