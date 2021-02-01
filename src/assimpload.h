@@ -8,10 +8,10 @@
 
 #include <assimp/scene.h>
 
-struct AssetData
-{
-    class Mesh *mesh;
-};
+//struct AssetData
+//{
+//    class Mesh *mesh;
+//};
 
 class AssimpLoad
 {
@@ -24,5 +24,5 @@ private:
     const std::string fileName;
 
 public:
-    static std::map<std::string, std::vector<AssetData>> sceneMeshRendererDataCache;
+    static std::map<std::string, std::vector<class Mesh*>> sceneMeshRendererDataCache;
 };

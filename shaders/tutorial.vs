@@ -1,7 +1,7 @@
 #ifdef GL_ES
 // Set default precision to medium
-precision mediump int;
-precision mediump float;
+precision highp int;
+precision highp float;
 #endif
 
 layout (location = 0) in vec3 pos;
@@ -33,9 +33,6 @@ out vec3 TangentLightPos;
 out vec3 TangentViewPos;
 out vec3 TangentFragPos;
 
-//out vec3 FragPos;
-//out vec2 uvFrag;
-
 out vec3 nrm;
 out vec3 tg;
 out vec3 bi;
@@ -55,9 +52,6 @@ void main()
 
     FragPos = vec3(model * vec4(pos, 1.0));
     uvFrag=uv;
-//    nrm=nor;
-//    tg=tng;
-//    bi=bit;
 
     mat3 normalMatrix = transpose(inverse(mat3(model)));
 

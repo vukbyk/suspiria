@@ -1,3 +1,5 @@
+#For try to make wasm file smmaller change to 3.9
+#cmake_minimum_required(VERSION 3.9)
 cmake_minimum_required(VERSION 3.5)
 
 project(suspiria LANGUAGES CXX)
@@ -5,6 +7,10 @@ project(suspiria LANGUAGES CXX)
 if(EMSCRIPTEN)
 #    set(CMAKE_TOOLCHAIN_FILE="/home/vuk/Desktop/Install/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
     include(wasm.cmake)
+    ##wsam file size include
+    #include(CheckIPOSupported)
+    #check_ipo_supported(RESULT supported OUTPUT error)
+    #wsam file size include
 endif()
 
 INCLUDE_DIRECTORIES(
@@ -177,7 +183,15 @@ add_subdirectory(assimp)
 #        message("Bullet is NOT found")
 #endif()
 
+#message("!!!!!!PORUKA!!!!!!!!!!1")
+
+#else()
+#        message("!!!!!!!!EST ELSE!!!!!!!")
+#endif()
+
+
 if(ANDROID)
+  message("EMSCRIPTEN build")
   add_library(suspiria SHARED
     main.cpp
     ${SUSPIRIA_SRCGLOB}
@@ -191,7 +205,24 @@ if(ANDROID)
 #    logo.cpp
 #    ${TS_FILES}
   )
+elseif(EMSCRIPTEN)
+  message("EMSCRIPTEN build")
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+  add_executable(suspiria
+    main.cpp
+    ${SUSPIRIA_SRCGLOB}
+    ${BULLET_SRCGLOB}
+    assimp
+    resource.qrc
+    shaders.qrc
+  #    glwindow.h
+  #    glwindow.cpp
+  #    logo.h
+  #    logo.cpp
+  #    ${TS_FILES}
+  )
 else()
+  message("DEFAULT build")
   add_executable(suspiria
     main.cpp
     ${SUSPIRIA_SRCGLOB}
@@ -205,6 +236,14 @@ else()
 #    logo.cpp
 #    ${TS_FILES}
   )
+#    #wsam file size
+#    if( supported )
+#        message(STATUS "IPO / LTO enabled")
+#        set_property(TARGET suspiria PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+#    else()
+#        message(STATUS "IPO / LTO not supported: <${error}>")
+#    endif()
+    #wsam file size
 endif()
 
 if(ANDROID)
@@ -213,6 +252,7 @@ endif()
 
 if(EMSCRIPTEN)
   link_qt_static(suspiria)
+  set_target_properties(suspiria PROPERTIES LINK_FLAGS "-s TOTAL_MEMORY=2GB")
 endif()
 
 target_link_libraries(suspiria PRIVATE Qt5::Widgets twbullet assimp)# LinearMath BulletCollision BulletDynamics )

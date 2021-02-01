@@ -1,15 +1,23 @@
 #include "glwindow.h"
 
 #include <QApplication>
+#include <QDebug>
 
+#include "suspiria.h"
 #include <btBulletDynamicsCommon.h>
 #include <btBulletCollisionCommon.h>
 //# include " btBulletDynamicsCommon .h"
+
+
+#include <QLoggingCategory>
 
 void bulletTestCopyFromMain();
 
 int main(int argc, char *argv[])
 {
+    //Disable QML debug level logging
+//    QLoggingCategory::setFilterRules("*.debug=false");
+
 //    bulletTestCopyFromMain();
     QGuiApplication app(argc, argv);
     app.setApplicationName("Suspiria");
@@ -31,8 +39,16 @@ int main(int argc, char *argv[])
         format.setVersion(3, 0);
     }
 
+//    setSurfaceType(QWindow::OpenGLSurface);
+
+    // Set the number of samples used for multisampling
+    format.setSamples(4);
+    // Turn off vertsync format.setSwapInterval(0)
+    format.setSwapInterval(0);
+
     QSurfaceFormat::setDefaultFormat(format);
 
+//    Suspiria engine;
     GLWindow glWindow;
     glWindow.setWidth(1024);
     glWindow.setHeight(768);

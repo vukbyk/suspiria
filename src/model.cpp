@@ -29,10 +29,16 @@ Model::Model(const char *aMeshPath, const char *aAlbedoPath, const char *aNormal
 //    meshPath += aMeshPath;
     AssimpLoad a(aMeshPath);
     auto mp = a.sceneMeshRendererDataCache.at(aMeshPath)[0];
-    setMesh(mp.mesh);
+    setMesh(mp);
 
 //    getTransform().setPosition(glm::vec3(-2.0, 0.0, -3.0));
-//    addChild(model);
+    //    addChild(model);
+}
+
+Model::Model(Material *aMaterial, Mesh *aMesh)
+{
+    material=aMaterial;
+    mesh=aMesh;
 }
 
 Model::~Model()

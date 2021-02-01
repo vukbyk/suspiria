@@ -1,7 +1,7 @@
 #ifdef GL_ES
 // Set default precision to medium
-precision mediump int;
-precision mediump float;
+precision highp int;
+precision highp float;
 #endif
 
 out vec4 FragColor;
@@ -28,18 +28,18 @@ in vec3 viewPosition;
 
 in vec3 normalTest;
 
-float far=100.0;
-float near = .3;
-
-float LinearizeDepth(float depth)
-{
-    float z = depth * 2.0 - 1.0; // back to NDC
-    return (2.0 * near * far) / (far + near - z * (far - near));
-}
+//float far=100.0;
+//float near = .3;
+//
+//float LinearizeDepth(float depth)
+//{
+//    float z = depth * 2.0 - 1.0; // back to NDC
+//    return (2.0 * near * far) / (far + near - z * (far - near));
+//}
 
 void main()
 {
-    vec3 lightColor = vec3(1.0, 1.0, 1.0)*4.0;
+    vec3 lightColor = vec3(1.0, 1.0, 1.0)*50.0;
 
 //    float depth = LinearizeDepth(gl_FragCoord.z) / far; // divide by far for demonstration
 //    vec3 result = vec3(1,1,1)-vec3(depth);// To DELETE
@@ -62,7 +62,7 @@ void main()
 //    //TEST
 
     float dist = length(TangentFragPos - TangentLightPos);
-    float attenuation = 1.0 / (dist);// * dist );
+    float attenuation = 1.0 / ( dist * dist );
 
      // obtain normal from normal map in range [0,1]
     vec3 normal = texture(normalTexture, uvFrag).rgb;
@@ -71,10 +71,14 @@ void main()
 //    normal*= vec3(1.0, -1.0, 1.0);
 
     // get diffuse color
+
     vec3 color = texture(albedoTexture, uvFrag).rgb;
+//    const float gamma = 2.2;             //instead of SRGB default 2.2
+//    color = pow(color, vec3( gamma));    //instead of SRGB,
+//    color = pow(color, vec3(1.0/gamma) );// 1.0/gamma for brigthen up
 
     // ambient
-    vec3 ambient = 0.2 * color;
+    vec3 ambient = 0.1 * color;
 
     // diffuse
     vec3 lightDir = normalize(TangentLightPos - TangentFragPos);
@@ -87,74 +91,16 @@ void main()
     vec3 reflectDir = reflect(-lightDir, normal);
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
-    vec3 specular = vec3(0.75) * spec * lightColor * attenuation;
+    vec3 specular = vec3(.75) * spec * lightColor * attenuation;
 
 //    result = texture(albedoTexture, uvFrag).rgb;
     //    vec4 aten = vec4(1.0 / (ambient + diffuse * dist + spec * (dist * dist)), 1.0);
     FragColor = vec4(ambient + diffuse + specular, 1.0);
+
+
 //    FragColor = vec4(result, 1);
 
     //FragColor = vec4(ambient + diffuse , 1.0);
     //    FragColor = vec4(bi , 1) ;
     //    FragColor = vec4(len,0,0,0);
 }
-
-////in vec3 FragPos;
-////in vec2 uvFrag;
-//in vec3 nrm;
-//in vec3 tg;
-//in vec3 bi;
-//in vec3 lightPosition;
-//in mat3 TBN;
-
-//uniform float unif;
-//uniform vec4 ourColor;
-
-//void main()
-//{
-//    float ambientStrength = 0.2;
-//    vec3 lightColor = vec3(1.0,1.0,1.0);
-//    vec3 ambient = lightColor * ambientStrength;
-////    vec3 result = ambient * albedoTexture;
-////    FragColor = vec4(ambient, 1.0);
-////    FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-////    vec4 fc=texture(albedoTexture, fuv) * ambientStrength;
-////    FragColor = fc * vec4(1.0, 1.0, 1.0, 1.0)
-
-
-////    vec3 lightPos = vec3(0.3, 0.3, -4.47);
-//    vec3 lightPos = lightPosition;
-//    vec3 nnrm = normalize(nrm);
-
-//    // obtain normal from normal map in range [0,1]
-//    vec3 normal = texture(normalTexture, uvFrag).rgb;
-//    // transform normal vector to range [-1,1]
-//    normal = normalize(normal * 2.0 - 1.0);
-//    normal*=vec3(1.0, -1.0, 1.0);
-
-//    vec3 toLightDir = normalize(lightPos - FragPos);
-
-//    vec3 lightOrientation = normalize(vec3(0.0, .5, 3.5));
-////    nnrm = TBN * normal;
-//    nnrm=normalize(nrm);
-
-//    float diff = max(dot(nnrm, toLightDir), 0.0);
-//    if (dot(lightOrientation, toLightDir) < -1)//-1 for pointlight ~0.9 spotlight
-//        diff = 0.0;
-
-//    vec3 diffuse = diff * lightColor;
-
-//    vec3 result = (ambientStrength + diffuse);
-////    FragColor = vec4(normal,1.0);
-////    FragColor = vec4(0.66, 0.66, 0.66, 1.0) * vec4(result, 1.0);
-//    FragColor = texture(albedoTexture, uvFrag) * vec4(result, 1.0);
-////    FragColor = texture(/*albedoTexture*/normalTexture, uvFrag) * vec4(result, 1.0);
-////    FragColor = mix(texture(albedoTexture, uvFrag), texture(normalTexture, uvFrag), 0.2);
-////    FragColor = texture(albedoTexture, uvFrag) * ambientStrength;
-////    FragColor = vec4(nnrm , 1) ; //show normal
-////    FragColor = vec4(tg , 1) ; //show tangent
-////    FragColor = vec4(TBN. , 1) ;
-////     FragColor = vec4(fuv.xyx, 1.0);
-////     FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-////     FragColor = ourColor;
-//}

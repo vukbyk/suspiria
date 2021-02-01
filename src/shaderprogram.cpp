@@ -23,6 +23,8 @@ QString versionedShaderCode(const QString &src)
 
 void ShaderProgram::initShaders(const std::string &shaderName)
 {
+    initializeOpenGLFunctions();
+
     // Compile vertex shader
 
 //    stream.setCodec("UTF-8");
@@ -68,15 +70,16 @@ void ShaderProgram::initShaders(const std::string &shaderName)
         qDebug() << "Error: Shader program link!";
 //        close();
     }
+}
 
+void ShaderProgram::bindShader()
+{
     // Bind shader pipeline for use
     if (!bind())
     {
         qDebug() << "Error: Shader program bind!";
 //        close();
     }
-    initializeOpenGLFunctions();
-
     glUniform1i(glGetUniformLocation(programId(), "albedoTexture"), 0);
     glUniform1i(glGetUniformLocation(programId(), "normalTexture"), 1);
 }

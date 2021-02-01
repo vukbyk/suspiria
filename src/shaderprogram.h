@@ -9,4 +9,5 @@ public:
     ShaderProgram();
     ShaderProgram(const std::string &shaderName);
     void initShaders(const std::string &shaderName);
+    void bindShader();
 };

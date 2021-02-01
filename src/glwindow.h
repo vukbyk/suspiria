@@ -30,9 +30,9 @@ protected:
     void mousePressEvent(QMouseEvent *e) override;
     void mouseReleaseEvent(QMouseEvent *e) override;
 
-    void paintGL() override;
     void initializeGL() override;
     void resizeGL(int w, int h) override;
+    void paintGL() override;
 
     bool event(QEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
@@ -45,15 +45,13 @@ protected:
 private:
 
     class Scene *scene;
+    class Scene *skyScene;
     class Camera *camera;
     class Light *light;
     class Mesh *mesh;
     class Model *model;
     class ShaderProgram *shaderProgram;
-
-    unsigned int hdrFBO;
-    unsigned int colorBuffer;
-    unsigned int rboDepth;
+    class ShaderProgram *skyShaderProgram;
 
     GLuint textureId;
 
@@ -78,26 +76,3 @@ private:
     glm::ivec2 mouseWheel = glm::ivec2(-1,-1);
 };
 
-////Minimal
-//#include <QOpenGLWindow>
-//#include <QOpenGLExtraFunctions>
-
-//class GeometryEngine;
-
-//class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
-//{
-//    Q_OBJECT
-
-//public:
-//    using QOpenGLWindow::QOpenGLWindow;
-//    ~GLWindow();
-
-//protected:
-
-//    void initializeGL() override;
-//    void paintGL() override;
-
-//private:
-//};
-
-//#endif // MAINWINDOW_H

@@ -15,10 +15,11 @@
 
 #include <iostream>
 #include <fstream>
+#include "mesh.h"
 
 
 // TODO: refactor this to load on a seperate thread.
-std::map<std::string, std::vector<AssetData>> AssimpLoad::sceneMeshRendererDataCache;
+std::map<std::string, std::vector<Mesh*>> AssimpLoad::sceneMeshRendererDataCache;
 
 AssimpLoad::AssimpLoad(const std::string aFile):fileName(aFile)
 {
@@ -39,6 +40,7 @@ AssimpLoad::AssimpLoad(const std::string aFile):fileName(aFile)
     if (!scene)
     {
         qDebug("Failed to load mesh: %s", file.symLinkTarget().toStdString().c_str());
+        return;
     }
     else
     {
@@ -88,8 +90,8 @@ void AssimpLoad::loadScene(const aiScene* scene)
             indices.push_back(face.mIndices[2]);
         }
 
-        AssetData meshRenderData;
-        meshRenderData.mesh = new Mesh(&vertices[0], vertices.size(), &indices[0], indices.size());
+        Mesh* meshRenderData;
+        meshRenderData = new Mesh(&vertices[0], vertices.size(), &indices[0], indices.size());
         AssimpLoad::sceneMeshRendererDataCache[fileName].push_back(meshRenderData);
     }
 }

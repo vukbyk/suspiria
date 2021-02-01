@@ -5,6 +5,13 @@
 #include <QFile>
 
 
+#ifdef GL_ES_VERSION_2_0
+    #include <qopengles2ext.h>
+    #define GL_RED					0x1903
+    #define GL_RGB8					0x8051
+    #define GL_SRGB8                          0x8C41
+#endif
+
 
 Texture::Texture(const std::string &fileName, const bool gammaCorrection)//, GLenum aTextureTarget, GLfloat filter)
 {
@@ -35,16 +42,16 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection)//, GLe
     GLenum dataFormat = GL_RGB;
     if (nChannels == 1)
     {
-        internalFormat = dataFormat = GL_RED;
+        internalFormat = dataFormat = GL_RED_BITS;
     }
     else if (nChannels == 3)
     {
-        internalFormat = gammaCorrection ? GL_RGB8 : GL_RGB8;
+        internalFormat = gammaCorrection ? GL_SRGB8 : GL_RGB8;
         dataFormat = GL_RGB;
     }
     else if (nChannels == 4)
     {
-        internalFormat = gammaCorrection ? GL_RGBA8 : GL_RGBA8;
+        internalFormat = gammaCorrection ? GL_SRGB8_ALPHA8_EXT : GL_RGBA;
         dataFormat = GL_RGBA;
     }
     else
@@ -101,7 +108,7 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection)//, GLe
 
 
 //     set the texture wrapping/filtering options (on the currently bound texture object)
-    glGenerateMipmap(GL_TEXTURE_2D);
+//    glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);

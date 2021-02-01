@@ -5,5 +5,7 @@
         <file>shaders/shader.vs</file>
         <file>shaders/tutorial.fs</file>
         <file>shaders/tutorial.vs</file>
+        <file>shaders/sky.fs</file>
+        <file>shaders/sky.vs</file>
     </qresource>
 </RCC>

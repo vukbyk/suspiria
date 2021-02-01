@@ -18,9 +18,9 @@ Material::Material(const char *aAlbedoPath, const char *aNormalPath)
 
 Material::~Material()
 {
+    delete albedo;
+    delete normal;
 }
-
-
 
 void Material::bind()
 {

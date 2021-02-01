@@ -98,10 +98,10 @@ glm::quat Transform::getRotation(void) const
 {
     return rotation;
 }
-
+//TODO: optimise
 glm::mat4 Transform::getTransformMatrix(void) const
 {
-    return glm::translate(position) * glm::toMat4(rotation) * glm::scale(scale);
+    return glm::translate(position) * glm::toMat4(rotation)* glm::scale(scale);
 }
 
 glm::mat4 Transform::getCameraTransformMatrix(void) const
