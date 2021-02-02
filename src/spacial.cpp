@@ -27,10 +27,10 @@ glm::vec3 Spacial::getPosition(void)
     return transform.getPosition();
 }
 
-glm::vec4 Spacial::getDirection(void)
-{
-    return transform.getDirection();
-}
+//glm::vec4 Spacial::getDirection(void)
+//{
+//    return transform.getDirection();
+//}
 
 Spacial *Spacial::getParentSpacial() const
 {

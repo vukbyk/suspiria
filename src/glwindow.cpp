@@ -23,6 +23,7 @@
 #include "light.h"
 #include "material.h"
 #include "mesh.h"
+#include "assimpload.h"
 
 
 #ifdef GL_ES_VERSION_2_0
@@ -110,21 +111,27 @@ void GLWindow::initializeGL()
 //    Model *bike = new Model("vulture.obj", "vulture.png", "Vulture_Diffuse.alpha_normal.jpg");
 
     Material *matBike = new Material("vulture.png", "Vulture_Diffuse.alpha_normal.jpg" );
+    Mesh *modBike= new Mesh("vulture.obj") ;
 
-    Mesh *modBike= new Mesh("vulture.obj") ;//= a.sceneMeshRendererDataCache.at(aMeshPath)[0];
+
+
     for(int i=0; i<100; i++)
     {
-        for(int j=0; j<40; j++)
+        for(int j=0; j<70; j++)
         {
             Model *bike = new Model(matBike, modBike);
             bike->getTransform().setPosition( glm::vec3(-100.0f+i*3, 0.0f, -100.0f+j*6) );
             bike->getTransform().setScale( glm::vec3(1.0f, 1.0f, 1.0f) );
-            //bike->getTransform().rotate( glm::vec3(glm::radians(45.0f),
-            //                                           glm::radians(45.0f),
-            //                                           glm::radians(45.0f)));
+//            //bike->getTransform().rotate( glm::vec3(glm::radians(45.0f),
+//            //                                           glm::radians(45.0f),
+//            //                                           glm::radians(45.0f)));
             scene->addChild(bike);
         }
     }
+
+//    delete matBike;
+//    delete modBike;
+
     // Enable depth buffer
     glEnable(GL_DEPTH_TEST);
 

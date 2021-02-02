@@ -43,8 +43,6 @@ out vec3 normalTest;
 
 void main()
 {
-    normalTest = nor; //To DELETE
-
 
     lightPosition = vec3(light[3].xyz);
     viewPosition = -1.0 * vec3(view[3].xyz);

@@ -13,6 +13,13 @@
 #include "qlogging.h"
 
 //need to add CPU version. Most of this is moved from assimpload
+Mesh::Mesh(Mesh &other)
+{
+    VAO = other.VAO;
+    VBO = other.VBO;
+    IBO = other.IBO;
+}
+
 Mesh::Mesh(const std::string fileName)
 {
     initializeOpenGLFunctions();
@@ -34,6 +41,8 @@ Mesh::Mesh(const std::string fileName)
         qDebug("Failed to load mesh: %s", file.symLinkTarget().toStdString().c_str());
         return;
     }
+    else
+        qDebug("Suicess to load mesh: %s", file.symLinkTarget().toStdString().c_str());
 
     for (unsigned int i = 0;i < scene->mNumMeshes; i++)
     {
@@ -70,7 +79,7 @@ Mesh::Mesh(const std::string fileName)
         }
         createMesh(&vertices[0], vertices.size(), &indices[0], indices.size());
     }
-    qDebug("Suicess to load mesh: %s", file.symLinkTarget().toStdString().c_str());
+
 }
 
 

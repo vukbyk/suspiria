@@ -39,10 +39,9 @@ void Scene::renderAll()
     initializeOpenGLFunctions();
     for (auto child : children)
     {
-        child->getPosition();
-
-        glm::mat4 modelTempMat = child->getTransform().getTransformMatrix();
-        glUniformMatrix4fv(model, 1, GL_FALSE, &modelTempMat[0][0]);//&mtm[0][0]);
+//        child->getPosition();
+//        glm::mat4 modelTempMat = child->getTransform().getTransformMatrix();
+        glUniformMatrix4fv(model, 1, GL_FALSE, &(child->getTransform().getTransformMatrix())[0][0]);//&modelTempMat[0][0]);//&mtm[0][0]);
         child->renderAll();
     }
 }

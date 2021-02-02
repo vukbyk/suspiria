@@ -12,6 +12,9 @@
 //#include <glm/glm.hpp>
 //#include <glm/gtc/quaternion.hpp>
 
+#include <LinearMath/btTransform.h>
+#include <LinearMath/btVector3.h>
+
 class Spacial: protected QOpenGLExtraFunctions
 {
 protected:
@@ -33,7 +36,7 @@ public:
     std::vector<Spacial *> getChildren(void);
     glm::vec3 getPosition(void);
 
-    glm::vec4 getDirection(void);
+//    glm::vec4 getDirection(void);
 
     Transform &getTransform(void);
 

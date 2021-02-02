@@ -8,12 +8,8 @@
 Model::Model(): Spacial()
 {
     mesh = nullptr;
+    material = nullptr;
 }
-
-
-//Model::Model(const char *aMeshPath)
-//{
-
 
 Model::Model(const char *aMeshPath, const char *aAlbedoPath, const char *aNormalPath)
 {

@@ -17,6 +17,7 @@
 class Mesh: protected QOpenGLExtraFunctions
 {
 public:
+    Mesh(Mesh &other);
     Mesh(const std::string aFile);
     Mesh(const Vertex vertices[], const  GLuint vertSize, const  GLuint indices[],const  GLuint indexSize);
     virtual ~Mesh(void);

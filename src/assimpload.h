@@ -8,11 +8,6 @@
 
 #include <assimp/scene.h>
 
-//struct AssetData
-//{
-//    class Mesh *mesh;
-//};
-
 class AssimpLoad
 {
 public:
