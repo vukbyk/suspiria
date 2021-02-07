@@ -36,8 +36,6 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection)//, GLe
         return;
     }
 
-
-
     GLenum internalFormat=0;
     GLenum dataFormat = GL_RGB;
     if (nChannels == 1)

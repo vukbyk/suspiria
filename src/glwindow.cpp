@@ -1,4 +1,4 @@
-#include "glwindow.h"
+﻿#include "glwindow.h"
 
 //#include <QOpenGLShaderProgram>
 //#include <QOpenGLBuffer>
@@ -41,7 +41,7 @@ GLWindow::GLWindow()
     timer.start(1, this);
 
     zNear = 0.3f;
-    zFar = 500.0f;
+    zFar = 1500.0f;
 
     mousePressPosition=glm::vec2(0);
     rotationAxis = glm::vec3(1);
@@ -86,22 +86,22 @@ void GLWindow::initializeGL()
     skyScene->setModel( glGetUniformLocation(skyShaderProgram->programId(),"model") );
 
     Model *skyCube = new Model("invertCube.obj", "brickwall.jpg", "brickwall_normal.jpg");
-//    Model *room = new Model("cube.obj", "white.png");
-    skyCube->getTransform().setPosition( glm::vec3(0.0f, 0.0f, 0.0f) );
-    skyCube->getTransform().setScale( glm::vec3(50.0f, 50.0f, 50.0f) );
+//    skyCube->getTransform().setOrigin(btVector3(0,0,0));
+//    skyCube->getTransform().setPosition( glm::vec3(0.0f, 0.0f, 0.0f) );
+//    skyCube->getTransform().setScale( glm::vec3(50.0f, 50.0f, 50.0f) );
     skyScene->addChild(skyCube);
 
-    Model *cube = new Model("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
-//    Model *room = new Model("cube.obj", "white.png");
-    cube->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -20.0f) );
-    cube->getTransform().setScale( glm::vec3(12.0f, 12.0f, 12.0f) );
-    scene->addChild(cube);
+//    Model *cube = new Model("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
+////    Model *room = new Model("cube.obj", "white.png");
+//    cube->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -20.0f) );
+//    cube->getTransform().setScale( glm::vec3(12.0f, 12.0f, 12.0f) );
+//    scene->addChild(cube);
 
-    Model *exo = new Model("cube.obj", "exoalbedo.jpg", "exoskelet_Exoskelet_Normal.png");
-//    Model *room = new Model("cube.obj", "white.png");
-    exo->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -2.0f) );
-    exo->getTransform().setScale( glm::vec3(2.0f, 2.0f, 2.0f) );
-    scene->addChild(exo);
+//    Model *exo = new Model("cube.obj", "exoalbedo.jpg", "exoskelet_Exoskelet_Normal.png");
+////    Model *room = new Model("cube.obj", "white.png");
+//    exo->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -2.0f) );
+//    exo->getTransform().setScale( glm::vec3(2.0f, 2.0f, 2.0f) );
+//    scene->addChild(exo);
 
 //    Model *sphare = new Model("sphare.obj", "white.png");//, "brickwall_normal.jpg");
 //    sphare->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -20.0f) );
@@ -117,11 +117,12 @@ void GLWindow::initializeGL()
 
     for(int i=0; i<100; i++)
     {
-        for(int j=0; j<70; j++)
+        for(int j=0; j<50; j++)
         {
             Model *bike = new Model(matBike, modBike);
-            bike->getTransform().setPosition( glm::vec3(-100.0f+i*3, 0.0f, -100.0f+j*6) );
-            bike->getTransform().setScale( glm::vec3(1.0f, 1.0f, 1.0f) );
+//            bike->getTransform().setOrigin(btVector3(-100.0f+i*3, 0.0f, -100.0f+j*6));
+            bike->getTransform().setPosition( glm::vec3(-50.0f+i*3, 0.0f, -50.0f+j*6) );
+//            bike->getTransform().setScale( glm::vec3(1.0f, 1.0f, 1.0f) );
 //            //bike->getTransform().rotate( glm::vec3(glm::radians(45.0f),
 //            //                                           glm::radians(45.0f),
 //            //                                           glm::radians(45.0f)));
@@ -144,6 +145,8 @@ void GLWindow::initializeGL()
     // Use texture unit 0 which contains cube.png
 //    program.setUniformValue("texture", 0); //Qt Alternative
 //    GLint texLoc = shaderProgram->uniformLocation("uv");
+
+    deltaTimer.start();
 }
 
 void GLWindow::resizeGL(int w, int h)
@@ -160,6 +163,7 @@ void GLWindow::resizeGL(int w, int h)
 
 void GLWindow::paintGL()
 {
+
     // Clear color and depth buffer
 //    glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT);
 
@@ -174,61 +178,75 @@ void GLWindow::paintGL()
     setProjectionMat();
     setViewMat();
     scene->renderAll();
-//    for(int i=0;i<100;i++)
+
+//    count ++;
+//    nanoSec += deltaTimer.nsecsElapsed();
+//    if (count  >= 100)
 //    {
-//        for(int j=0;j<100;j++)
-//        {
-//            scene->getChildren()[3]->
-//                    getTransform().setPosition
-//                    (glm::vec3(0.0f+i*5, 0.0f, 0.0f+j*2) );
-//            scene->getChildren()[3]->renderAll();
-//        }
+
+//        qDebug()<< "timing:" << ( (double)nanoSec) / (count*1000000000) << "ms";
+//        qDebug()<< "timing:" << ((double)count*1000000000) /nanoSec  << "FPS";
+//        count=0;
+//        nanoSec=0;
 //    }
+
+//    qDebug()<< "timing:" << ((double)nanoSec / count) << "ns/call";
+
+    deltaTime = (double)deltaTimer.nsecsElapsed()/1000000000;
 
 
 //    m_t1 = QTime::currentTime();
-//    int curDelta = m_t0.msecsTo(m_t1);
+//    float curDelta = m_t0.msecsTo(m_t1);
 //    m_t0 = m_t1;
-//    qDebug()<< curDelta;
+//    qDebug()<< "Old delta: "<<curDelta <<  "dt: " << (float)deltaTime/1000000000;//deltaTimer.nsecsElapsed();
+
+    deltaTimer.restart();
 }
 
 void GLWindow::timerEvent(QTimerEvent *)
 {
-    const float moveSpeed=0.05;
     if(keys[Qt::Key_W])
-        camera->getTransform().moveForward(-moveSpeed);
+    {
+//        camera->getBTransform().getOrigin().setY(btScalar( 1000.0f));
+        camera->getTransform().moveForwardGLM(-moveSpeed * deltaTime);
+    }
     if(keys[Qt::Key_S])
-        camera->getTransform().moveForward(moveSpeed);
+        camera->getTransform().moveForwardGLM(moveSpeed * deltaTime);
     if(keys[Qt::Key_D])
-        camera->getTransform().moveRight(-moveSpeed);
+        camera->getTransform().moveRightGLM(-moveSpeed * deltaTime);
     if(keys[Qt::Key_A])
-        camera->getTransform().moveRight(moveSpeed);
+        camera->getTransform().moveRightGLM(moveSpeed * deltaTime);
     if(keys[Qt::Key_E])
-        camera->getTransform().moveUp(-moveSpeed);
+        camera->getTransform().moveUpGLM(-moveSpeed * deltaTime);
     if(keys[Qt::Key_Q])
-        camera->getTransform().moveUp(moveSpeed);
+        camera->getTransform().moveUpGLM(moveSpeed * deltaTime);
 
-    if(keys[Qt::Key_Right])
-        camera->getTransform().rotate     (glm::vec3(0,glm::radians(.2f),0));
-    if(keys[Qt::Key_Left])
-        camera->getTransform().rotate     (glm::vec3(0,glm::radians(-.2f),0));
+//    if(keys[Qt::Key_Right])
+//        camera->getTransform().rotate     (glm::vec3(0,glm::radians(rotSpeed),0));
+//    if(keys[Qt::Key_Left])
+//        camera->getTransform().rotate     (glm::vec3(0,glm::radians(-rotSpeed),0));
+//    if(keys[Qt::Key_Up])
+//        camera->getTransform().addYawPitch(glm::vec3(glm::radians(.2f),0,0));
+//    if(keys[Qt::Key_Down])
+//        camera->getTransform().addYawPitch(glm::vec3(glm::radians(-.2f),0,0));
+
     if(keys[Qt::Key_Up])
-        camera->getTransform().addYawPitch(glm::vec3(glm::radians(.2f),0,0));
+        camera->getTransform().addYawPitch(btVector3(rotSpeed,0,0));
     if(keys[Qt::Key_Down])
-        camera->getTransform().addYawPitch(glm::vec3(glm::radians(-.2f),0,0));
+        camera->getTransform().addYawPitch(btVector3(-rotSpeed,0,0));
 
     if(keys[Qt::Key_T])
-        light->getTransform().moveForward(moveSpeed);
+        light->getTransform().moveForwardGLM(moveSpeed * deltaTime);
     if(keys[Qt::Key_G])
-        light->getTransform().moveForward(-moveSpeed);
+        light->getTransform().moveForwardGLM(-moveSpeed * deltaTime);
     if(keys[Qt::Key_F])
-        light->getTransform().moveRight(-moveSpeed);
+        light->getTransform().moveRightGLM(-moveSpeed * deltaTime);
     if(keys[Qt::Key_H])
-        light->getTransform().moveRight(moveSpeed);
+        light->getTransform().moveRightGLM(moveSpeed * deltaTime);
     if(keys[Qt::Key_Y])
-        light->getTransform().moveUp(moveSpeed);
+        light->getTransform().moveUpGLM(moveSpeed * deltaTime);
     if(keys[Qt::Key_R])
-        light->getTransform().moveUp(-moveSpeed);
+        light->getTransform().moveUpGLM(-moveSpeed * deltaTime);
 
     update();
 }
@@ -308,12 +326,23 @@ void GLWindow::mouseReleaseEvent(QMouseEvent *e)
 
 void GLWindow::setViewMat()
 {
+//    GLint view = glGetUniformLocation(shaderProgram->programId(),"view");
+//    glUniformMatrix4fv(view, 1, GL_FALSE, camera->getTransformMatrix() );//&mtm[0][0]);
+
+//    view = glGetUniformLocation(skyShaderProgram->programId(),"view");
+//    glUniformMatrix4fv(view, 1, GL_FALSE, camera->getTransformMatrix()  );//&mtm[0][0]);
+
+//    GLint view = glGetUniformLocation(shaderProgram->programId(),"view");
+//    glUniformMatrix4fv(view, 1, GL_FALSE, camera->getTransformMatrix() );//&mtm[0][0]);
+
+//    view = glGetUniformLocation(skyShaderProgram->programId(),"view");
+//    glUniformMatrix4fv(view, 1, GL_FALSE, camera->getTransformMatrix()  );//&mtm[0][0]);
+
     GLint view = glGetUniformLocation(shaderProgram->programId(),"view");
     glUniformMatrix4fv(view, 1, GL_FALSE, glm::value_ptr(camera->getTransform().getCameraTransformMatrix()) );//&mtm[0][0]);
 
     view = glGetUniformLocation(skyShaderProgram->programId(),"view");
     glUniformMatrix4fv(view, 1, GL_FALSE, glm::value_ptr(camera->getTransform().getCameraTransformMatrix()) );//&mtm[0][0]);
-//    glUniformMatrix4fv(view, 1, GL_FALSE, glm::value_ptr(camera->getTransform().getTransformMatrix()) );//&mtm[0][0]);
 
 //    GLint camPos=glGetUniformLocation(shaderProgram->programId(),"viewPos");;
 //    const glm::vec3 v = camera->getTransform().getPosition();

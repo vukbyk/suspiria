@@ -4,6 +4,7 @@
 #include <QOpenGLWidget>
 #include <QOpenGLExtraFunctions>
 #include <QBasicTimer>
+#include <QElapsedTimer>
 #include <QTime>
 
 //#include <shaderprogram.h>
@@ -52,6 +53,13 @@ private:
     class Model *model;
     class ShaderProgram *shaderProgram;
     class ShaderProgram *skyShaderProgram;
+    const float moveSpeed = 5.0;
+    const float rotSpeed = .5;
+
+    QElapsedTimer deltaTimer;
+    float deltaTime;
+    qint64 nanoSec=0;
+    long count=0;
 
     GLuint textureId;
 
@@ -69,6 +77,8 @@ private:
 
     QTime m_t0;
     QTime m_t1;
+
+    unsigned long cyc=0;
 
     QMap<GLint, GLboolean> keys;
     glm::ivec2 mouseDelta = glm::ivec2(-1,-1);

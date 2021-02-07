@@ -5,27 +5,49 @@
 #include <algorithm>
 #include <model.h>
 
-
-Spacial::Spacial():transform()
+Spacial::Spacial():
+    transform()//, bTransform(btQuaternion( btScalar(0),btScalar(0),btScalar(0)))
 {
+//    transMat = new btScalar[16];
     parentSpacial = nullptr;
-    //    initializeOpenGLFunctions();
+//    BtTransf.getOpenGLMatrix(transMat);
 }
 
 Spacial::~Spacial()
 {
-
+//    delete[] transMat;
 }
 
+
+glm::vec3 Spacial::getPosition(void) const
+{
+    return transform.getGLMPosition();
+}
 Transform &Spacial::getTransform(void)
 {
     return transform;
 }
 
-glm::vec3 Spacial::getPosition(void)
-{     
-    return transform.getPosition();
-}
+//btVector3 Spacial::getBPosition(void)
+//{
+//    return bTransform.getOrigin();
+//}
+//btTransform &Spacial::getBTransform(void)
+//{
+//    return bTransform;
+//}
+
+//btScalar* Spacial::getTransformMatrix() const
+//{
+////    btScalar *btmat= new btScalar[16];
+
+//    glm::mat4 m=gTransform.getTransformMatrix();
+//    glm::mat3 m3(m);
+//    btTransform BtTransf(glmToBullet(m3), glmToBullet(glm::vec3(m[3][0], m[3][1], m[3][2])));
+//    BtTransf.getOpenGLMatrix(transMat);
+////    transform.getOpenGLMatrix(btmat);
+//    return transMat;
+//}
 
 //glm::vec4 Spacial::getDirection(void)
 //{
@@ -36,6 +58,8 @@ Spacial *Spacial::getParentSpacial() const
 {
     return parentSpacial;
 }
+
+
 
 void Spacial::setParentSpacial(Spacial *value)
 {

@@ -6,7 +6,7 @@
 class Scene: protected Spacial
 {
 protected:
-
+    btScalar tm[16];
     Spacial *parentSpacial;
     std::vector<Spacial *> children;
     class ShaderProgram *shaderProgram;

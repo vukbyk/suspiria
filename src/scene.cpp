@@ -37,11 +37,18 @@ std::vector<Spacial *> Scene::getChildren(void)
 void Scene::renderAll()
 {
     initializeOpenGLFunctions();
+//    glUniformMatrix4fv(model, 1, GL_FALSE, &(getChildren()[0]->getGlmTransform().getTransformMatrix())[0][0]);
+//    getChildren()[0]->renderAll();
     for (auto child : children)
     {
 //        child->getPosition();
 //        glm::mat4 modelTempMat = child->getTransform().getTransformMatrix();
-        glUniformMatrix4fv(model, 1, GL_FALSE, &(child->getTransform().getTransformMatrix())[0][0]);//&modelTempMat[0][0]);//&mtm[0][0]);
+
+//        glUniformMatrix4fv(model, 1, GL_FALSE, &(child->getTransform().getTransformMatrix())[0][0]);//&modelTempMat[0][0]);//&mtm[0][0]);
+//        glUniformMatrix4fv(model, 1, GL_FALSE, child->getTransform().getOpenGLMatrix());
+
+        child->getTransform().getOpenGLMatrix(tm);
+        glUniformMatrix4fv(model, 1, GL_FALSE, tm);
         child->renderAll();
     }
 }

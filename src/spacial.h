@@ -5,8 +5,6 @@
 #pragma once
 
 #include <vector>
-#include "transform.h"
-
 #include <QOpenGLExtraFunctions>
 
 //#include <glm/glm.hpp>
@@ -14,11 +12,15 @@
 
 #include <LinearMath/btTransform.h>
 #include <LinearMath/btVector3.h>
+#include "transform.h"
+//#include "glmtransform.h"
 
 class Spacial: protected QOpenGLExtraFunctions
 {
 protected:
     Transform transform;
+//    btTransform bTransform;
+//    btScalar *transMat;
 //    std::vector<Spacial *> children;
 
 //    glm::mat4 worldMatrix;
@@ -34,11 +36,17 @@ public:
     virtual void renderAll() {};
 
     std::vector<Spacial *> getChildren(void);
-    glm::vec3 getPosition(void);
+
+    glm::vec3 getPosition(void) const;
+    Transform &getTransform(void);
+
+    btVector3 getBPosition(void);
+    btTransform &getBTransform(void);
+////zamena za glm poziv sa lm pozivom
+    btScalar* getTransformMatrix(void) const;
+    btScalar* getTransformMatrixTemp(void) const;
 
 //    glm::vec4 getDirection(void);
-
-    Transform &getTransform(void);
 
     Spacial *getParentSpacial() const;
     void setParentSpacial(Spacial *value);
