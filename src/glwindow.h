@@ -7,13 +7,9 @@
 #include <QElapsedTimer>
 #include <QTime>
 
-//#include <shaderprogram.h>
-
 //#define GLM_SWIZZLE
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
-
-#include "spacial.h"
 
 class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 {
@@ -23,8 +19,6 @@ public:
     using QOpenGLWindow::QOpenGLWindow;
     GLWindow();
     ~GLWindow();
-
-//    float col=0.0f;
 
 protected:
     void timerEvent(QTimerEvent *e) override;
@@ -49,8 +43,8 @@ private:
     class Scene *skyScene;
     class Camera *camera;
     class Light *light;
-    class Mesh *mesh;
-    class Model *model;
+//    class Mesh *mesh;
+    class Model *modelLight;
     class ShaderProgram *shaderProgram;
     class ShaderProgram *skyShaderProgram;
     const float moveSpeed = 5.0;
@@ -67,8 +61,6 @@ private:
 
     glm::mat4x4 projection;
     glm::vec2 mousePressPosition;
-    glm::vec3 rotationAxis;
-    glm::quat rotation;
 
     // Set near plane to 3.0, far plane to 7.0, field of view 45 degrees
     GLfloat zNear = 0.3f;
@@ -77,8 +69,6 @@ private:
 
     QTime m_t0;
     QTime m_t1;
-
-    unsigned long cyc=0;
 
     QMap<GLint, GLboolean> keys;
     glm::ivec2 mouseDelta = glm::ivec2(-1,-1);

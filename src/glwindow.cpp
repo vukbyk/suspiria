@@ -9,20 +9,13 @@
 #include <qlogging.h>
 #include <qtimer.h>
 
-#include <cmath>
-#include <assimpload.h>
-#include <mesh.h>
-#include <texture.h>
-
 #include <glm/gtc/type_ptr.hpp>
 
-#include "shaderprogram.h"
 #include "scene.h"
 #include "model.h"
 #include "camera.h"
 #include "light.h"
 #include "material.h"
-#include "mesh.h"
 #include "assimpload.h"
 
 
@@ -44,8 +37,6 @@ GLWindow::GLWindow()
     zFar = 1500.0f;
 
     mousePressPosition=glm::vec2(0);
-    rotationAxis = glm::vec3(1);
-    rotation = glm::quat();
 
     m_t1 = QTime::currentTime();
 
@@ -56,7 +47,7 @@ GLWindow::GLWindow()
     scene = new Scene(shaderProgram);
     camera = new Camera();
     light = new Light(shaderProgram);
-    light->getTransform().setPosition(glm::vec3(2.0, 5.0, .0));
+    light->getTransform().setPosition(btVector3(2.0, 5.0, .0));
     scene->addChild(light);
 
 //    camera->getTransform().setPosition(glm::vec3(0.0, 0.0, -5.0) );
@@ -100,20 +91,26 @@ void GLWindow::initializeGL()
 //    Model *exo = new Model("cube.obj", "exoalbedo.jpg", "exoskelet_Exoskelet_Normal.png");
 ////    Model *room = new Model("cube.obj", "white.png");
 //    exo->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -2.0f) );
-//    exo->getTransform().setScale( glm::vec3(2.0f, 2.0f, 2.0f) );
+////    exo->getTransform().setScale( glm::vec3(2.0f, 2.0f, 2.0f) );
 //    scene->addChild(exo);
 
-//    Model *sphare = new Model("sphare.obj", "white.png");//, "brickwall_normal.jpg");
+    modelLight = new Model("sphare.obj", "white.png");
+    modelLight->getTransform().setPosition(btVector3(2.0, 5.0, .0));
+    scene->addChild(modelLight);
+
+    Model *sphare = new Model("sphare.obj", "white.png");//, "brickwall_normal.jpg");
 //    sphare->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -20.0f) );
 //    sphare->getTransform().setScale( glm::vec3(12.0f, 12.0f, 12.0f) );
-//    scene->addChild(sphare);
+//    sphare->getTransform().setPosition(btVector3(2.0, 5.0, .0));
+    scene->addChild(sphare);
 
 //    Model *bike = new Model("vulture.obj", "vulture.png", "Vulture_Diffuse.alpha_normal.jpg");
 
-    Material *matBike = new Material("vulture.png", "Vulture_Diffuse.alpha_normal.jpg" );
-    Mesh *modBike= new Mesh("vulture.obj") ;
+//    Material *matBike = new Material("vulture.png", "Vulture_Diffuse.alpha_normal.jpg" );
+//    Mesh *modBike= new Mesh("vulture.obj") ;
 
-
+    Material *matBike = new Material("exoalbedo.jpg", "exoskelet_Exoskelet_Normal.png" );
+    Mesh *modBike= new Mesh("cube.obj") ;
 
     for(int i=0; i<100; i++)
     {
@@ -236,17 +233,35 @@ void GLWindow::timerEvent(QTimerEvent *)
         camera->getTransform().addYawPitch(btVector3(-rotSpeed,0,0));
 
     if(keys[Qt::Key_T])
+    {
         light->getTransform().moveForwardGLM(moveSpeed * deltaTime);
+        modelLight->getTransform().moveForwardGLM(moveSpeed * deltaTime);
+    }
     if(keys[Qt::Key_G])
+    {
         light->getTransform().moveForwardGLM(-moveSpeed * deltaTime);
+        modelLight->getTransform().moveForwardGLM(-moveSpeed * deltaTime);
+    }
     if(keys[Qt::Key_F])
+    {
         light->getTransform().moveRightGLM(-moveSpeed * deltaTime);
+        modelLight->getTransform().moveRightGLM(-moveSpeed * deltaTime);
+    }
     if(keys[Qt::Key_H])
+    {
         light->getTransform().moveRightGLM(moveSpeed * deltaTime);
+        modelLight->getTransform().moveRightGLM(moveSpeed * deltaTime);
+    }
     if(keys[Qt::Key_Y])
+    {
         light->getTransform().moveUpGLM(moveSpeed * deltaTime);
+        modelLight->getTransform().moveUpGLM(moveSpeed * deltaTime);
+    }
     if(keys[Qt::Key_R])
+    {
         light->getTransform().moveUpGLM(-moveSpeed * deltaTime);
+        modelLight->getTransform().moveUpGLM(-moveSpeed * deltaTime);
+    }
 
     update();
 }
