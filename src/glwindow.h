@@ -11,34 +11,17 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "entity.h"
+
 class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 {
     Q_OBJECT
 
-public:
-    using QOpenGLWindow::QOpenGLWindow;
-    GLWindow();
-    ~GLWindow();
 
-protected:
-    void timerEvent(QTimerEvent *e) override;
-    void mousePressEvent(QMouseEvent *e) override;
-    void mouseReleaseEvent(QMouseEvent *e) override;
+    class MeshManager *meshMenager;
+    class TextureManager *textureMenager;
 
-    void initializeGL() override;
-    void resizeGL(int w, int h) override;
-    void paintGL() override;
-
-    bool event(QEvent *event) override;
-    void keyPressEvent(QKeyEvent *event) override;
-    void keyReleaseEvent(QKeyEvent *event) override;
-    void mouseMoveEvent(QMouseEvent *mouseEvent) override;
-
-    void setViewMat();
-    void setProjectionMat();
-
-private:
-
+    class World *world;
     class Scene *scene;
     class Scene *skyScene;
     class Camera *camera;
@@ -74,5 +57,35 @@ private:
     glm::ivec2 mouseDelta = glm::ivec2(-1,-1);
     glm::ivec2 lastMousePosition = glm::ivec2(-1,-1);
     glm::ivec2 mouseWheel = glm::ivec2(-1,-1);
+
+protected:
+    void timerEvent(QTimerEvent *e) override;
+    void mousePressEvent(QMouseEvent *e) override;
+    void mouseReleaseEvent(QMouseEvent *e) override;
+
+    void initializeGL() override;
+    void resizeGL(int w, int h) override;
+    void paintGL() override;
+
+    bool event(QEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *mouseEvent) override;
+
+    void setViewMat();
+    void setProjectionMat();
+
+public:
+    using QOpenGLWindow::QOpenGLWindow;
+    GLWindow();
+    ~GLWindow();
+
+    Entity e;
+    SimpleRenderComponent cr;
+    class Material *matHelper;
+    class Mesh     *meshHelper;
+
+
+
 };
 

@@ -12,7 +12,6 @@
     #define GL_SRGB8                          0x8C41
 #endif
 
-
 Texture::Texture(const std::string &fileName, const bool gammaCorrection)//, GLenum aTextureTarget, GLfloat filter)
 {
     initializeOpenGLFunctions();
@@ -106,7 +105,7 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection)//, GLe
 
 
 //     set the texture wrapping/filtering options (on the currently bound texture object)
-//    glGenerateMipmap(GL_TEXTURE_2D);
+    glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -124,6 +123,11 @@ void Texture::bind(GLushort unit)
 {
     glActiveTexture(GL_TEXTURE0 + unit );
     glBindTexture(GL_TEXTURE_2D, textureId);
+}
+
+GLuint Texture::getTextureId() const
+{
+    return textureId;
 }
 
 //void Texture::bind(GLuint unit) const

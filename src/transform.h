@@ -18,6 +18,8 @@ protected:
 //    glm::vec3 scale;
 
 public:
+    Transform(const Transform &val);
+    Transform(const btTransform &val);
     Transform(const btVector3 &aPosition = btVector3(0,0,0)
              ,const btQuaternion &aRotation = btQuaternion(0.0, 0.0, 0.0) );
 

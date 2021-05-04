@@ -17,4 +17,5 @@ public:
     void bind(GLushort unit);
 
     //  void bind(GLuint unit = 0) const;
+    GLuint getTextureId() const;
 };

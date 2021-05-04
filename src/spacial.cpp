@@ -1,9 +1,10 @@
 #include "spacial.h"
 
-//#include "Component.h"
-
 #include <algorithm>
 #include <model.h>
+
+#include <scene.h>
+#include <components.h>
 
 Spacial::Spacial():
     transform()//, bTransform(btQuaternion( btScalar(0),btScalar(0),btScalar(0)))
@@ -65,6 +66,16 @@ void Spacial::setParentSpacial(Spacial *value)
 {
     parentSpacial = value;
 }
+
+void Spacial::createEntity(Scene &scene)
+{
+    entity = scene.world.create();
+    scene.world.emplace<transformComponent>(entity, getTransform());
+    //ruzno za ent
+    Scene *s = &scene;
+    parentSpacial = s;
+}
+
 //const GLfloat *Spacial::getValuePtr()
 //{
 //    return glm::value_ptr(getTransform().getTransformMatrix());

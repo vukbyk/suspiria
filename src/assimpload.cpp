@@ -8,6 +8,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 
+
 #include <string>
 #include <QFile>
 #include <QFileInfo>
@@ -21,7 +22,7 @@
 // TODO: refactor this to load on a seperate thread.
 std::map<std::string, std::vector<Mesh*>> AssimpLoad::sceneMeshRendererDataCache;
 
-AssimpLoad::AssimpLoad(const std::string aFile):fileName(aFile)
+AssimpLoad::AssimpLoad(const std::string fileName)
 {
 
     QFile file( std::string(":/assets/").append(fileName).c_str() );
@@ -45,16 +46,11 @@ AssimpLoad::AssimpLoad(const std::string aFile):fileName(aFile)
     else
     {
         qDebug("Suicess to load mesh: %s", file.symLinkTarget().toStdString().c_str());
-        loadScene(scene);
+        loadScene(scene, fileName);
     }
 }
 
-AssimpLoad::~AssimpLoad(void)
-{
-}
-
-
-void AssimpLoad::loadScene(const aiScene* scene)
+void AssimpLoad::loadScene(const aiScene* scene, const std::string fileName)
 {
     for (unsigned int i = 0; i < scene->mNumMeshes; i++)
     {

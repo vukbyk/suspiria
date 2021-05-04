@@ -4,6 +4,11 @@
 #include "assimpload.h"
 #include "material.h"
 
+//for ETC
+#include <entt/entity/fwd.hpp>
+#include "scene.h"
+#include "components.h"
+
 
 Model::Model(): Spacial()
 {
@@ -31,10 +36,16 @@ Model::Model(const char *aMeshPath, const char *aAlbedoPath, const char *aNormal
     //    addChild(model);
 }
 
-Model::Model(Material *aMaterial, Mesh *aMesh)
+Model::Model(Mesh *aMesh, Material *aMaterial)
 {
-    material=aMaterial;
     mesh=aMesh;
+    material=aMaterial;
+}
+
+Model::Model(Mesh *aMesh, Texture *albedo, Texture *normal)
+{
+    mesh = aMesh;
+    material = new Material(albedo, normal);
 }
 
 Model::~Model()
@@ -66,4 +77,26 @@ void Model::setMesh(Mesh *value)
 void Model::setMaterial(Material *value)//Matreial was texture in begining
 {
     material = value;
+}
+
+void Model::createEntity(Scene &scene)
+{    
+//    Spacial::createEntity(scene);
+//    SimpleRenderComponent cr;
+////    cr.transform = getTransform();
+////    transform.getOpenGLMatrix(cr.transform);
+////    if( material->getAlbedo() )
+//        cr.albedoId = material->getAlbedo()->getTextureId();
+////    if(material->getNormal() )
+//        cr.normalId = material->getNormal()->getTextureId();
+//    cr.VAO = mesh->getVAO();
+//    cr.indicesSize = mesh->getIndicesSize();
+
+//    scene.world.emplace<SimpleRenderComponent>(entity, cr);
+
+
+//    cMesh m(mesh->VAO, mesh->indicesSize);
+//    scene.world.emplace<cMesh>(entity, m);
+//    scene.world.emplace<cTextures>(entity, cTextures(material->getAlbedo()->getTextureId(),
+//                                                     material->getNormal()->getTextureId()));
 }

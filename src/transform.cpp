@@ -6,6 +6,17 @@
 
 //btScalar Transform::tm[16];
 
+Transform::Transform(const Transform &val)
+{
+    transform = btTransform(val.transform);
+}
+
+
+Transform::Transform(const btTransform &val)
+{
+    transform = btTransform(val);
+}
+
 Transform::Transform(const btVector3 &aPosition, const btQuaternion &aRotation)
     :transform(aRotation, aPosition)
 {

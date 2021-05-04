@@ -13,5 +13,8 @@ uniform sampler2D albedoTexture;
 void main()
 {
     vec3 color = texture(albedoTexture, uvFrag).rgb;
-    FragColor = vec4(color, 1.0);
+//    const float gamma = 2.2;             //instead of SRGB default 2.2
+////    color = pow(color, vec3( gamma));    //instead of SRGB,
+//    color = pow(color, vec3(1.0/gamma) );// 1.0/gamma for brigthen up
+    FragColor = vec4(color, 0.5);
 }

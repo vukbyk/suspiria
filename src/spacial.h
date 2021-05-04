@@ -14,6 +14,9 @@
 #include <LinearMath/btVector3.h>
 #include "transform.h"
 //#include "glmtransform.h"
+//for ECS
+//#include "scene.h"
+#include <entt/entity/fwd.hpp>
 
 class Spacial: protected QOpenGLExtraFunctions
 {
@@ -28,6 +31,7 @@ protected:
 //    Engine *sceene;
 
 public:
+    entt::entity entity;
     Spacial();
     virtual ~Spacial();
 
@@ -50,6 +54,8 @@ public:
 
     Spacial *getParentSpacial() const;
     void setParentSpacial(Spacial *value);
+
+    virtual void createEntity(class Scene &scene);
 
 //    glm::mat4 &getWorldMatrix(void);
 //    const GLfloat *getValuePtr();

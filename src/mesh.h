@@ -13,22 +13,28 @@
 #include <QOpenGLBuffer>
 
 #include "vertex.h"
-
+//!!! Do not use, use assimp load instead !!!
 class Mesh: protected QOpenGLExtraFunctions
 {
+
 public:
-    Mesh(Mesh &other);
-    Mesh(const std::string aFile);
+    GLuint VBO;
+    GLuint IBO;
+    GLuint verticesSize;
+
+    GLuint VAO;
+    GLuint indicesSize;
+
+public:
+    Mesh();
+    Mesh(const Mesh &other);
     Mesh(const Vertex vertices[], const  GLuint vertSize, const  GLuint indices[],const  GLuint indexSize);
     virtual ~Mesh(void);
     void render(void);
 
-private:
+//private:
     void createMesh(const Vertex vertices[], const GLuint vertSize, const GLuint indices[], const GLuint indexSize);
 
-    GLuint VAO;
-    GLuint VBO;
-    GLuint IBO;
-
-    int indicesSize, verticesSize;
+    GLuint getVAO() const;
+    GLuint getIndicesSize() const;
 };

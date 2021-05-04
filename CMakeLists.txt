@@ -30,12 +30,14 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 11)
+##set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_C_STANDARD 99)
 
+#set(CMAKE_CXX_FLAGS "-O0")
+#set(CMAKE_C_FLAGS "-O0")
 
-set(CMAKE_CXX_FLAGS "-O0")
-set(CMAKE_C_FLAGS "-O0")
 
 ## search all source and header files deluje kao da mogu iskoristiti
 #   file(GLOB source_files *.c *.cpp *.qrc)
@@ -56,21 +58,21 @@ set(CMAKE_C_FLAGS "-O0")
 
 if(EMSCRIPTEN)
     set(Qt5_DIR "/home/vuk/Qt/5.15.0//wasm_32/lib/cmake/Qt5")
-    set(Qt5Widgets_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Widgets")
-    set(Qt5Gui_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Gui")
-    set(Qt5Core_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Core")
-    set(Qt5Svg_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Svg")
-    set(Qt5Zlib_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Zlib")
-    set(Qt5Network_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Network")
-    set(Qt5EventDispatcherSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5EventDispatcherSupport")
-    set(Qt5FontDatabaseSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5FontDatabaseSupport")
-    set(Qt5EglSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5EglSupport")
-    set(Qt5ThemeSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5ThemeSupport")
-    set(Qt5Quick_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Quick")
-    set(Qt5QmlModels_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5QmlModels")
-    set(Qt5Qml_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Qml")
-    set(Qt5WebSockets_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5WebSockets")
-    set(CMAKE_TOOLCHAIN_FILE="/home/vuk/Desktop/Install/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
+#    set(Qt5Widgets_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Widgets")
+#    set(Qt5Gui_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Gui")
+#    set(Qt5Core_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Core")
+#    set(Qt5Svg_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Svg")
+#    set(Qt5Zlib_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Zlib")
+#    set(Qt5Network_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Network")
+#    set(Qt5EventDispatcherSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5EventDispatcherSupport")
+#    set(Qt5FontDatabaseSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5FontDatabaseSupport")
+#    set(Qt5EglSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5EglSupport")
+#    set(Qt5ThemeSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5ThemeSupport")
+#    set(Qt5Quick_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Quick")
+#    set(Qt5QmlModels_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5QmlModels")
+#    set(Qt5Qml_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Qml")
+#    set(Qt5WebSockets_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5WebSockets")
+#    set(CMAKE_TOOLCHAIN_FILE="/home/vuk/Desktop/Install/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
 endif()
 
 
@@ -145,17 +147,47 @@ FILE(GLOB BULLET_SRCGLOB
 ADD_LIBRARY(twbullet STATIC ${BULLET_SRCGLOB})
 INCLUDE_DIRECTORIES( dep/glm/ )
 INCLUDE_DIRECTORIES( dep/stb/ )
-
 #include_directories( assimp-3/include/ )
 # set variables that are needed
 
 set(ZLIB_LIBRARIES zlibstatic)
 set(ENABLE_BOOST_WORKAROUND ON)
 set(BUILD_STATIC_LIB ON)
-set(BUILD_ASSIMP_TOOLS  ON)
+set(BUILD_ASSIMP_TOOLS ON)
 set(ASSIMP_BUILD_STATIC_LIB ON)
+#Minimal build test, not working with emscripten, must use 
+#cmake -Wno-dev -DEMSCRIPTEN=1 -DCMAKE_TOOLCHAIN_FILE=/home/vuk/Desktop/Install/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake ../.. 
+#      -DCMAKE_BUILD_TYPE=MinSizeRel -DASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT=No  -DASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT=No -DASSIMP_BUILD_OBJ_IMPORTER=yes -DASSIMP_BUILD_TESTS=no
+#set(BUILD_SHARED_LIBS ON)
+#set(BUILD_ASSIMP_TOOLS OFF)
+#set(ASSIMP_BUILD_ASSIMP_VIEW OFF)
+#set(ASSIMP_BUILD_STATIC_LIB OFF)
+#set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT FALSE)
+#set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT FALSE)
+#set(ASSIMP_BUILD_FBX_IMPORTER OFF)
+#set(ASSIMP_BUILD_TESTS OFF)
+#set(ASSIMP_BUILD_OBJ_IMPORTER ON)
 
 add_subdirectory(assimp)
+
+
+add_subdirectory(dep/entt)
+
+#add_library(EnTT INTERFACE)
+#target_sources(EnTT INTERFACE EnTT.h)
+
+
+#target_include_directories(EnTT INTERFACE
+#    "${PROJECT_SOURCE_DIR}/dep/entt"
+#)
+#INCLUDE_DIRECTORIES( dep/entt/ )
+#target_include_directories(EnTT INTERFACE
+#    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dep/entt>
+#    $<INSTALL_INTERFACE:${YOUR_INSTALL_DIR}/build/entt>
+#)
+
+
+#add_subdirectory(entt)
 #Then my top level CMakeLists.txt file looks something like this:
 #CODE: SELECT ALL
 
@@ -183,12 +215,11 @@ add_subdirectory(assimp)
 #        message("Bullet is NOT found")
 #endif()
 
-#message("!!!!!!PORUKA!!!!!!!!!!1")
+#message("!!!!!!!!PORUKA!!!!!!!!!!")
 
 #else()
 #        message("!!!!!!!!EST ELSE!!!!!!!")
 #endif()
-
 
 if(ANDROID)
   message("EMSCRIPTEN build")
@@ -196,6 +227,7 @@ if(ANDROID)
     main.cpp
     ${SUSPIRIA_SRCGLOB}
     ${BULLET_SRCGLOB}
+#    EnTT
     assimp
     resource.qrc
     shaders.qrc
@@ -255,6 +287,6 @@ if(EMSCRIPTEN)
   set_target_properties(suspiria PROPERTIES LINK_FLAGS "-s TOTAL_MEMORY=2GB")
 endif()
 
-target_link_libraries(suspiria PRIVATE Qt5::Widgets twbullet assimp)# LinearMath BulletCollision BulletDynamics )
+target_link_libraries(suspiria PRIVATE Qt5::Widgets EnTT twbullet assimp)# LinearMath BulletCollision BulletDynamics )
 
 #qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})

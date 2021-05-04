@@ -16,8 +16,15 @@
 #include "camera.h"
 #include "light.h"
 #include "material.h"
-#include "assimpload.h"
 
+#include "world.h"
+#include "components.h"
+//#include "entity.h"
+
+#include "texture.h"
+#include "mesh.h"
+#include "meshmanager.h"
+#include "texturemanager.h"
 
 #ifdef GL_ES_VERSION_2_0
     #include <qopengles2ext.h>
@@ -31,12 +38,14 @@ GLWindow::GLWindow()
 //    refereshTimer->start(1);
 
     // Use QBasicTimer because its faster than QTimer
-    timer.start(1, this);
 
     zNear = 0.3f;
     zFar = 1500.0f;
 
     mousePressPosition=glm::vec2(0);
+
+
+    timer.start(1, this);
 
     m_t1 = QTime::currentTime();
 
@@ -47,8 +56,15 @@ GLWindow::GLWindow()
     scene = new Scene(shaderProgram);
     camera = new Camera();
     light = new Light(shaderProgram);
-    light->getTransform().setPosition(btVector3(2.0, 5.0, .0));
+    light->getTransform().setPosition(btVector3(1.0, 2.0, 3.0));
     scene->addChild(light);
+
+    world = new World();
+
+    meshMenager = new MeshManager();
+    textureMenager = new TextureManager();
+
+//    meshMng = new MeshManager;
 
 //    camera->getTransform().setPosition(glm::vec3(0.0, 0.0, -5.0) );
 //    camera->getTransform().setRotation(glm::vec3(.2, 0, 0));
@@ -62,6 +78,11 @@ GLWindow::~GLWindow()
     // and the buffers.
 //    makeCurrent();
 //    doneCurrent();
+    delete skyScene;
+    delete scene;
+    delete world;
+    delete meshMenager;
+    delete textureMenager;
 }
 
 void GLWindow::initializeGL()
@@ -76,11 +97,26 @@ void GLWindow::initializeGL()
     skyShaderProgram->initShaders("sky");
     skyScene->setModel( glGetUniformLocation(skyShaderProgram->programId(),"model") );
 
-    Model *skyCube = new Model("invertCube.obj", "brickwall.jpg", "brickwall_normal.jpg");
+    meshMenager->loadAssimp("vulture.obj");
+    meshMenager->loadAssimp("cube.obj");
+    meshMenager->loadAssimp("invertCube.obj");
+
+    textureMenager->load("brickwall.jpg", true);
+    textureMenager->load("exoalbedo.jpg", true);
+    textureMenager->load("exoskelet_Exoskelet_Normal.png", false);
+    textureMenager->load("defaultNormal.png", false);
+
+//    Material *m=new Material(textureMenager->get("brickwall.jpg"));
+
+//    Model *skyCube = new Model("invertCube.obj", "brickwall.jpg");//, "Vulture_Diffuse.alpha_normal.jpg");
+    Model *skyCube = new Model(meshMenager->get("invertCube.obj"), textureMenager->get("brickwall.jpg"), textureMenager->get("defaultNormal.png"));
 //    skyCube->getTransform().setOrigin(btVector3(0,0,0));
 //    skyCube->getTransform().setPosition( glm::vec3(0.0f, 0.0f, 0.0f) );
 //    skyCube->getTransform().setScale( glm::vec3(50.0f, 50.0f, 50.0f) );
     skyScene->addChild(skyCube);
+
+    matHelper = new Material(textureMenager->get("exoalbedo.jpg"), textureMenager->get("exoskelet_Exoskelet_Normal.png") );
+//    meshHelper = new Mesh("cube.obj") ;
 
 //    Model *cube = new Model("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
 ////    Model *room = new Model("cube.obj", "white.png");
@@ -88,44 +124,61 @@ void GLWindow::initializeGL()
 //    cube->getTransform().setScale( glm::vec3(12.0f, 12.0f, 12.0f) );
 //    scene->addChild(cube);
 
-//    Model *exo = new Model("cube.obj", "exoalbedo.jpg", "exoskelet_Exoskelet_Normal.png");
+    for(int i=0; i<200; i++) //100000 = 28fps
+    {
+        for(int j=0; j<250; j++)
+        {
+
+//            cr.albedoId = textureMenager->getId("exoalbedo.jpg");
+//            cr.normalId = textureMenager->getId("exoskelet_Exoskelet_Normal.png");
+            cr.albedoId = matHelper->getAlbedo()->getTextureId();
+            cr.normalId = matHelper->getNormal()->getTextureId();
+            cr.VAO = meshMenager->get("cube.obj")->getVAO();
+            cr.indicesSize = meshMenager->get("cube.obj")->getIndicesSize();
+
+
+            e=world->CreateEntity();
+            e.addComponent(cr);
+            e.addComponent(transformComponent(btVector3(-50.0f+i*3, 0.0f, -50.0f+j*6)));
+//            e.addComponent(cMesh(modHelper->VAO, modHelper->indicesSize));
+
+        }
+    }
+//    Model *exo = new Model("vulture.obj", "vulture.jpg", "Vulture_Diffuse.alpha_normal.png");
 ////    Model *room = new Model("cube.obj", "white.png");
 //    exo->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -2.0f) );
 ////    exo->getTransform().setScale( glm::vec3(2.0f, 2.0f, 2.0f) );
 //    scene->addChild(exo);
 
-    modelLight = new Model("sphare.obj", "white.png");
-    modelLight->getTransform().setPosition(btVector3(2.0, 5.0, .0));
-    scene->addChild(modelLight);
+//    modelLight = new Model("sphare.obj", "white.png");
+//    modelLight->getTransform().setPosition(btVector3(2.0, 5.0, .0));
+//    scene->addChild(modelLight);
 
-    Model *sphare = new Model("sphare.obj", "white.png");//, "brickwall_normal.jpg");
-//    sphare->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -20.0f) );
-//    sphare->getTransform().setScale( glm::vec3(12.0f, 12.0f, 12.0f) );
-//    sphare->getTransform().setPosition(btVector3(2.0, 5.0, .0));
-    scene->addChild(sphare);
+//    Model *sphare = new Model("sphare.obj", "white.png");//, "brickwall_normal.jpg");
+////    sphare->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -20.0f) );
+////    sphare->getTransform().setScale( glm::vec3(12.0f, 12.0f, 12.0f) );
+////    sphare->getTransform().setPosition(btVector3(2.0, 5.0, .0));
+//    scene->addChild(sphare);
 
-//    Model *bike = new Model("vulture.obj", "vulture.png", "Vulture_Diffuse.alpha_normal.jpg");
+////    Model *bike = new Model("vulture.obj", "vulture.png", "Vulture_Diffuse.alpha_normal.jpg");
 
-//    Material *matBike = new Material("vulture.png", "Vulture_Diffuse.alpha_normal.jpg" );
-//    Mesh *modBike= new Mesh("vulture.obj") ;
+////    Material *matBike = new Material("vulture.png", "Vulture_Diffuse.alpha_normal.jpg" );
+////    Mesh *modBike= new Mesh("vulture.obj") ;
 
-    Material *matBike = new Material("exoalbedo.jpg", "exoskelet_Exoskelet_Normal.png" );
-    Mesh *modBike= new Mesh("cube.obj") ;
-
-    for(int i=0; i<100; i++)
-    {
-        for(int j=0; j<50; j++)
-        {
-            Model *bike = new Model(matBike, modBike);
-//            bike->getTransform().setOrigin(btVector3(-100.0f+i*3, 0.0f, -100.0f+j*6));
-            bike->getTransform().setPosition( glm::vec3(-50.0f+i*3, 0.0f, -50.0f+j*6) );
-//            bike->getTransform().setScale( glm::vec3(1.0f, 1.0f, 1.0f) );
-//            //bike->getTransform().rotate( glm::vec3(glm::radians(45.0f),
-//            //                                           glm::radians(45.0f),
-//            //                                           glm::radians(45.0f)));
-            scene->addChild(bike);
-        }
-    }
+//    for(int i=0; i<200; i++) //100000 = 28fps
+//    {
+//        for(int j=0; j<250; j++)
+//        {
+//            Model *bike = new Model(matHelper, modHelper);
+////            bike->getTransform().setOrigin(btVector3(-100.0f+i*3, 0.0f, -100.0f+j*6));
+//            bike->getTransform().setPosition( glm::vec3(-50.0f+i*3, 0.0f, -50.0f+j*6) );
+////            bike->getTransform().setScale( glm::vec3(1.0f, 1.0f, 1.0f) );
+////            //bike->getTransform().rotate( glm::vec3(glm::radians(45.0f),
+////            //                                           glm::radians(45.0f),
+////            //                                           glm::radians(45.0f)));
+//            scene->addChild(bike);
+//        }
+//    }
 
 //    delete matBike;
 //    delete modBike;
@@ -172,9 +225,73 @@ void GLWindow::paintGL()
     glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT);
 
     shaderProgram->bindShader();
-    setProjectionMat();
-    setViewMat();
-    scene->renderAll();
+//    setProjectionMat();
+//    setViewMat();
+
+    const float w = width();
+    const float h = height();
+    float aspect = w/h;
+    glm::mat4 projection = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
+    GLint projectionid = glGetUniformLocation(shaderProgram->programId(), "projection");
+    glUniformMatrix4fv(projectionid, 1, GL_FALSE, &projection[0][0]);
+
+    GLint view = glGetUniformLocation(shaderProgram->programId(),"view");
+    glUniformMatrix4fv(view, 1, GL_FALSE,
+                       glm::value_ptr(camera->getTransform().getCameraTransformMatrix()) );//&mtm[0][0]);
+
+    light->renderAll();
+//    scene->renderAll();
+
+//    btScalar tm[16];
+//    GLint model=glGetUniformLocation(shaderProgram->programId(),"model");
+//    cr.transform.getOpenGLMatrix(tm);
+//    glUniformMatrix4fv(model, 1, GL_FALSE, tm);
+////        glUniformMatrix4fv(model, 1, GL_FALSE, render.transform);
+
+////        if(render.albedoId != save)
+//    {
+//        glActiveTexture(GL_TEXTURE0 + 0 );
+//        glBindTexture(GL_TEXTURE_2D, cr.albedoId);
+
+//        glActiveTexture(GL_TEXTURE0 + 1 );
+//        glBindTexture(GL_TEXTURE_2D, cr.normalId);
+////            save = render.albedoId;
+
+//        glBindVertexArray(cr.VAO);
+//        glDrawElements(GL_TRIANGLES, cr.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
+//    }
+
+
+    GLint model=glGetUniformLocation(shaderProgram->programId(),"model");
+//    glGetUniformLocation(&model, "model");
+    btScalar tm[16];
+    auto group = world->registry.group<SimpleRenderComponent, transformComponent>();//, cMesh>();
+    group.each([this, &model, &tm](auto &render, auto &transform)//, auto &mesh)
+//    world.view<cRender>().each([this](auto &render)
+    {
+//        render.transform.getOpenGLMatrix(tm);
+        transform.transform.getOpenGLMatrix(tm);
+        glUniformMatrix4fv(model, 1, GL_FALSE, tm);
+//        glUniformMatrix4fv(model, 1, GL_FALSE, render.transform);
+
+//        if(render.albedoId != save)
+        {
+
+
+            glActiveTexture(GL_TEXTURE0 + 0 );
+            glBindTexture(GL_TEXTURE_2D, render.albedoId);
+
+            glActiveTexture(GL_TEXTURE0 + 1 );
+            glBindTexture(GL_TEXTURE_2D, render.normalId);
+//            save = render.albedoId;
+
+            glBindVertexArray(render.VAO);
+            glDrawElements(GL_TRIANGLES, render.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
+//            glBindVertexArray(mesh.VAO);
+//            glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
+        }
+    });
+
 
 //    count ++;
 //    nanoSec += deltaTimer.nsecsElapsed();
@@ -236,31 +353,48 @@ void GLWindow::timerEvent(QTimerEvent *)
     {
         light->getTransform().moveForwardGLM(moveSpeed * deltaTime);
         modelLight->getTransform().moveForwardGLM(moveSpeed * deltaTime);
+        auto &m = scene->world.get<transformComponent>(light->entity);
+        m.transform.moveForwardGLM(moveSpeed * deltaTime);
+//        btVector3 pos( light->getTransform().getGLMPosition().x,
+//                       light->getTransform().getGLMPosition().y,
+//                       light->getTransform().getGLMPosition().z);
+//        m.transform.setOrigin(pos);
+
     }
     if(keys[Qt::Key_G])
     {
         light->getTransform().moveForwardGLM(-moveSpeed * deltaTime);
         modelLight->getTransform().moveForwardGLM(-moveSpeed * deltaTime);
+        auto &m = scene->world.get<transformComponent>(light->entity);
+        m.transform.moveForwardGLM(-moveSpeed * deltaTime);
     }
     if(keys[Qt::Key_F])
     {
         light->getTransform().moveRightGLM(-moveSpeed * deltaTime);
         modelLight->getTransform().moveRightGLM(-moveSpeed * deltaTime);
+        auto &m = scene->world.get<transformComponent>(light->entity);
+        m.transform.moveRightGLM(-moveSpeed * deltaTime);
     }
     if(keys[Qt::Key_H])
     {
         light->getTransform().moveRightGLM(moveSpeed * deltaTime);
         modelLight->getTransform().moveRightGLM(moveSpeed * deltaTime);
+        auto &m = scene->world.get<transformComponent>(light->entity);
+        m.transform.moveRightGLM(moveSpeed * deltaTime);
     }
     if(keys[Qt::Key_Y])
     {
         light->getTransform().moveUpGLM(moveSpeed * deltaTime);
         modelLight->getTransform().moveUpGLM(moveSpeed * deltaTime);
+        auto &m = scene->world.get<transformComponent>(light->entity);
+        m.transform.moveUpGLM(moveSpeed * deltaTime);
     }
     if(keys[Qt::Key_R])
     {
         light->getTransform().moveUpGLM(-moveSpeed * deltaTime);
         modelLight->getTransform().moveUpGLM(-moveSpeed * deltaTime);
+        auto &m = scene->world.get<transformComponent>(light->entity);
+        m.transform.moveUpGLM(-moveSpeed * deltaTime);
     }
 
     update();

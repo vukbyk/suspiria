@@ -2,27 +2,33 @@
 
 #include <QOpenGLExtraFunctions>
 #include "spacial.h"
+#include <entt/entity/registry.hpp>
 
-class Scene: protected Spacial
+class Scene: /*protected*/public Spacial
 {
 protected:
     btScalar tm[16];
     Spacial *parentSpacial;
-    std::vector<Spacial *> children;
+//    std::vector<Spacial *> children;
+    std::vector<class Spacial *> children;
     class ShaderProgram *shaderProgram;
-    GLint model;
 public:
+    GLint model;
+
+public:
+    entt::registry world;
 //    Scene(const std::string &tag);
     Scene(class ShaderProgram *sp);
     virtual ~Scene();
 
-    void addChild(Spacial *child);
+    void addChild(class Spacial *child);
 
-    std::vector<Spacial *> getChildren(void);
+    std::vector<class Spacial *> getChildren(void);
 
 //    virtual void updateAll(Input *input);
     virtual void renderAll();
 
     GLint getModel() const;
     void setModel(const GLint &value);
+    virtual void createEntity(Scene &scene)override{};
 };
