@@ -13,7 +13,7 @@ public:
 //    Model(const char *aMeshPath);
     Model(const char *aMeshPath, const char *aAlbedoPath = "defaultComplex.png", const char *aNormalPath = "defaultNormal.png");
     Model(class Mesh *aMesh, class Material *material );
-    Model(class Mesh *aMesh, class Texture *albedo, class Texture *normal );
+    Model(class Mesh *aMesh, class Texture *albedo, class Texture *normal);
 
     ~Model();
 //    virtual void updateAll(Input *input);

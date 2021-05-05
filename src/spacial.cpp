@@ -1,4 +1,5 @@
 #include "spacial.h"
+#include "spacial.h"
 
 #include <algorithm>
 #include <model.h>
@@ -19,11 +20,16 @@ Spacial::~Spacial()
 //    delete[] transMat;
 }
 
+btVector3 Spacial::getPosition(void) const
+{
+    return transform.getPosition();
+}
 
-glm::vec3 Spacial::getPosition(void) const
+glm::vec3 Spacial::getGLMPosition(void) const
 {
     return transform.getGLMPosition();
 }
+
 Transform &Spacial::getTransform(void)
 {
     return transform;
@@ -70,7 +76,7 @@ void Spacial::setParentSpacial(Spacial *value)
 void Spacial::createEntity(Scene &scene)
 {
     entity = scene.world.create();
-    scene.world.emplace<transformComponent>(entity, getTransform());
+    scene.world.emplace<TransformComponent>(entity, getTransform());
     //ruzno za ent
     Scene *s = &scene;
     parentSpacial = s;

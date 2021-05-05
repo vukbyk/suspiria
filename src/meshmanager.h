@@ -17,6 +17,7 @@ class MeshManager
 public:
 
     MeshManager() = default;
+    ~MeshManager();
 
     void loadAssimp(const std::string file);
     class Mesh* get(const std::string file);

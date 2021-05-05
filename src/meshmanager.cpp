@@ -20,6 +20,15 @@
 
 #include <world.h>
 
+
+MeshManager::~MeshManager()
+{
+    for ( const auto &m : mesh )
+    {
+        delete m.second;
+    }
+}
+
 void MeshManager::loadAssimp(const std::string fileName)
 {
     if(mesh.count(fileName))
@@ -96,7 +105,6 @@ void MeshManager::loadScene(const aiScene* scene, const std::string fileName)
 
     }
 }
-
 
 Mesh* MeshManager::get(const std::string fileName)
 {

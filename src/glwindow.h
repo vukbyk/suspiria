@@ -17,32 +17,24 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 {
     Q_OBJECT
 
-
-    class MeshManager *meshMenager;
-    class TextureManager *textureMenager;
+//    class Scene *scene;
+//    entt::entity light;
+//    class Scene *skyScene;
+//    class Light *lightByScene;
+//    glm::mat4x4 projection;
 
     class World *world;
-    class Scene *scene;
-    class Scene *skyScene;
+    Entity light;
+
     class Camera *camera;
-    class Light *light;
-//    class Mesh *mesh;
     class Model *modelLight;
     class ShaderProgram *shaderProgram;
     class ShaderProgram *skyShaderProgram;
-    const float moveSpeed = 5.0;
-    const float rotSpeed = .5;
-
-    QElapsedTimer deltaTimer;
-    float deltaTime;
-    qint64 nanoSec=0;
-    long count=0;
 
     GLuint textureId;
 
     QBasicTimer timer;
 
-    glm::mat4x4 projection;
     glm::vec2 mousePressPosition;
 
     // Set near plane to 3.0, far plane to 7.0, field of view 45 degrees
@@ -50,8 +42,16 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     GLfloat zFar = 100.0f;
     GLfloat fov = 45.0f;
 
+    const float moveSpeed = 5.0;
+    const float rotSpeed = .5;
+
     QTime m_t0;
     QTime m_t1;
+
+    QElapsedTimer deltaTimer;
+    float deltaTime;
+    qint64 nanoSec=0;
+    long count=0;
 
     QMap<GLint, GLboolean> keys;
     glm::ivec2 mouseDelta = glm::ivec2(-1,-1);
@@ -72,20 +72,9 @@ protected:
     void keyReleaseEvent(QKeyEvent *event) override;
     void mouseMoveEvent(QMouseEvent *mouseEvent) override;
 
-    void setViewMat();
-    void setProjectionMat();
-
 public:
     using QOpenGLWindow::QOpenGLWindow;
     GLWindow();
     ~GLWindow();
-
-    Entity e;
-    SimpleRenderComponent cr;
-    class Material *matHelper;
-    class Mesh     *meshHelper;
-
-
-
 };
 

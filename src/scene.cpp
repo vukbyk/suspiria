@@ -1,7 +1,19 @@
 #include "scene.h"
-#include "shaderprogram.h"
+
 #include "components.h"
 #include "model.h"
+
+Scene::Scene()
+{
+//    shaderProgram = sp;
+    parentSpacial = nullptr;
+    //    init();
+}
+
+Scene::~Scene()
+{
+
+}
 
 GLint Scene::getModel() const
 {
@@ -11,18 +23,6 @@ GLint Scene::getModel() const
 void Scene::setModel(const GLint &value)
 {
     model = value;
-}
-
-Scene::Scene(ShaderProgram *sp)
-{
-    shaderProgram = sp;
-    parentSpacial = nullptr;
-    //    init();
-}
-
-Scene::~Scene()
-{
-
 }
 
 void Scene::addChild(Spacial *child)
@@ -52,7 +52,7 @@ void Scene::renderAll()
 //        glUniformMatrix4fv(model, 1, GL_FALSE, child->getTransform().getOpenGLMatrix());
 
         child->getTransform().getOpenGLMatrix(tm);
-        glUniformMatrix4fv(model, 1, GL_FALSE, tm);
+        glUniformMatrix4fv(model, 1, GL_FALSE, tm);//Put this to shader?
         child->renderAll();
     }
 

@@ -16,25 +16,25 @@ Model::Model(): Spacial()
     material = nullptr;
 }
 
-Model::Model(const char *aMeshPath, const char *aAlbedoPath, const char *aNormalPath)
-{
-//    "defaultNormal.png"
-//    std::string texturePath = aTexturePath;
-    Texture *albedo = new Texture(aAlbedoPath, true);//GL_TEXTURE_2D, GL_LINEAR);
-    Texture *normal = new Texture(aNormalPath);//GL_TEXTURE_2D, GL_LINEAR);
-    material = new Material(albedo, normal);
-//    setMaterial(tex);
+//Model::Model(const char *aMeshPath, const char *aAlbedoPath, const char *aNormalPath)
+//{
+////    "defaultNormal.png"
+////    std::string texturePath = aTexturePath;
+//    Texture *albedo = new Texture(aAlbedoPath, true);//GL_TEXTURE_2D, GL_LINEAR);
+//    Texture *normal = new Texture(aNormalPath);//GL_TEXTURE_2D, GL_LINEAR);
+//    material = new Material(albedo, normal);
+////    setMaterial(tex);
 
 
-//    std::string meshPath = "assets/";
-//    meshPath += aMeshPath;
-    AssimpLoad a(aMeshPath);
-    auto mp = a.sceneMeshRendererDataCache.at(aMeshPath)[0];
-    setMesh(mp);
+////    std::string meshPath = "assets/";
+////    meshPath += aMeshPath;
+//    AssimpLoad a(aMeshPath);
+//    auto mp = a.sceneMeshRendererDataCache.at(aMeshPath)[0];
+//    setMesh(mp);
 
-//    getTransform().setPosition(glm::vec3(-2.0, 0.0, -3.0));
-    //    addChild(model);
-}
+////    getTransform().setPosition(glm::vec3(-2.0, 0.0, -3.0));
+//    //    addChild(model);
+//}
 
 Model::Model(Mesh *aMesh, Material *aMaterial)
 {

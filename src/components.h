@@ -11,24 +11,35 @@ struct SimpleRenderComponent
 //    Transform transform;
 //    btScalar transform[16];
 
-    GLuint albedoId;
-    GLuint normalId;
 
     GLuint VAO;
 //    GLuint VBO;
 //    GLuint IBO;
     GLuint indicesSize;
 
+    GLuint albedoId;
+    GLuint normalId;
 
+    SimpleRenderComponent()=default;
+    SimpleRenderComponent(const GLuint aVAO, const GLuint aIndicesSize, const GLuint albedo, const GLuint normal)
+    :VAO(aVAO), indicesSize(aIndicesSize), albedoId(albedo), normalId(normal) {};
 };
 
-struct meshComponent
+struct LightComponent
+{
+    GLint lightID;
+    LightComponent(const GLint val):lightID(val){};
+    operator GLint&() {return lightID;};
+    operator const GLint&() const {return lightID;}
+};
+
+struct MeshComponent
 {
     GLuint VAO;
     GLuint indicesSize;
 //    GLuint verticesSize;
 
-    meshComponent(const GLuint aVAO,// const GLuint aVBO, const GLuint aIBO,
+    MeshComponent(const GLuint aVAO,// const GLuint aVBO, const GLuint aIBO,
           const GLuint aIndicesSize)://, const GLuint aVerticesSize):
             VAO(aVAO),// VBO(aVBO), IBO(aIBO),
             indicesSize(aIndicesSize)//, verticesSize(aVerticesSize)
@@ -38,38 +49,38 @@ struct meshComponent
     operator const GLuint&() const {return VAO;}
 };
 
-struct transformComponent
+struct TransformComponent
 {
     Transform transform;
-    transformComponent(const Transform val):transform(val){};
+    TransformComponent(const Transform val):transform(val){};
 
     operator Transform&() {return transform;};
     operator const Transform&() const {return transform;}
 };
 
 
-struct texturesComponent
+struct TexturesComponent
 {
     GLuint albedoId;
     GLuint normalId;
     //GLuint metalId;
-    texturesComponent(const GLuint aAlbedoId, const GLuint aNormalID)
+    TexturesComponent(const GLuint aAlbedoId, const GLuint aNormalID)
         :albedoId(aAlbedoId), normalId(aNormalID){};
 };
 
-struct albedoTextureComponent
+struct AlbedoTextureComponent
 {
     GLuint textureId;
-    albedoTextureComponent(const GLuint val):textureId(val){};
+    AlbedoTextureComponent(const GLuint val):textureId(val){};
 
     operator GLuint&() {return textureId;};
     operator const GLuint&() const {return textureId;}
 };
 
-struct normalTextureComponent
+struct NormalTextureComponent
 {
     GLuint textureId;
-    normalTextureComponent(const GLuint val):textureId(val){};
+    NormalTextureComponent(const GLuint val):textureId(val){};
 
     operator GLuint&() {return textureId;};
     operator const GLuint&() const {return textureId;}

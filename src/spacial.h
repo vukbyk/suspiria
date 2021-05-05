@@ -40,8 +40,8 @@ public:
     virtual void renderAll() {};
 
     std::vector<Spacial *> getChildren(void);
-
-    glm::vec3 getPosition(void) const;
+    btVector3 getPosition(void) const;
+    glm::vec3 getGLMPosition(void) const;
     Transform &getTransform(void);
 
     btVector3 getBPosition(void);

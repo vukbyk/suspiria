@@ -1,6 +1,11 @@
 #include <QFile>
 
 #include "shaderprogram.h"
+#include "camera.h"
+
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 ShaderProgram::ShaderProgram()
 {
@@ -10,6 +15,13 @@ ShaderProgram::ShaderProgram(const std::string &shaderName)
 {
     initShaders(shaderName);
 }
+
+
+GLuint ShaderProgram::getUniform(const char *name)
+{
+    return glGetUniformLocation(programId(), name);
+}
+
 
 QString versionedShaderCode(const QString &src)
 {
@@ -82,4 +94,30 @@ void ShaderProgram::bindShader()
     }
     glUniform1i(glGetUniformLocation(programId(), "albedoTexture"), 0);
     glUniform1i(glGetUniformLocation(programId(), "normalTexture"), 1);
+}
+
+void ShaderProgram::setProjectionMat(GLfloat fov, GLfloat aspect, GLfloat zNear, GLfloat zFar)
+{
+    glm::mat4 projection = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
+    GLint projectionid = glGetUniformLocation(programId(), "projection");
+    glUniformMatrix4fv(projectionid, 1, GL_FALSE, &projection[0][0]);
+}
+
+void ShaderProgram::setProjectionMat(const GLfloat *projectionMat)
+{
+    GLint projectionid = glGetUniformLocation(programId(), "projection");
+    glUniformMatrix4fv(projectionid, 1, GL_FALSE, projectionMat);
+}
+
+void ShaderProgram::setViewMat(const GLfloat viewMat[])
+{
+    GLint view = glGetUniformLocation(programId(),"view");
+    glUniformMatrix4fv(view, 1, GL_FALSE, viewMat);//&mtm[0][0]);
+}
+
+void ShaderProgram::bindSetPVMat(const GLfloat *projectionMat, const GLfloat viewMat[])
+{
+    bindShader();
+    setProjectionMat(projectionMat);
+    setViewMat(viewMat);
 }

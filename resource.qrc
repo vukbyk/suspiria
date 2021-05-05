@@ -24,6 +24,7 @@
         <file>assets/Vulture_Diffuse.alpha.png</file>
         <file>assets/sphare.obj</file>
         <file>assets/white.png</file>
-        <file>assets/invertCube.obj</file>
+        <file>assets/cubeinvert.obj</file>
+        <file>assets/cubeinvertmini.obj</file>
     </qresource>
 </RCC>

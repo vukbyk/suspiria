@@ -2,20 +2,36 @@
 #include "entity.h"
 #include "components.h"
 
+#include "meshmanager.h"
+#include "texturemanager.h"
+
 World::World()
 {
-    ;
+    meshManager = new MeshManager();
+    textureManager = new TextureManager();
 }
 
 World::~World()
 {
     registry.clear();
+    delete meshManager;
+    delete textureManager;
 }
 
 Entity World::CreateEntity()
 {
     Entity e(this, registry.create());
     return e;
+}
+
+TextureManager *World::getTextureManager() const
+{
+    return textureManager;
+}
+
+MeshManager *World::getMeshManager() const
+{
+    return meshManager;
 }
 
 //void World::DestroyEntity(Entity entity)

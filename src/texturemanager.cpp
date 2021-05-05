@@ -2,6 +2,14 @@
 #include "texture.h"
 
 
+TextureManager::~TextureManager()
+{
+    for ( const auto &t : texture )
+    {
+        delete t.second;
+    }
+}
+
 void TextureManager::load(const std::string fileName, bool gammaCorrection)
 {
     if(texture.count(fileName))

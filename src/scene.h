@@ -11,14 +11,14 @@ protected:
     Spacial *parentSpacial;
 //    std::vector<Spacial *> children;
     std::vector<class Spacial *> children;
-    class ShaderProgram *shaderProgram;
+//    class ShaderProgram *shaderProgram;
 public:
     GLint model;
 
 public:
     entt::registry world;
 //    Scene(const std::string &tag);
-    Scene(class ShaderProgram *sp);
+    Scene();
     virtual ~Scene();
 
     void addChild(class Spacial *child);

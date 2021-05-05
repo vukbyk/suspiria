@@ -18,6 +18,10 @@ public:
 
     operator entt::entity() const { return handle; }
     Entity(const Entity& other) = default;
+    Entity *addSimpleRenderComponent(const char* mesh, const char* albedo, const char* normal);
+    Entity *addTransformComponent(const GLfloat x, const GLfloat y, const GLfloat z);
+
+
 //    operator bool() const { return handle != entt::null; }
 //    operator uint32_t() const { return (uint32_t)handle; }
 
@@ -42,10 +46,10 @@ public:
 //        return component;
 //    }
 
-    template<typename T1,  typename... Args>
-    Entity *addComponent(T1 component)
+    template<typename T>//,  typename... Args>
+    Entity *addComponent(T component)
     {
-        world->registry.emplace<T1>(handle, component);
+        world->registry.emplace<T>(handle, component);
         return this;
     }
 
