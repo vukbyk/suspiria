@@ -59,8 +59,8 @@ glm::mat4 Transform::getCameraTransformMatrix(void) const
 {
 //    return bulletToGlm(transform);
 //    return glm::toMat4(rotation) * glm::translate(position);
-    glm::mat4 rot = glm::toMat4( bulletToGlm( btQuaternion (transform.getRotation()) ));
-    return rot * glm::translate(bulletToGlm(transform.getOrigin()) );
+    glm::mat4 rot = glm::toMat4( bulletToGlm( btQuaternion(transform.getRotation()) ));
+    return rot * glm::translate(bulletToGlm(transform.getOrigin() * -1.0f) );
 }
 
 btVector3 Transform::getPosition() const

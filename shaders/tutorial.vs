@@ -38,16 +38,15 @@ out vec3 tg;
 out vec3 bi;
 
 out vec3 lightPosition;
-out vec3 viewPosition;
-out vec3 normalTest;
+out mat4 lightMat;
 
 void main()
 {
-
+    lightMat = light;
     lightPosition = light[3].xyz;
 //    viewPosition = -1.0 * vec3(view[3].xyz);
 //    viewPosition = vec3(view[3].xyz);//??? maybe have to send real data????
-    viewPosition = viewPosCam;
+    vec3 viewPosition = viewPosCam;
 
     FragPos = vec3(model * vec4(pos, 1.0));
     uvFrag=uv;

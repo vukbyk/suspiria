@@ -34,6 +34,11 @@ MeshManager *World::getMeshManager() const
     return meshManager;
 }
 
+entt::registry *World::reg()
+{
+    return &registry;
+}
+
 //void World::DestroyEntity(Entity entity)
 //{
 //    registry.destroy(entity);

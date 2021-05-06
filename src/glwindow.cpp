@@ -52,17 +52,21 @@ GLWindow::GLWindow()
 
     shaderProgram = new ShaderProgram();
 //    scene = new Scene();
-    camera = new Camera();
-    camera->getTransform().moveForward(10);
+//    camera = new Camera();
+//    camera->getTransform().moveForward(10);
 //    lightByScene = new Light(shaderProgram);
 //    lightByScene->getTransform().setPosition(btVector3(1.0, 2.0, 3.0));
 
     world = new World();
     light = world->CreateEntity();
-    light.addTransformComponent(0.0, 0.0, 3.0);
+    light.addTransformComponent(0.0f, 3.0f, -6.0f);
+    camera = world->CreateEntity();
+    camera.addTransformComponent(0.0f, 4.0f, 0.0f);
+
+    controlledEntity = &camera;
 
 //    entt::entity entity;
-//    auto &m = world->registry.get<TransformComponent>(entity);
+//    auto &m = world->reg()->get<TransformComponent>(entity);
 //    glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(m.transform.getTransformMatrix()) );//&mtm[0][0]);
 //    scene->addChild(lightByScene);
 
@@ -70,10 +74,6 @@ GLWindow::GLWindow()
 //    //ruzno za ent
 //    Scene *s = &scene;
 //    parentSpacial = s;
-
-
-
-
 
 //    meshMng = new MeshManager;
 
@@ -111,9 +111,9 @@ void GLWindow::initializeGL()
 
     world->getTextureManager()->load("defaultComplex.png", true);
 
-    world->getTextureManager()->load("white.png", true);
-    world->getTextureManager()->load("exoalbedo.jpg", true);
-    world->getTextureManager()->load("brickwall.jpg", true);
+    world->getTextureManager()->load("white.png",     false);
+    world->getTextureManager()->load("exoalbedo.jpg", false);
+    world->getTextureManager()->load("brickwall.jpg", false);
 
     world->getTextureManager()->load("defaultNormal.png", false);
     world->getTextureManager()->load("brickwall_normal.png", false);
@@ -122,8 +122,6 @@ void GLWindow::initializeGL()
 
 
     light.addSimpleRenderComponent("cubeinvertmini.obj", "white.png", "defaultNormal.png");
-
-    auto &m = world->registry.get<TransformComponent>(light);
 
 //    Model *skyCube = new Model("invertCube.obj", "brickwall.jpg");//, "Vulture_Diffuse.alpha_normal.jpg");
 
@@ -148,8 +146,9 @@ void GLWindow::initializeGL()
         {
             e=world->CreateEntity();
 //            e.addSimpleRenderComponent("cube.obj", "white.png", "brickwall_normal.jpg");
+            e.addSimpleRenderComponent("cube.obj", "defaultComplex.png", "defaultNormal.png");
 //            if(j%2)
-                e.addSimpleRenderComponent("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
+//                e.addSimpleRenderComponent("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
 //            else
 //                e.addSimpleRenderComponent("cube.obj", "white.png", "defaultNormal.png");
 
@@ -216,7 +215,9 @@ void GLWindow::resizeGL(int w, int h)
 {
     // Calculate aspect ratio
     GLfloat aspect = GLfloat(w) / GLfloat(h ? h : 1);
-
+    projectionMat = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
+    shaderProgram->bindShader();
+    shaderProgram->setProjectionMat(&projectionMat[0][0]);
     // Reset projection
 //    projection = glm::mat4(1.0f);
 
@@ -228,11 +229,13 @@ void GLWindow::paintGL()
 {
 
 
-    float aspect = (float)width()/height();
-    glm::mat4 projectionMat = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
-    auto *pPointerPM = glm::value_ptr(projectionMat);//same as &projection[0][0])
-    auto *cameraMat = glm::value_ptr(camera->getTransform().getCameraTransformMatrix());
-
+//    float aspect = (float)width()/height();
+//    projectionMat = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
+//    auto *pPointerPM = glm::value_ptr(projectionMat);//same as &projection[0][0])
+    auto &cameraHandleTrans = world->reg()->get<TransformComponent>(camera);
+//    auto *viewMat = glm::value_ptr(camera->getTransform().getCameraTransformMatrix());
+    glm::mat4 invMat = cameraHandleTrans.transform.getCameraTransformMatrix();
+    auto *viewMat = glm::value_ptr(invMat);
     // Clear color and depth buffer
 //    glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT);
 
@@ -242,26 +245,30 @@ void GLWindow::paintGL()
 //    glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    shaderProgram->bindSetPVMat(pPointerPM, cameraMat);
-
-
-    GLint lightID = shaderProgram->getUniform( "light");
-
-
-    auto &m = world->registry.get<TransformComponent>(light);
-    glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(m.transform.getTransformMatrix()) );//&mtm[0][0]);
 //    lightByScene->renderAll();
 //    scene->renderAll();
 
-//    GLfloat cam[3]={-1* camera->getGLMPosition().x, -1* camera->getGLMPosition().y, -1* camera->getGLMPosition().z };
-    btVector3 cam = camera->getPosition() * (-1.0);
+    //Separated to change of size for Perspective when window is resized,
+    //but also should have for zoom in future
+//    shaderProgram->bindSetPVMat(pPointerPM, cameraMat);
 
-    GLint viewPosCam = glGetUniformLocation(shaderProgram->programId(), "viewPosCam");
-//    glm::vec3 v(0,0,1.0f);
-    glUniform3fv(viewPosCam, 1, &cam[0]);
+    shaderProgram->bindShader();
+    shaderProgram->setViewMat(viewMat);
+
+    GLint lightID = shaderProgram->getUniform( "light");
+
+    auto &lightTransform = world->reg()->get<TransformComponent>(light);
+    glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(lightTransform.transform.getTransformMatrix()) );//&mtm[0][0]);
+
+
+//    btVector3 cam = camera->getPosition() * (-1.0);
+//    btVector3 cam = cameraHandleTrans.transform.getPosition() * (-1.0);
+//    GLint viewPosCam = glGetUniformLocation(shaderProgram->programId(), "viewPosCam");
+////    glm::vec3 v(0,0,1.0f);
+//    glUniform3fv(viewPosCam, 1, &cam[0]);
     GLint model = shaderProgram->getUniform("model");
     btScalar tm[16];
-    auto group = world->registry.group<SimpleRenderComponent, TransformComponent>();//, cMesh>();
+    auto group = world->reg()->group<SimpleRenderComponent, TransformComponent>();//, cMesh>();
     group.each([this, &model, &tm](auto &render, auto &transform)//, auto &mesh)
 //    world.view<cRender>().each([this](auto &render)
     {
@@ -293,7 +300,6 @@ void GLWindow::paintGL()
 
     deltaTime = (double)deltaTimer.nsecsElapsed()/1000000000;
 
-
 //    m_t1 = QTime::currentTime();
 //    float curDelta = m_t0.msecsTo(m_t1);
 //    m_t0 = m_t1;
@@ -304,21 +310,75 @@ void GLWindow::paintGL()
 
 void GLWindow::timerEvent(QTimerEvent *)
 {
+    auto &m = world->reg()->get<TransformComponent>(light);
+    if(keys[Qt::Key_T])
+    {
+        m.transform.moveForwardGLM(moveSpeed * deltaTime);
+    }
+    if(keys[Qt::Key_G])
+    {
+        m.transform.moveForwardGLM(-moveSpeed * deltaTime);
+    }
+    if(keys[Qt::Key_F])
+    {
+        m.transform.moveRightGLM(-moveSpeed * deltaTime);
+    }
+    if(keys[Qt::Key_H])
+    {
+        m.transform.moveRightGLM(moveSpeed * deltaTime);
+    }
+    if(keys[Qt::Key_Y])
+    {
+        m.transform.moveUpGLM(moveSpeed * deltaTime);
+    }
+    if(keys[Qt::Key_R])
+    {
+        m.transform.moveUpGLM(-moveSpeed * deltaTime);
+    }
+
+    if(keys[Qt::Key_1])
+    {
+        controlledEntity= &camera;
+    }
+    if(keys[Qt::Key_2])
+    {
+        controlledEntity = &light;
+    }
+
+    if(controlledEntity == nullptr)
+    {
+        update();
+        return;
+    }
+    else
+    {
+        controlledTransform = &world->reg()->get<TransformComponent>(*controlledEntity);
+    }
+
     if(keys[Qt::Key_W])
     {
-//        camera->getBTransform().getOrigin().setY(btScalar( 1000.0f));
-        camera->getTransform().moveForwardGLM(-moveSpeed * deltaTime);
+        controlledTransform->transform.moveForwardGLM(moveSpeed * deltaTime);
     }
     if(keys[Qt::Key_S])
-        camera->getTransform().moveForwardGLM(moveSpeed * deltaTime);
+    {
+        controlledTransform->transform.moveForwardGLM(-moveSpeed * deltaTime);
+    }
     if(keys[Qt::Key_D])
-        camera->getTransform().moveRightGLM(-moveSpeed * deltaTime);
+    {
+        controlledTransform->transform.moveRightGLM(moveSpeed * deltaTime);
+    }
     if(keys[Qt::Key_A])
-        camera->getTransform().moveRightGLM(moveSpeed * deltaTime);
+    {
+        controlledTransform->transform.moveRightGLM(-moveSpeed * deltaTime);
+    }
     if(keys[Qt::Key_E])
-        camera->getTransform().moveUpGLM(-moveSpeed * deltaTime);
+    {
+        controlledTransform->transform.moveUpGLM(moveSpeed * deltaTime);
+    }
     if(keys[Qt::Key_Q])
-        camera->getTransform().moveUpGLM(moveSpeed * deltaTime);
+    {
+        controlledTransform->transform.moveUpGLM(-moveSpeed * deltaTime);
+    }
 
 //    if(keys[Qt::Key_Right])
 //        camera->getTransform().rotate     (glm::vec3(0,glm::radians(rotSpeed),0));
@@ -330,64 +390,25 @@ void GLWindow::timerEvent(QTimerEvent *)
 //        camera->getTransform().addYawPitch(glm::vec3(glm::radians(-.2f),0,0));
 
     if(keys[Qt::Key_Up])
-        camera->getTransform().addYawPitch(btVector3(rotSpeed,0,0));
+    {
+        glm::vec2 rotator( 3.0f * glm::radians(0.1f), 0.0f);
+        controlledTransform->transform.addYawPitch(glm::vec3(rotator,0));
+    }
     if(keys[Qt::Key_Down])
-        camera->getTransform().addYawPitch(btVector3(-rotSpeed,0,0));
-
-    if(keys[Qt::Key_T])
     {
-//        light->getTransform().moveForwardGLM(moveSpeed * deltaTime);
-//        modelLight->getTransform().moveForwardGLM(moveSpeed * deltaTime);
-//        auto &m = scene->world.get<TransformComponent>(lightByScene->entity);
-        auto &m = world->registry.get<TransformComponent>(light);
-        m.transform.moveForwardGLM(moveSpeed * deltaTime);
-//        btVector3 pos( light->getTransform().getGLMPosition().x,
-//                       light->getTransform().getGLMPosition().y,
-//                       light->getTransform().getGLMPosition().z);
-//        m.transform.setOrigin(pos);
-
+        glm::vec2 rotator( -3.0f * glm::radians(0.1f), 0.0f);
+        controlledTransform->transform.addYawPitch(glm::vec3(rotator,0));
     }
-    if(keys[Qt::Key_G])
+    if(keys[Qt::Key_Left])
     {
-//        light->getTransform().moveForwardGLM(-moveSpeed * deltaTime);
-//        modelLight->getTransform().moveForwardGLM(-moveSpeed * deltaTime);
-//        auto &m = scene->world.get<TransformComponent>(lightByScene->entity);
-        auto &m = world->registry.get<TransformComponent>(light);
-        m.transform.moveForwardGLM(-moveSpeed * deltaTime);
+        glm::vec2 rotator( 0.0f, -3.0f * glm::radians(0.1f));
+        controlledTransform->transform.addYawPitch(glm::vec3(rotator,0));
     }
-    if(keys[Qt::Key_F])
+    if(keys[Qt::Key_Right])
     {
-//        light->getTransform().moveRightGLM(-moveSpeed * deltaTime);
-//        modelLight->getTransform().moveRightGLM(-moveSpeed * deltaTime);
-//        auto &m = scene->world.get<TransformComponent>(lightByScene->entity);
-        auto &m = world->registry.get<TransformComponent>(light);
-        m.transform.moveRightGLM(-moveSpeed * deltaTime);
+        glm::vec2 rotator( 0.0f, 3.0f * glm::radians(0.1f));
+        controlledTransform->transform.addYawPitch(glm::vec3(rotator,0));
     }
-    if(keys[Qt::Key_H])
-    {
-//        light->getTransform().moveRightGLM(moveSpeed * deltaTime);
-//        modelLight->getTransform().moveRightGLM(moveSpeed * deltaTime);
-//        auto &m = scene->world.get<TransformComponent>(lightByScene->entity);
-        auto &m = world->registry.get<TransformComponent>(light);
-        m.transform.moveRightGLM(moveSpeed * deltaTime);
-    }
-    if(keys[Qt::Key_Y])
-    {
-//        light->getTransform().moveUpGLM(moveSpeed * deltaTime);
-//        modelLight->getTransform().moveUpGLM(moveSpeed * deltaTime);
-//        auto &m = scene->world.get<TransformComponent>(lightByScene->entity);
-        auto &m = world->registry.get<TransformComponent>(light);
-        m.transform.moveUpGLM(moveSpeed * deltaTime);
-    }
-    if(keys[Qt::Key_R])
-    {
-//        light->getTransform().moveUpGLM(-moveSpeed * deltaTime);
-//        modelLight->getTransform().moveUpGLM(-moveSpeed * deltaTime);
-//        auto &m = scene->world.get<TransformComponent>(lightByScene->entity);
-        auto &m = world->registry.get<TransformComponent>(light);
-        m.transform.moveUpGLM(-moveSpeed * deltaTime);
-    }
-
     update();
 }
 
@@ -398,7 +419,13 @@ void GLWindow::mouseMoveEvent(QMouseEvent *mouseEvent)
 
     mouseDelta = glm::ivec2(mouseEvent->localPos().x(), mouseEvent->localPos().y())  - lastMousePosition;
     glm::vec2 rotator(mouseDelta.y * glm::radians(0.1f), mouseDelta.x * glm::radians(0.1f));
-    camera->getTransform().addYawPitch(glm::vec3(rotator,0));
+
+    if(controlledEntity!=nullptr)
+    {
+        controlledTransform = &world->reg()->get<TransformComponent>(*controlledEntity);
+        controlledTransform->transform.addYawPitch(glm::vec3(rotator,0));
+    }
+
     lastMousePosition = glm::ivec2(mouseEvent->localPos().x(), mouseEvent->localPos().y());
 
 //    qDebug() << "x: " << mouseDelta.x << " y: " << mouseDelta.y;

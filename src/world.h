@@ -10,11 +10,11 @@ class World
 {   
 //    template<typename T>
 //    void OnComponentAdded(Entity entity, T& component);
+    entt::registry registry;
 
 public:
     World();
     ~World();
-    entt::registry registry;
 
     MeshManager *meshManager;
     TextureManager *textureManager;
@@ -30,6 +30,7 @@ public:
 
     MeshManager *getMeshManager() const;
     TextureManager *getTextureManager() const;
+    entt::registry *reg();
 };
 
 #endif // WORLD_H

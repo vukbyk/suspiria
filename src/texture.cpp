@@ -4,18 +4,17 @@
 
 #include <QFile>
 
-
 #ifdef GL_ES_VERSION_2_0
     #include <qopengles2ext.h>
     #define GL_RED					0x1903
     #define GL_RGB8					0x8051
-    #define GL_SRGB8                          0x8C41
+    #define GL_SRGB8                0x8C41
 #endif
 
-Texture::Texture(const std::string &fileName, const bool gammaCorrection)//, GLenum aTextureTarget, GLfloat filter)
+Texture::Texture(const std::string &fileName, const bool gammaCorrection, const bool flipNormalVertically)//, GLenum aTextureTarget, GLfloat filter)
 {
     initializeOpenGLFunctions();
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(flipNormalVertically);
 
     int width, height, nChannels;
     qDebug("Loading texture: %s", std::string(":/assets/").append(fileName).c_str());

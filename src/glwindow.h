@@ -17,21 +17,19 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 {
     Q_OBJECT
 
-//    class Scene *scene;
-//    entt::entity light;
 //    class Scene *skyScene;
-//    class Light *lightByScene;
-//    glm::mat4x4 projection;
 
     class World *world;
-    Entity light;
 
-    class Camera *camera;
-    class Model *modelLight;
     class ShaderProgram *shaderProgram;
     class ShaderProgram *skyShaderProgram;
 
-    GLuint textureId;
+
+//    class Camera *camera;
+    Entity light;
+    Entity camera;
+    Entity *controlledEntity=nullptr;
+    TransformComponent *controlledTransform=nullptr;
 
     QBasicTimer timer;
 
@@ -42,8 +40,8 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     GLfloat zFar = 100.0f;
     GLfloat fov = 45.0f;
 
-    const float moveSpeed = 5.0;
-    const float rotSpeed = .5;
+    const float moveSpeed = 2.0;
+    const float rotSpeed = .2;
 
     QTime m_t0;
     QTime m_t1;
@@ -53,10 +51,12 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     qint64 nanoSec=0;
     long count=0;
 
-    QMap<GLint, GLboolean> keys;
+    std::map<GLint, GLboolean> keys;
     glm::ivec2 mouseDelta = glm::ivec2(-1,-1);
     glm::ivec2 lastMousePosition = glm::ivec2(-1,-1);
     glm::ivec2 mouseWheel = glm::ivec2(-1,-1);
+
+    glm::mat4 projectionMat;
 
 protected:
     void timerEvent(QTimerEvent *e) override;

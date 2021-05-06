@@ -25,6 +25,14 @@ struct SimpleRenderComponent
     :VAO(aVAO), indicesSize(aIndicesSize), albedoId(albedo), normalId(normal) {};
 };
 
+//struct CameraComponent
+//{
+//    GLfloat zoom=1.0f;
+//    CameraComponent(const GLfloat val):zoom(val){};
+//    operator GLfloat&() {return zoom;};
+//    operator const GLfloat&() const {return zoom;}
+//};
+
 struct LightComponent
 {
     GLint lightID;
