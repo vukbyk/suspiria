@@ -1,7 +1,7 @@
 #pragma once
 
-#include <QOpenGLWindow>
-#include <QOpenGLWidget>
+#include <QtOpenGL/QOpenGLWindow>
+#include <QtOpenGLWidgets/QOpenGLWidget>
 #include <QOpenGLExtraFunctions>
 #include <QBasicTimer>
 #include <QElapsedTimer>

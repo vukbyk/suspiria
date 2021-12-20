@@ -61,7 +61,7 @@ GLWindow::GLWindow()
     light = world->CreateEntity();
     light.addTransformComponent(0.0f, 3.0f, -6.0f);
     camera = world->CreateEntity();
-    camera.addTransformComponent(0.0f, 4.0f, 0.0f);
+    camera.addTransformComponent(0.0f, 2.0f, 0.0f);
 
     controlledEntity = &camera;
 
@@ -120,8 +120,7 @@ void GLWindow::initializeGL()
     world->getTextureManager()->load("brickwall_normal.jpg", false);
     world->getTextureManager()->load("exoskelet_Exoskelet_Normal.png", false);
 
-
-    light.addSimpleRenderComponent("cubeinvertmini.obj", "white.png", "defaultNormal.png");
+    light.addSimpleRenderComponent("cubeinvert.obj", "white.png", "defaultNormal.png");
 
 //    Model *skyCube = new Model("invertCube.obj", "brickwall.jpg");//, "Vulture_Diffuse.alpha_normal.jpg");
 
@@ -152,7 +151,7 @@ void GLWindow::initializeGL()
 //            else
 //                e.addSimpleRenderComponent("cube.obj", "white.png", "defaultNormal.png");
 
-            e.addTransformComponent( -50.0f+i*2, 0.0f, -50.0f+j*2);
+            e.addTransformComponent( -50.0f+i*1, 0.0f, -50.0f+j*1);
         }
     }
 
@@ -262,10 +261,10 @@ void GLWindow::paintGL()
 
 
 //    btVector3 cam = camera->getPosition() * (-1.0);
-//    btVector3 cam = cameraHandleTrans.transform.getPosition() * (-1.0);
-//    GLint viewPosCam = glGetUniformLocation(shaderProgram->programId(), "viewPosCam");
+    btVector3 cam = cameraHandleTrans.transform.getPosition() * (-1.0);
+    GLint viewPosCam = glGetUniformLocation(shaderProgram->programId(), "viewPosCam");
 ////    glm::vec3 v(0,0,1.0f);
-//    glUniform3fv(viewPosCam, 1, &cam[0]);
+    glUniform3fv(viewPosCam, 1, &cam[0]);
     GLint model = shaderProgram->getUniform("model");
     btScalar tm[16];
     auto group = world->reg()->group<SimpleRenderComponent, TransformComponent>();//, cMesh>();
@@ -310,31 +309,31 @@ void GLWindow::paintGL()
 
 void GLWindow::timerEvent(QTimerEvent *)
 {
-    auto &m = world->reg()->get<TransformComponent>(light);
-    if(keys[Qt::Key_T])
-    {
-        m.transform.moveForwardGLM(moveSpeed * deltaTime);
-    }
-    if(keys[Qt::Key_G])
-    {
-        m.transform.moveForwardGLM(-moveSpeed * deltaTime);
-    }
-    if(keys[Qt::Key_F])
-    {
-        m.transform.moveRightGLM(-moveSpeed * deltaTime);
-    }
-    if(keys[Qt::Key_H])
-    {
-        m.transform.moveRightGLM(moveSpeed * deltaTime);
-    }
-    if(keys[Qt::Key_Y])
-    {
-        m.transform.moveUpGLM(moveSpeed * deltaTime);
-    }
-    if(keys[Qt::Key_R])
-    {
-        m.transform.moveUpGLM(-moveSpeed * deltaTime);
-    }
+//    auto &m = world->reg()->get<TransformComponent>(light);
+//    if(keys[Qt::Key_T])
+//    {
+//        m.transform.moveForwardGLM(moveSpeed * deltaTime);
+//    }
+//    if(keys[Qt::Key_G])
+//    {
+//        m.transform.moveForwardGLM(-moveSpeed * deltaTime);
+//    }
+//    if(keys[Qt::Key_F])
+//    {
+//        m.transform.moveRightGLM(-moveSpeed * deltaTime);
+//    }
+//    if(keys[Qt::Key_H])
+//    {
+//        m.transform.moveRightGLM(moveSpeed * deltaTime);
+//    }
+//    if(keys[Qt::Key_Y])
+//    {
+//        m.transform.moveUpGLM(moveSpeed * deltaTime);
+//    }
+//    if(keys[Qt::Key_R])
+//    {
+//        m.transform.moveUpGLM(-moveSpeed * deltaTime);
+//    }
 
     if(keys[Qt::Key_1])
     {
@@ -357,11 +356,11 @@ void GLWindow::timerEvent(QTimerEvent *)
 
     if(keys[Qt::Key_W])
     {
-        controlledTransform->transform.moveForwardGLM(moveSpeed * deltaTime);
+        controlledTransform->transform.moveForwardGLM(-moveSpeed * deltaTime);
     }
     if(keys[Qt::Key_S])
     {
-        controlledTransform->transform.moveForwardGLM(-moveSpeed * deltaTime);
+        controlledTransform->transform.moveForwardGLM(moveSpeed * deltaTime);
     }
     if(keys[Qt::Key_D])
     {
@@ -418,7 +417,7 @@ void GLWindow::mouseMoveEvent(QMouseEvent *mouseEvent)
         lastMousePosition =  glm::ivec2(mouseEvent->localPos().x(), mouseEvent->localPos().y());
 
     mouseDelta = glm::ivec2(mouseEvent->localPos().x(), mouseEvent->localPos().y())  - lastMousePosition;
-    glm::vec2 rotator(mouseDelta.y * glm::radians(0.1f), mouseDelta.x * glm::radians(0.1f));
+    glm::vec2 rotator(0/*mouseDelta.y * glm::radians(0.1f)*/, -mouseDelta.x * glm::radians(0.1f));
 
     if(controlledEntity!=nullptr)
     {

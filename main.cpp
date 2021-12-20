@@ -1,6 +1,9 @@
 #include "glwindow.h"
 
-#include <QApplication>
+//#include <QApplication>
+#include <QGuiApplication>
+#include <QSurfaceFormat>
+#include <QOpenGLContext>
 #include <QDebug>
 
 #include "suspiria.h"

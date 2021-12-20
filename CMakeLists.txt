@@ -57,23 +57,26 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #       message(STATUS "SLEIDEBUG:${COLYOO_QT_RESOURCES}")
 
 if(EMSCRIPTEN)
-    set(Qt5_DIR "/home/vuk/Qt/5.15.0//wasm_32/lib/cmake/Qt5")
-#    set(Qt5Widgets_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Widgets")
-#    set(Qt5Gui_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Gui")
-#    set(Qt5Core_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Core")
-#    set(Qt5Svg_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Svg")
-#    set(Qt5Zlib_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Zlib")
-#    set(Qt5Network_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Network")
-#    set(Qt5EventDispatcherSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5EventDispatcherSupport")
-#    set(Qt5FontDatabaseSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5FontDatabaseSupport")
-#    set(Qt5EglSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5EglSupport")
-#    set(Qt5ThemeSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5ThemeSupport")
-#    set(Qt5Quick_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Quick")
-#    set(Qt5QmlModels_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5QmlModels")
-#    set(Qt5Qml_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Qml")
-#    set(Qt5WebSockets_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5WebSockets")
-#    set(CMAKE_TOOLCHAIN_FILE="/home/vuk/Desktop/Install/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
+    set(Qt6_DIR "/home/vuk/Qt/6.2.2/wasm_32/lib/cmake/Qt6")
 endif()
+#if(EMSCRIPTEN)
+#    set(Qt5_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5")
+##    set(Qt5Widgets_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Widgets")
+##    set(Qt5Gui_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Gui")
+##    set(Qt5Core_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Core")
+##    set(Qt5Svg_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Svg")
+##    set(Qt5Zlib_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Zlib")
+##    set(Qt5Network_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Network")
+##    set(Qt5EventDispatcherSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5EventDispatcherSupport")
+##    set(Qt5FontDatabaseSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5FontDatabaseSupport")
+##    set(Qt5EglSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5EglSupport")
+##    set(Qt5ThemeSupport_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5ThemeSupport")
+##    set(Qt5Quick_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Quick")
+##    set(Qt5QmlModels_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5QmlModels")
+##    set(Qt5Qml_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5Qml")
+##    set(Qt5WebSockets_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5WebSockets")
+##    set(CMAKE_TOOLCHAIN_FILE="/home/vuk/Desktop/Install/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
+#endif()
 
 
 #   # add the GUI WIN32 executable
@@ -93,7 +96,19 @@ endif()
 #endif()
 
 #find_package(Qt5 COMPONENTS Widgets LinguistTools REQUIRED)
-find_package(Qt5 COMPONENTS Widgets REQUIRED)
+
+#if(ANDROID)
+#    set(CMAKE_PREFIX_PATH "/home/vuk/Qt/5.15.0/gcc_64")
+##    set(CMAKE_PREFIX_PATH "/home/vuk/qt6/6.1.0/gcc_64")
+##    set(Qt5_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/Qt5")
+#    set(Qt5_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/Qt6")
+#    set(Qt5Widgets_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/Qt5Widgets")
+#    set(Qt5Network_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/Qt5Network")
+#    set(Qt5LinguistTools_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/Qt5LinguistTools")
+#endif()
+#find_package(Qt5 COMPONENTS Widgets REQUIRED)
+#find_package(Qt6 COMPONENTS Widgets REQUIRED)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL)
 
 #set(TS_FILES suspiria_en_US.ts)
 
@@ -155,8 +170,8 @@ set(ENABLE_BOOST_WORKAROUND ON)
 set(BUILD_STATIC_LIB ON)
 set(BUILD_ASSIMP_TOOLS ON)
 set(ASSIMP_BUILD_STATIC_LIB ON)
-#Minimal build test, not working with emscripten, must use 
-#cmake -Wno-dev -DEMSCRIPTEN=1 -DCMAKE_TOOLCHAIN_FILE=/home/vuk/Desktop/Install/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake ../.. 
+#Minimal build test, not working with emscripten, must use
+#cmake -Wno-dev -DEMSCRIPTEN=1 -DCMAKE_TOOLCHAIN_FILE=/home/vuk/Desktop/Install/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake ../..
 #      -DCMAKE_BUILD_TYPE=MinSizeRel -DASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT=No  -DASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT=No -DASSIMP_BUILD_OBJ_IMPORTER=yes -DASSIMP_BUILD_TESTS=no
 #set(BUILD_SHARED_LIBS ON)
 #set(BUILD_ASSIMP_TOOLS OFF)
@@ -168,7 +183,19 @@ set(ASSIMP_BUILD_STATIC_LIB ON)
 #set(ASSIMP_BUILD_TESTS OFF)
 #set(ASSIMP_BUILD_OBJ_IMPORTER ON)
 
-add_subdirectory(assimp)
+OPTION ( ASSIMP_BUILD_TESTS
+  "If the test suite for Assimp is built in addition to the library."
+ OFF
+)
+OPTION( ASSIMP_BUILD_ASSIMP_TOOLS
+  "If the supplementary tools for Assimp are built in addition to the library."
+ OFF
+)
+OPTION( ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF)
+#OPTION( ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
+
+
+add_subdirectory(dep/assimp)
 
 
 add_subdirectory(dep/entt)
@@ -221,30 +248,32 @@ add_subdirectory(dep/entt)
 #        message("!!!!!!!!EST ELSE!!!!!!!")
 #endif()
 
-if(ANDROID)
-  message("EMSCRIPTEN build")
-  add_library(suspiria SHARED
-    main.cpp
-    ${SUSPIRIA_SRCGLOB}
-    ${BULLET_SRCGLOB}
-#    EnTT
-    assimp
-    resource.qrc
-    shaders.qrc
-#    glwindow.h
-#    glwindow.cpp
-#    logo.h
-#    logo.cpp
-#    ${TS_FILES}
-  )
-elseif(EMSCRIPTEN)
+#if(ANDROID)
+#  message("ANDROID build")
+#  add_library(suspiria SHARED
+#    main.cpp
+#    ${SUSPIRIA_SRCGLOB}
+#    ${BULLET_SRCGLOB}
+##    EnTT
+#    assimp
+#    resource.qrc
+#    shaders.qrc
+##    glwindow.h
+##    glwindow.cpp
+##    logo.h
+##    logo.cpp
+##    ${TS_FILES}
+#  )
+#else
+
+if(EMSCRIPTEN)
   message("EMSCRIPTEN build")
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-  add_executable(suspiria
+  qt_add_executable(suspiria
     main.cpp
     ${SUSPIRIA_SRCGLOB}
     ${BULLET_SRCGLOB}
-    assimp
+    dep/assimp
     resource.qrc
     shaders.qrc
   #    glwindow.h
@@ -255,11 +284,11 @@ elseif(EMSCRIPTEN)
   )
 else()
   message("DEFAULT build")
-  add_executable(suspiria
+  qt_add_executable(suspiria
     main.cpp
     ${SUSPIRIA_SRCGLOB}
     ${BULLET_SRCGLOB}
-    assimp
+    dep/assimp
     resource.qrc
     shaders.qrc
 #    glwindow.h
@@ -283,10 +312,20 @@ if(ANDROID)
 endif()
 
 if(EMSCRIPTEN)
-  link_qt_static(suspiria)
-  set_target_properties(suspiria PROPERTIES LINK_FLAGS "-s TOTAL_MEMORY=2GB")
+#  link_qt_static(suspiria)
+#    set_target_properties(suspiria PROPERTIES LINK_FLAGS "-s TOTAL_MEMORY=4GB")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s INITIAL_MEMORY=134217728")
 endif()
 
-target_link_libraries(suspiria PRIVATE Qt5::Widgets EnTT twbullet assimp)# LinearMath BulletCollision BulletDynamics )
+#target_link_libraries(suspiria PRIVATE Qt5::Widgets EnTT twbullet assimp)# LinearMath BulletCollision BulletDynamics )
+#target_link_libraries(suspiria PRIVATE Qt6::Widgets EnTT twbullet assimp)# LinearMath BulletCollision BulletDynamics )
+target_link_libraries(suspiria PUBLIC
+    Qt::Core
+    Qt::Gui
+    Qt::OpenGL
+    EnTT
+    twbullet
+    assimp
+)
 
 #qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})

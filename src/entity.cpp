@@ -19,7 +19,15 @@ Entity *Entity::addTransformComponent(const GLfloat x, const GLfloat y, const GL
     addComponent(TransformComponent(btVector3(x , y, z)));
     return this;
 }
-
+//Entity *Entity::addTransformComponent(const glm::vec3 v)
+//{
+//    glm::mat4 mat(1);
+//    mat[3][0] = v[0];
+//    mat[3][1] = v[1];
+//    mat[3][2] = v[2];
+//    addComponent(mat);
+//    return this;
+//}
 
 //bool Entity::operator==(const Entity& other) const
 //{

@@ -20,6 +20,7 @@ public:
     Entity(const Entity& other) = default;
     Entity *addSimpleRenderComponent(const char* mesh, const char* albedo, const char* normal);
     Entity *addTransformComponent(const GLfloat x, const GLfloat y, const GLfloat z);
+//    Entity *addTransformComponent(const glm::vec3 v);
 
 
 //    operator bool() const { return handle != entt::null; }

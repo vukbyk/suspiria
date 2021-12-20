@@ -12,7 +12,7 @@
 #include <string>
 #include <QFile>
 #include <QFileInfo>
-#include <QMessageBox>
+//#include <QMessageBox>
 
 #include <iostream>
 #include <fstream>

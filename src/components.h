@@ -2,6 +2,7 @@
 #define ECSCOMPONENTS_H
 
 #include "transform.h"
+#include "glmtransform.h"
 #include <QOpenGLExtraFunctions>
 #include <string>
 
@@ -65,6 +66,20 @@ struct TransformComponent
     operator Transform&() {return transform;};
     operator const Transform&() const {return transform;}
 };
+
+//struct TransformComponent
+//{
+//    GLMTransform transform;
+//    TransformComponent(const GLMTransform val):transform(val){};
+//    TransformComponent(const Transform val)
+//    {
+//        transform.setTransform( glm::mat4(1));
+//        transform.setTransform( val.getTransformMatrix());
+//    };
+
+//    operator GLMTransform&() {return transform;};
+//    operator const GLMTransform&() const {return transform;}
+//};
 
 
 struct TexturesComponent

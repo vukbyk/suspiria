@@ -4,7 +4,7 @@
 #include <string>
 #include <QFile>
 #include <QFileInfo>
-#include <QMessageBox>
+//#include <QMessageBox>
 
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>

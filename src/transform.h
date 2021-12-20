@@ -13,19 +13,20 @@ class Transform
 protected:
 //    static btScalar tm[16];
     btTransform transform;
-//    glm::vec3 position;
-//    glm::quat rotation;
-//    glm::vec3 scale;
+    btVector3 position;
+    btQuaternion rotation;
+//    btVector3 scale;
 
 public:
-    Transform(const Transform &val);
-    Transform(const btTransform &val);
+//    Transform(const Transform &val);
+//    Transform(const btTransform &val);
     Transform(const btVector3 &aPosition = btVector3(0,0,0)
-             ,const btQuaternion &aRotation = btQuaternion(0.0, 0.0, 0.0) );
+             ,const btQuaternion &aRotation = btQuaternion(0.0, 0.0, 0.0)// );
+             ,const btVector3 &scale = btVector3(1.0f, 1.0f, 1.0f));
 
     Transform(const glm::vec3 &position// = glm::vec3(0)
-             ,const glm::quat &rotation);// = glm::quat(glm::vec3(0.0, 0.0, 0.0)));
-//             ,const glm::vec3 &scale = glm::vec3(1.0f));
+             ,const glm::quat &rotation//);// = glm::quat(glm::vec3(0.0, 0.0, 0.0)));
+             ,const glm::vec3 &scale = glm::vec3(1.0f));
     ~Transform();
 
     void getOpenGLMatrix(btScalar *tm);
@@ -36,30 +37,32 @@ public:
 
     btVector3 getPosition() const;
     glm::vec3 getGLMPosition() const;
-    Transform &setPosition(const btVector3 &position);
-    Transform &setOrigin(const btVector3 &position);
-    Transform &translate(const btVector3 &position);
-    Transform &setPosition(const glm::vec3 &position);
-    Transform &translate(const glm::vec3 &position);
+    void setPosition(const btVector3 &position);
+    void setOrigin(const btVector3 &position);
+    void translate(const btVector3 &position);
+    void setPosition(const glm::vec3 &position);
+    void translate(const glm::vec3 &position);
 
     btQuaternion getRotation() const;
     glm::quat getGLMRotation() const;
 
-    Transform &setRotation(const btQuaternion &rotation);
-    Transform &setRotation(const btVector3 &aAxis, float aAngle);
+    void setRotation(const btQuaternion &rotation);
+    void setRotation(const btVector3 &aAxis, float aAngle);
 
-    Transform &setRotation(const glm::quat &rotation);
-    Transform &setRotation(const glm::vec3 &aAxis, float aAngle);
+    void setRotation(const glm::quat &rotation);
+    void setRotation(const glm::vec3 &aAxis, float aAngle);
 
-    Transform &rotate(const float aAngle, const btVector3 &aAxis);
-    Transform &rotate(const btQuaternion aRot);
-    Transform &rotate(const btVector3 aRot);
-    Transform &addYawPitch(const btVector3 aRot);
+    void addYawPitch(const float yaw, const float pitch);
 
-    Transform &rotate(const float aAngle, const glm::vec3 &aAxis);
-    Transform &rotate(const glm::quat aRot);
-    Transform &rotate(const glm::vec3 aRot);
-    Transform &addYawPitch(const glm::vec3 aRot);
+    void rotate(const float aAngle, const btVector3 &aAxis);
+    void rotate(const btQuaternion aRot);
+    void rotate(const btVector3 aRot);
+    void addYawPitch(const btVector3 aRot);
+
+    void rotate(const float aAngle, const glm::vec3 &aAxis);
+    void rotate(const glm::quat aRot);
+    void rotate(const glm::vec3 euler);
+    void addYawPitch(const glm::vec3 aRot);
 
     glm::vec3 getDirectionGLM() const;
     btVector3 forward() const;
@@ -70,13 +73,13 @@ public:
     glm::vec3 rightGLM() const;
     glm::vec3 upGLM() const;
 
-    Transform &moveForward(const float f);
-    Transform &moveRight(const float f);
-    Transform &moveUp(const float f);
+    void moveForward(const float f);
+    void moveRight(const float f);
+    void moveUp(const float f);
 
-    Transform &moveForwardGLM(const float f);
-    Transform &moveRightGLM(const float f);
-    Transform &moveUpGLM(const float f);
+    void moveForwardGLM(const float f);
+    void moveRightGLM(const float f);
+    void moveUpGLM(const float f);
 
     glm::vec3 bulletToGlm(const btVector3 &v)const;
     btVector3 glmToBullet(const glm::vec3 &v)const;

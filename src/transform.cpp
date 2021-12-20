@@ -6,29 +6,32 @@
 
 //btScalar Transform::tm[16];
 
-Transform::Transform(const Transform &val)
-{
-    transform = btTransform(val.transform);
-}
+//Transform::Transform(const Transform &val)
+//{
+//    transform = btTransform(val.transform);
+//}
 
 
-Transform::Transform(const btTransform &val)
-{
-    transform = btTransform(val);
-}
+//Transform::Transform(const btTransform &val)
+//{
+//    transform = btTransform(val);
+//}
 
-Transform::Transform(const btVector3 &aPosition, const btQuaternion &aRotation)
-    :transform(aRotation, aPosition)
+Transform::Transform(const btVector3 &aPosition,
+                     const btQuaternion &aRotation,
+                     const btVector3 &aScale)
+    :position(aPosition),rotation(aRotation),transform(aRotation, aPosition)
 {
     //transform.setIdentity();
 }
 
 Transform::Transform(const glm::vec3 &aPosition
                     ,const glm::quat &aRotation
-                    /*,const glm::vec3 &scale*/)
+                    ,const glm::vec3 &scale)
 {
     transform.setOrigin( glmToBullet(aPosition));
     transform.setRotation( glmToBullet( aRotation));
+    rotation=glmToBullet(aRotation);
 //    this->scale = scale;
 }
 
@@ -42,16 +45,10 @@ void Transform::getOpenGLMatrix(btScalar *tm)
     transform.getOpenGLMatrix(tm);
 }
 
-btScalar *Transform::getOpenGLMatrix()
-{
-    static btScalar tm[16];
-    transform.getOpenGLMatrix(tm);
-    return tm;
-}
-
 glm::mat4 Transform::getTransformMatrix(void) const
 {
 //    return glm::translate(position) * glm::toMat4(rotation);//* glm::scale(scale);
+
     return bulletToGlm(transform);
 }
 
@@ -59,8 +56,12 @@ glm::mat4 Transform::getCameraTransformMatrix(void) const
 {
 //    return bulletToGlm(transform);
 //    return glm::toMat4(rotation) * glm::translate(position);
+//    glm::mat4 rot = glm::toMat4( bulletToGlm( btQuaternion(transform.getRotation()) ));
+//    return rot * glm::translate(bulletToGlm(transform.getOrigin() * -1.0f) );
     glm::mat4 rot = glm::toMat4( bulletToGlm( btQuaternion(transform.getRotation()) ));
-    return rot * glm::translate(bulletToGlm(transform.getOrigin() * -1.0f) );
+    rot = glm::inverse(rot);
+    glm::mat4 pos = glm::translate(bulletToGlm(transform.getOrigin() * -1.0f) );
+    return rot * pos;
 }
 
 btVector3 Transform::getPosition() const
@@ -75,36 +76,33 @@ glm::vec3 Transform::getGLMPosition(void) const
     return bulletToGlm(transform.getOrigin());
 }
 
-Transform &Transform::setOrigin(const btVector3 &position)
+void Transform::setOrigin(const btVector3 &position)
 {
     transform.setOrigin(position);
-    return *this;
 }
 
-Transform &Transform::translate(const btVector3 &position)
-{
-    return setPosition(transform.getOrigin() + position);
-}
-
-Transform &Transform::setPosition(const btVector3 &position)
+void Transform::setPosition(const btVector3 &position)
 {
     transform.setOrigin(position);
-    return *this;
 }
 
-Transform &Transform::setPosition(const glm::vec3 &position)
+void Transform::translate(const btVector3 &position)
+{
+    setPosition(transform.getOrigin() + position);
+}
+
+void Transform::setPosition(const glm::vec3 &position)
 {
 //    this->position = position;
     transform.setOrigin(glmToBullet(position));
-    return *this;
 }
 
-Transform &Transform::translate(const glm::vec3 &position)
+void Transform::translate(const glm::vec3 &position)
 {
 //    return setPosition(this->position + position);
 //    btVector3 v = glmToBullet(position) + transform.getOrigin();
 //    transform.setOrigin(v);
-    return setPosition(bulletToGlm(transform.getOrigin()) + position);
+    setPosition(bulletToGlm(transform.getOrigin()) + position);
 }
 
 btQuaternion Transform::getRotation() const
@@ -118,95 +116,110 @@ glm::quat Transform::getGLMRotation(void) const
     return bulletToGlm(transform.getRotation());
 }
 
-Transform &Transform::setRotation(const btQuaternion &rotation)
+void Transform::setRotation(const btQuaternion &rotation)
 {
     transform.setRotation(transform.getRotation() * rotation);
-    return *this;
 }
 
-Transform &Transform::setRotation(const btVector3 &aAxis, float aAngle)
+void Transform::setRotation(const btVector3 &aAxis, float aAngle)
 {
     transform.setRotation(btQuaternion(aAxis, aAngle));
-    return *this;
 }
 
 
 
-Transform &Transform::setRotation(const glm::quat &rotation)
+void Transform::setRotation(const glm::quat &rotation)
 {
     transform.setRotation( glmToBullet(rotation) );
-    return *this;
 }
 
-Transform &Transform::setRotation(const glm::vec3 &aAxis, float aAngle)
+void Transform::setRotation(const glm::vec3 &aAxis, float aAngle)
 {
     transform.setRotation(glmToBullet(glm::quat(aAngle ,aAxis)) );
-    return *this;
 }
 
-Transform &Transform::rotate(const float aAngle, const btVector3 &aAxis)
+void Transform::addYawPitch(float rotYaw, float rotPitch)
+{
+//    btQuaternion orientation(transform.getRotation());
+//    orientation =
+
+//    float y=0;
+//    float p=0;
+//    float r=0;
+//    transform.getRotation().getEulerZYX(y, p, r);
+////    if(rotYaw);
+////    btTransform temp(btQuaternion(),transform.getOrigin());
+////    temp.setOrigin(btVector3(temp.getOrigin().x(), temp.getOrigin().y(), temp.getOrigin().z()+1.0));
+//    p+=rotPitch;
+//    y+=rotYaw;
+//    btQuaternion quatYaw  (y,0,0);
+//    btQuaternion quatPitch(0,p,0);
+//    btQuaternion rot = quatYaw;//*quatPitch;
+
+//    btQuaternion transYaw(rotYaw, btVector3(0,1,0));
+//    btQuaternion transPitch(quatPitch, btVector3(1,0,0));
+
+
+
+////    transYaw *= transform;
+////    transform *= transPitch;
+////    temp.setRotation(quatPitch);
+//    transform.setRotation(rot);
+//    btVector3 v= transform.getBasis()[0];
+    btVector3 right = glmToBullet(rightGLM());//btVector3(1.f ,0.f ,0.f));
+    btQuaternion qPitch(right , rotPitch);
+    transform.setRotation( qPitch * transform.getRotation() );
+    btQuaternion qYaw(btVector3(0, 1, 0), rotYaw);
+//    transform.setRotation(transform.getRotation() * qYaw);
+    btQuaternion btQuat =  qYaw * qPitch ;
+    transform.setRotation(transform.getRotation() * qYaw * qPitch );
+}
+
+void Transform::rotate(const float aAngle, const btVector3 &aAxis)
 {
     transform.setRotation(btQuaternion(aAxis, aAngle));
-    return *this;
 }
 
-Transform &Transform::rotate(const btQuaternion aRot)
+void Transform::rotate(const btQuaternion aRot)
 {
     transform.setRotation(transform.getRotation() * aRot);
-    return *this;
 }
 
-Transform &Transform::rotate(const btVector3 aRot)
+void Transform::rotate(const btVector3 euler)
 {
-    btQuaternion quat(aRot.x(), aRot.y(), aRot.z());
+    btQuaternion quat(euler.x(), euler.y(), euler.z());
     transform.setRotation(transform.getRotation()*quat);
 //    rotation *= glm::quat(rot);
-    return *this;
 }
 
-Transform &Transform::addYawPitch(const btVector3 aRot)
+void Transform::addYawPitch(const btVector3 aRot)
 {
-//    glm::quat qPitch = glm::angleAxis(aRot.x, right());
-//    glm::quat qYaw =  glm::angleAxis(aRot.y, glm::vec3(0, 1, 0));//up());
-//    rotation *= qPitch * qYaw; // * qRoll;
-    btQuaternion qPitch(right(), aRot.x());
-    btQuaternion qYaw(btVector3(0, 1, 0), aRot.y());
-    btQuaternion btQuat = qPitch * qYaw ;
-    transform.setRotation(transform.getRotation() * btQuat);
-    return *this;
+    addYawPitch(aRot.y(), aRot.x());
 }
 
-Transform &Transform::rotate(const float aAngle, const glm::vec3 &aAxis)
+void Transform::rotate(const float aAngle, const glm::vec3 &aAxis)
 {
     btVector3 axis = glmToBullet(aAxis);
     transform.setRotation(btQuaternion(axis, aAngle));
 //    rotation = glm::rotate(rotation, angle, axis);
-    return *this;
 }
 
-Transform &Transform::rotate(const glm::quat aRot)
+void Transform::rotate(const glm::quat aRot)
 {
 //    rotation *= rot;
     transform.setRotation(transform.getRotation() * glmToBullet(aRot));
-    return *this;
 }
 
-Transform &Transform::rotate(const glm::vec3 aRot)
+void Transform::rotate(const glm::vec3 aRot)
 {
     btQuaternion quat = glmToBullet(glm::quat(aRot));
     transform.setRotation(transform.getRotation()*quat);
 //    rotation *= glm::quat(rot);
-    return *this;
 }
 
-Transform &Transform::addYawPitch(const glm::vec3 aRot)
+void Transform::addYawPitch(const glm::vec3 aRot)
 {
-    glm::quat qPitch = glm::angleAxis(aRot.x, rightGLM());
-    glm::quat qYaw =  glm::angleAxis(aRot.y, glm::vec3(0, 1, 0));//up());
-//    rotation *= qPitch * qYaw; // * qRoll;
-    btQuaternion btQuat = glmToBullet(glm::quat( qPitch * qYaw ));
-    transform.setRotation(transform.getRotation() * btQuat);
-    return *this;
+    addYawPitch(aRot.y, aRot.x);
 }
 
 glm::vec3 Transform::getDirectionGLM(void) const
@@ -228,13 +241,14 @@ btVector3 Transform::right() const
     const btQuaternion rot = transform.getRotation();
     btVector3 dir = btVector3(1.0, 0.0, 0.0);
     dir.rotate(rot.getAxis(), rot.getAngle() );
+
     return dir;
 }
 
 btVector3 Transform::up() const
 {
     const btQuaternion rot = transform.getRotation();
-    btVector3 dir = btVector3(1.0f, 0.0, -1.0);
+    btVector3 dir = btVector3(0.0f, 1.0, 0.0);
     dir.rotate(rot.getAxis(), rot.getAngle() );
     return dir;
 }
@@ -242,55 +256,63 @@ btVector3 Transform::up() const
 glm::vec3 Transform::forwardGLM() const
 {
 //    glm::vec3 dir = glm::rotate(glm::inverse(rotation), glm::vec3(0.0, 0.0, -1.0));
-    glm::quat rot = bulletToGlm(transform.getRotation());
-    glm::vec3 dir = glm::rotate(glm::inverse(rot), glm::vec3(0.0, 0.0, -1.0));
+//    glm::quat rot = bulletToGlm(transform.getRotation());
+//    glm::vec3 dir = glm::rotate(glm::inverse(rot), glm::vec3(0.0, 0.0, -1.0));
+
+    glm::mat4 rot = bulletToGlm(transform);
+    glm::vec3 dir = rot[2];
     return dir;
 }
 
 glm::vec3 Transform::rightGLM() const
 {
 //    glm::vec3 dir = glm::rotate(glm::inverse(rotation), glm::vec3(1.0, 0.0, 0.0));
-    glm::quat rot = bulletToGlm(transform.getRotation());
-    glm::vec3 dir = glm::rotate(glm::inverse(rot), glm::vec3(1.0, 0.0, 0.0));
+//    glm::quat rot = bulletToGlm(transform.getRotation());
+//    glm::vec3 dir = glm::rotate(glm::inverse(rot), glm::vec3(1.0, 0.0, 0.0));
+    glm::mat4 rot = bulletToGlm(transform);
+    glm::vec3 dir = rot[0];
     return dir;
+
 }
 
 glm::vec3 Transform::upGLM() const
 {
 //    glm::vec3 dir = glm::rotate(glm::inverse(rotation), glm::vec3(0.0, 1.0, 0.0));
-    glm::quat rot = bulletToGlm(transform.getRotation());
-    glm::vec3 dir = glm::rotate(glm::inverse(rot), glm::vec3(0.0, 1.0, 0.0));
+//    glm::quat rot = bulletToGlm(transform.getRotation());
+//    glm::vec3 dir = glm::rotate(glm::inverse(rot), glm::vec3(0.0, 1.0, 0.0));
+    glm::mat4 rot = bulletToGlm(transform);
+    glm::vec3 dir = rot[1];
     return dir;
 }
 
-Transform &Transform::moveForward(const float f)
+void Transform::moveForward(const float f)
 {
-    return translate(forward() * f);
+    translate(forward() * f);
 }
 
-Transform &Transform::moveRight(const float f)
+void Transform::moveRight(const float f)
 {
-    return translate(right() * f );
+    translate(right() * f );
 }
 
-Transform &Transform::moveUp(const float f)
+void Transform::moveUp(const float f)
 {
     return translate(up() * f );
 }
 
-Transform &Transform::moveForwardGLM(const float f)
+void Transform::moveForwardGLM(const float f)
 {
-    return translate(forwardGLM() * f );
+    translate(forwardGLM() * f );
 }
 
-Transform &Transform::moveRightGLM(const float f)
+void Transform::moveRightGLM(const float f)
 {
-    return translate(rightGLM() * f );
+    translate(rightGLM() * f );
 }
 
-Transform &Transform::moveUpGLM(const float f)
+void Transform::moveUpGLM(const float f)
 {
-    return translate(upGLM() * f );
+    translate(upGLM() * f );
 }
 
 glm::vec3 Transform::bulletToGlm(const btVector3& v) const { return glm::vec3(v.getX(), v.getY(), v.getZ()); }

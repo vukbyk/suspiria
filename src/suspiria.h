@@ -1,6 +1,6 @@
 #pragma once
 
-#include <QOpenGLWindow>
+#include <QtOpenGL/QOpenGLWindow>
 #include <QOpenGLExtraFunctions>
 #include <glwindow.h>
 

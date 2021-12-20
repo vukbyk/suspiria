@@ -1,6 +1,6 @@
 #pragma once
 
-#include <QOpenGLShaderProgram>
+#include <QtOpenGL/QOpenGLShaderProgram>
 #include <QOpenGLExtraFunctions>
 
 

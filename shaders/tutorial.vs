@@ -44,7 +44,7 @@ void main()
 {
     lightMat = light;
     lightPosition = light[3].xyz;
-//    viewPosition = -1.0 * vec3(view[3].xyz);
+//    vec3 viewPosCam = vec3(view[3].xyz);
 //    viewPosition = vec3(view[3].xyz);//??? maybe have to send real data????
     vec3 viewPosition = viewPosCam;
 

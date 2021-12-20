@@ -31,6 +31,7 @@ add_link_options("SHELL:-s EXIT_RUNTIME=1")
 # https://emscripten.org/docs/optimizing/Optimizing-Code.html#memory-growth
 add_link_options("SHELL:-s ALLOW_MEMORY_GROWTH=1")
 #add_link_options("SHELL:-s MAXIMUM_MEMORY=1GB") # required when combining USE_PTHREADS with ALLOW_MEMORY_GROWTH
+add_link_options(-s TOTAL_MEMORY=33554432)
 
 # Enable C++ exception catching
 # https://emscripten.org/docs/optimizing/Optimizing-Code.html#c-exceptions
@@ -53,13 +54,13 @@ list(APPEND CMAKE_FIND_ROOT_PATH "/")
 
 # Link to missing Qt libraries.
 # Temporary solution until Qt ship with proper CMake support for WebAssembly.
-function(link_qt_static target)
-    # copy in Qt HTML/JS launch files
-    set(APPNAME ${target})
-    configure_file("${_qt5Core_install_prefix}/plugins/platforms/wasm_shell.html"
-                   "${target}.html")
-    configure_file("${_qt5Core_install_prefix}/plugins/platforms/qtloader.js"
-                   qtloader.js COPYONLY)
-    configure_file("${_qt5Core_install_prefix}/plugins/platforms/qtlogo.svg"
-                   qtlogo.svg COPYONLY)
-endfunction()
+#function(link_qt_static target)
+#    # copy in Qt HTML/JS launch files
+#    set(APPNAME ${target})
+#    configure_file("${_qt5Core_install_prefix}/plugins/platforms/wasm_shell.html"
+#                   "${target}.html")
+#    configure_file("${_qt5Core_install_prefix}/plugins/platforms/qtloader.js"
+#                   qtloader.js COPYONLY)
+#    configure_file("${_qt5Core_install_prefix}/plugins/platforms/qtlogo.svg"
+#                   qtlogo.svg COPYONLY)
+#endfunction()

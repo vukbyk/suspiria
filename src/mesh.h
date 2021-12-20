@@ -9,8 +9,8 @@
 //#endif
 
 #include <QOpenGLExtraFunctions>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLBuffer>
+#include <QtOpenGL/QOpenGLShaderProgram>
+#include <QtOpenGL/QOpenGLBuffer>
 
 #include "vertex.h"
 //!!! Do not use, use assimp load instead !!!
