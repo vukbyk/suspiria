@@ -26,7 +26,7 @@ void bulletTestCopyFromMain();
 
 int main(int argc, char *argv[])
 {
-
+//START ENTT test
     struct d
     {
         int data;
@@ -48,40 +48,48 @@ int main(int argc, char *argv[])
 //    auto &m = registry.get<btVector3>(mesh[0]);
 //    m.setX(1000);
 
-    entt::entity mesh2 = registry.create();
-    registry.emplace<btVector3>(mesh2, btVector3(2,2,2));
-    registry.emplace<d>(mesh2, 6662);
+    for(int i = 0 ; i<10; i++)
+    {
+        entt::entity m;
+        m = registry.create();
+        registry.emplace<btVector3>(m, btVector3(i,i,i));
+        registry.emplace<d>(m, i);
+    }
+
+//    entt::entity mesh2 = registry.create();
+//    registry.emplace<btVector3>(mesh2, btVector3(2,2,2));
+//    registry.emplace<d>(mesh2, 6662);
 
 //    entt::entity cam = registry.create();
 //    registry.emplace<btVector3>(cam, btVector3(3,3,3));
 
 
-//    auto testView = registry.view<btVector3>();
-//    for(auto mesh: testView)
-//    {
-////        d &n = testView.get<d>(mesh);
-////        std::cout << "for:  " << n.data <<"  !!!!!\n\n\n";
-//        btVector3 &n = testView.get<btVector3>(mesh);
-//        std::cout << "for:  " << n.x() <<"  !!!!!\n\n\n";
-//    }
+    auto testView = registry.view<btVector3>();
+    for(auto mesh: testView)
+    {
+//        d &n = testView.get<d>(mesh);
+//        std::cout << "for:  " << n.data <<"  !!!!!\n\n\n";
+        btVector3 &n = testView.get<btVector3>(mesh);
+        std::cout << "for:  " << n.x() <<"  !!!!!\n\n\n";
+    }
 
-//    auto group = registry.group<d>(entt::get<btVector3>);
-//    for(auto entity: group)
-//    {
-//        auto&&[vec, dn] = group.get<btVector3, d>(entity);
-////        auto dn = group.get<d>(entity);
-////        auto vec = group.get<btVector3>(entity);
-//        vec.setY(333);
-//        std::cout << "for:  " << vec.y() <<" d: " << dn <<"  !!!!!\n\n\n";
-//    }
-//    for(auto entity: group)
-//    {
-//        auto[vec, dn] = group.get<btVector3, d>(entity);
-////        auto dn = group.get<d>(entity);
-////        auto vec = group.get<btVector3>(entity);
-//        std::cout << "for:  " << vec.y() <<" d: " << dn <<"  !!!!!\n\n\n";
-//    }
-
+    auto testGroup = registry.group<d>(entt::get<btVector3>);
+    for(auto entity: testGroup)
+    {
+        auto[vec, dn] = testGroup.get<btVector3, d>(entity);
+//        auto dn = group.get<d>(entity);
+//        auto vec = group.get<btVector3>(entity);
+        vec.setX(vec.getX()+333);
+//        std::cout << "for:  " << vec.x() <<" d: " << dn <<"  !!!!!\n\n\n";
+    }
+    for(auto entity: testGroup)
+    {
+        auto[vec, dn] = testGroup.get<btVector3, d>(entity);
+//        auto dn = group.get<d>(entity);
+//        auto vec = group.get<btVector3>(entity);
+        std::cout << "for:  " << vec.x() <<" d: " << dn <<"  !!!!!\n\n\n";
+    }
+//END ENTT test
 
     //Disable QML debug level logging
 //    QLoggingCategory::setFilterRules("*.debug=false");

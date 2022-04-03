@@ -103,7 +103,7 @@ GLMTransform &GLMTransform::setPosition(const btVector3 &position)
 }
 
 GLMTransform &GLMTransform::setOrigin(const btVector3 &position)
-{    
+{
     transform[0][0] = position.x();
     transform[0][1] = position.y();
     transform[0][2] = position.z();

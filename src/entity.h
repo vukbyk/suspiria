@@ -10,6 +10,7 @@
 class Entity
 {
     class World *world =nullptr;
+public:
     entt::entity handle{ entt::null };
 
 public:

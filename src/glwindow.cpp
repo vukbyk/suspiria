@@ -62,7 +62,8 @@ GLWindow::GLWindow()
     light.addTransformComponent(0.0f, 3.0f, -6.0f);
     camera = world->CreateEntity();
     camera.addTransformComponent(0.0f, 2.0f, 0.0f);
-
+//    auto transformCamera = &world->reg()->get<TransformComponent>(camera);
+//    transformCamera->transform.setRotation(btVector3(1,0,0), -.5);
     controlledEntity = &camera;
 
 //    entt::entity entity;
@@ -139,7 +140,8 @@ void GLWindow::initializeGL()
 //    e.addSimpleRenderComponent("cube.obj", "white.png", "defaultNormal.png");
 //    e.addTransformComponent(0.0, -5.0, 0.0f);
 
-    for(int i=0; i<200; i++) //100000 = 28fps
+    //100000 = 28fpsGentoo/Suse 24dbg-53dbg (56.5 after  remove rot and pos separate
+    for(int i=0; i<400; i++)
     {
         for(int j=0; j<250; j++)
         {
@@ -290,12 +292,12 @@ void GLWindow::paintGL()
 //    nanoSec += deltaTimer.nsecsElapsed();
 //    if (count  >= 100)
 //    {
-//        qDebug()<< "timing:" << ( (double)nanoSec) / (count*1000000000) << "ms";
+//        qDebug()<< "timing:" << ( (double)nanoSec) / (count*1000000000) << "ns (ms*100)";
 //        qDebug()<< "timing:" << ((double)count*1000000000) /nanoSec  << "FPS";
 //        count=0;
 //        nanoSec=0;
 //    }
-//    qDebug()<< "timing:" << ((double)nanoSec / count) << "ns/call";
+//    //qDebug()<< "timing:" << ((double)nanoSec / count) << "ns/call";
 
     deltaTime = (double)deltaTimer.nsecsElapsed()/1000000000;
 
@@ -309,6 +311,8 @@ void GLWindow::paintGL()
 
 void GLWindow::timerEvent(QTimerEvent *)
 {
+    if(!controlledEntity)
+        return;
 //    auto &m = world->reg()->get<TransformComponent>(light);
 //    if(keys[Qt::Key_T])
 //    {
@@ -400,12 +404,12 @@ void GLWindow::timerEvent(QTimerEvent *)
     }
     if(keys[Qt::Key_Left])
     {
-        glm::vec2 rotator( 0.0f, -3.0f * glm::radians(0.1f));
+        glm::vec2 rotator( 0.0f, 3.0f * glm::radians(0.1f));
         controlledTransform->transform.addYawPitch(glm::vec3(rotator,0));
     }
     if(keys[Qt::Key_Right])
     {
-        glm::vec2 rotator( 0.0f, 3.0f * glm::radians(0.1f));
+        glm::vec2 rotator( 0.0f, -3.0f * glm::radians(0.1f));
         controlledTransform->transform.addYawPitch(glm::vec3(rotator,0));
     }
     update();
@@ -414,10 +418,11 @@ void GLWindow::timerEvent(QTimerEvent *)
 void GLWindow::mouseMoveEvent(QMouseEvent *mouseEvent)
 {
     if( lastMousePosition == glm::ivec2(-1,-1) )
-        lastMousePosition =  glm::ivec2(mouseEvent->localPos().x(), mouseEvent->localPos().y());
+        lastMousePosition =  glm::ivec2(mouseEvent->position().x(), mouseEvent->position().y());
 
-    mouseDelta = glm::ivec2(mouseEvent->localPos().x(), mouseEvent->localPos().y())  - lastMousePosition;
-    glm::vec2 rotator(0/*mouseDelta.y * glm::radians(0.1f)*/, -mouseDelta.x * glm::radians(0.1f));
+    mouseDelta = glm::ivec2(mouseEvent->position().x(), mouseEvent->position().y())  - lastMousePosition;
+    glm::vec2 rotator(mouseDelta.y * glm::radians(0.2f), -mouseDelta.x * glm::radians(0.2f));
+//    glm::vec2 rotator(mouseDelta.y * 0.001f, -mouseDelta.x * 0.001f);
 
     if(controlledEntity!=nullptr)
     {
@@ -425,7 +430,7 @@ void GLWindow::mouseMoveEvent(QMouseEvent *mouseEvent)
         controlledTransform->transform.addYawPitch(glm::vec3(rotator,0));
     }
 
-    lastMousePosition = glm::ivec2(mouseEvent->localPos().x(), mouseEvent->localPos().y());
+    lastMousePosition = glm::ivec2(mouseEvent->position().x(), mouseEvent->position().y());
 
 //    qDebug() << "x: " << mouseDelta.x << " y: " << mouseDelta.y;
 //    qDebug() << "x: " << mouseEvent->globalPos().x()  << "y: " << mouseEvent->globalPos().y();
@@ -464,7 +469,7 @@ void GLWindow::keyReleaseEvent(QKeyEvent *event)
 void GLWindow::mousePressEvent(QMouseEvent *e)
 {
     // Save mouse press position
-    mousePressPosition = glm::vec2(e->localPos().x(), e->localPos().y());
+    mousePressPosition = glm::vec2(e->position().x(), e->position().y());
 }
 
 void GLWindow::mouseReleaseEvent(QMouseEvent *e)

@@ -13,8 +13,8 @@ class Transform
 protected:
 //    static btScalar tm[16];
     btTransform transform;
-    btVector3 position;
-    btQuaternion rotation;
+//    btVector3 position;
+//    btQuaternion rotation;
 //    btVector3 scale;
 
 public:
@@ -88,6 +88,9 @@ public:
     btMatrix3x3 glmToBullet(const glm::mat3 &m)const;
     btTransform glmToBullet(const glm::mat4 &m)const;
     glm::mat4 bulletToGlm(const btTransform &t)const;
+
+    void toEuler(btVector3 &EulerZXY)const;
+    btVector3 getEuler()const;
 
 //    glm::vec3 getScale() const;
 //    Transform &setScale(const glm::vec3 &scale);

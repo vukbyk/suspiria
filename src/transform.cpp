@@ -4,6 +4,8 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <QLoggingCategory>
+
 //btScalar Transform::tm[16];
 
 //Transform::Transform(const Transform &val)
@@ -20,7 +22,7 @@
 Transform::Transform(const btVector3 &aPosition,
                      const btQuaternion &aRotation,
                      const btVector3 &aScale)
-    :position(aPosition),rotation(aRotation),transform(aRotation, aPosition)
+    :transform(aRotation, aPosition)//,position(aPosition),rotation(aRotation)
 {
     //transform.setIdentity();
 }
@@ -31,7 +33,7 @@ Transform::Transform(const glm::vec3 &aPosition
 {
     transform.setOrigin( glmToBullet(aPosition));
     transform.setRotation( glmToBullet( aRotation));
-    rotation=glmToBullet(aRotation);
+//    rotation=glmToBullet(aRotation);
 //    this->scale = scale;
 }
 
@@ -118,7 +120,7 @@ glm::quat Transform::getGLMRotation(void) const
 
 void Transform::setRotation(const btQuaternion &rotation)
 {
-    transform.setRotation(transform.getRotation() * rotation);
+    transform.setRotation(rotation);
 }
 
 void Transform::setRotation(const btVector3 &aAxis, float aAngle)
@@ -140,41 +142,18 @@ void Transform::setRotation(const glm::vec3 &aAxis, float aAngle)
 
 void Transform::addYawPitch(float rotYaw, float rotPitch)
 {
-//    btQuaternion orientation(transform.getRotation());
-//    orientation =
+//Totally suboptimal. Angels should be saved and added!
+    btScalar r,y,p;
+    transform.getBasis().getEulerZYX(r, y, p);
 
-//    float y=0;
-//    float p=0;
-//    float r=0;
-//    transform.getRotation().getEulerZYX(y, p, r);
-////    if(rotYaw);
-////    btTransform temp(btQuaternion(),transform.getOrigin());
-////    temp.setOrigin(btVector3(temp.getOrigin().x(), temp.getOrigin().y(), temp.getOrigin().z()+1.0));
-//    p+=rotPitch;
-//    y+=rotYaw;
-//    btQuaternion quatYaw  (y,0,0);
-//    btQuaternion quatPitch(0,p,0);
-//    btQuaternion rot = quatYaw;//*quatPitch;
+    y+=rotYaw;
+    p+=rotPitch;
+    transform.getBasis().setEulerYPR(0, y, p);
+//    btQuaternion newPitch(right(), x);
+//    btQuaternion newRot=
+//    transform.getBasis().setRotation(newPitch);
 
-//    btQuaternion transYaw(rotYaw, btVector3(0,1,0));
-//    btQuaternion transPitch(quatPitch, btVector3(1,0,0));
-
-
-
-////    transYaw *= transform;
-////    transform *= transPitch;
-////    temp.setRotation(quatPitch);
-//    transform.setRotation(rot);
-//    btVector3 v= transform.getBasis()[0];
-    btVector3 right = glmToBullet(rightGLM());//btVector3(1.f ,0.f ,0.f));
-    btQuaternion qPitch(right , rotPitch);
-    transform.setRotation( qPitch * transform.getRotation() );
-    btQuaternion qYaw(btVector3(0, 1, 0), rotYaw);
-//    transform.setRotation(transform.getRotation() * qYaw);
-    btQuaternion btQuat =  qYaw * qPitch ;
-    transform.setRotation(transform.getRotation() * qYaw * qPitch );
 }
-
 void Transform::rotate(const float aAngle, const btVector3 &aAxis)
 {
     transform.setRotation(btQuaternion(aAxis, aAngle));
@@ -187,14 +166,14 @@ void Transform::rotate(const btQuaternion aRot)
 
 void Transform::rotate(const btVector3 euler)
 {
-    btQuaternion quat(euler.x(), euler.y(), euler.z());
+    btQuaternion quat(euler.getX(), euler.getY(), euler.getZ());
     transform.setRotation(transform.getRotation()*quat);
 //    rotation *= glm::quat(rot);
 }
 
 void Transform::addYawPitch(const btVector3 aRot)
 {
-    addYawPitch(aRot.y(), aRot.x());
+    addYawPitch(aRot.getY(), aRot.getX());
 }
 
 void Transform::rotate(const float aAngle, const glm::vec3 &aAxis)
@@ -357,6 +336,84 @@ glm::mat4 Transform::bulletToGlm(const btTransform& t) const
     m[2][3] = 0.0f;
     m[3][3] = 1.0f;
     return m;
+}
+
+void Transform::toEuler(btVector3 &EulerZXY) const
+{
+    btScalar squ;
+    btScalar sqx;
+    btScalar sqy;
+    btScalar sqz;
+    btScalar sarg;
+
+    sqx = transform.getRotation()[0] * transform.getRotation()[0];
+    sqy = transform.getRotation()[1] * transform.getRotation()[1];
+    sqz = transform.getRotation()[2] * transform.getRotation()[2];
+    squ = transform.getRotation()[3] * transform.getRotation()[3];
+    sarg = btScalar(-2.) * (transform.getRotation()[0] * transform.getRotation()[2] - transform.getRotation()[3] * transform.getRotation()[1]);
+
+    // If the pitch angle is PI/2 or -PI/2, we can only compute
+    // the sum roll + yaw.  However, any combination that gives
+    // the right sum will produce the correct orientation, so we
+    // set rollX = 0 and compute yawZ.
+    if (sarg <= -btScalar(0.99999))
+    {
+        EulerZXY.setY(btScalar(-0.5) * SIMD_PI);
+        EulerZXY.setX(0);
+        EulerZXY.setZ( btScalar(2) * btAtan2(transform.getRotation()[0], -transform.getRotation()[1]));
+    }
+    else if (sarg >= btScalar(0.99999))
+    {
+        EulerZXY.setZ( btScalar(0.5) * SIMD_PI) ;
+        EulerZXY.setX( 0 );
+        EulerZXY.setY(btScalar(2) * btAtan2(-transform.getRotation()[0], transform.getRotation()[1]));
+    }
+    else
+    {
+        EulerZXY.setZ(btAsin(sarg));
+        EulerZXY.setX(btAtan2(2 * (transform.getRotation()[1] * transform.getRotation()[2] + transform.getRotation()[3] * transform.getRotation()[0]), squ - sqx - sqy + sqz));
+        EulerZXY.setY(btAtan2(2 * (transform.getRotation()[0] * transform.getRotation()[1] + transform.getRotation()[3] * transform.getRotation()[2]), squ + sqx - sqy - sqz));
+    }
+}
+
+btVector3 Transform::getEuler() const
+{
+    btVector3 EulerZXY;
+    btScalar squ;
+    btScalar sqx;
+    btScalar sqy;
+    btScalar sqz;
+    btScalar sarg;
+
+    sqx = transform.getRotation()[0] * transform.getRotation()[0];
+    sqy = transform.getRotation()[1] * transform.getRotation()[1];
+    sqz = transform.getRotation()[2] * transform.getRotation()[2];
+    squ = transform.getRotation()[3] * transform.getRotation()[3];
+    sarg = btScalar(-2.) * (transform.getRotation()[0] * transform.getRotation()[2] - transform.getRotation()[3] * transform.getRotation()[1]);
+
+    // If the pitch angle is PI/2 or -PI/2, we can only compute
+    // the sum roll + yaw.  However, any combination that gives
+    // the right sum will produce the correct orientation, so we
+    // set rollX = 0 and compute yawZ.
+    if (sarg <= -btScalar(0.99999))
+    {
+        EulerZXY.setY(btScalar(-0.5) * SIMD_PI);
+        EulerZXY.setX(0);
+        EulerZXY.setZ( btScalar(2) * btAtan2(transform.getRotation()[0], -transform.getRotation()[1]));
+    }
+    else if (sarg >= btScalar(0.99999))
+    {
+        EulerZXY.setZ( btScalar(0.5) * SIMD_PI) ;
+        EulerZXY.setX( 0 );
+        EulerZXY.setY(btScalar(2) * btAtan2(-transform.getRotation()[0], transform.getRotation()[1]));
+    }
+    else
+    {
+        EulerZXY.setZ(btAsin(sarg));
+        EulerZXY.setX(btAtan2(2 * (transform.getRotation()[1] * transform.getRotation()[2] + transform.getRotation()[3] * transform.getRotation()[0]), squ - sqx - sqy + sqz));
+        EulerZXY.setY(btAtan2(2 * (transform.getRotation()[0] * transform.getRotation()[1] + transform.getRotation()[3] * transform.getRotation()[2]), squ + sqx - sqy - sqz));
+    }
+    return EulerZXY;
 }
 
 //glm::vec3 Transform::getScale(void) const

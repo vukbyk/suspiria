@@ -38,6 +38,7 @@ struct LightComponent
 {
     GLint lightID;
     LightComponent(const GLint val):lightID(val){};
+
     operator GLint&() {return lightID;};
     operator const GLint&() const {return lightID;}
 };

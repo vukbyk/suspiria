@@ -17,5 +17,5 @@ public:
     void setProjectionMat(GLfloat fov, GLfloat aspect, GLfloat zNear, GLfloat zFar);
     void setProjectionMat(const GLfloat *projectionMat);
     void setViewMat(const GLfloat viewMat[]);
-    void bindSetPVMat(const GLfloat *projectionMat, const GLfloat viewMat[]);
+    void bindSetPVMat(const GLfloat *projectionMat,  GLfloat viewMat[]);
 };

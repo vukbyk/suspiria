@@ -115,7 +115,7 @@ void ShaderProgram::setViewMat(const GLfloat viewMat[])
     glUniformMatrix4fv(view, 1, GL_FALSE, viewMat);//&mtm[0][0]);
 }
 
-void ShaderProgram::bindSetPVMat(const GLfloat *projectionMat, const GLfloat viewMat[])
+void ShaderProgram::bindSetPVMat(const GLfloat *projectionMat,  GLfloat viewMat[])
 {
     bindShader();
     setProjectionMat(projectionMat);
