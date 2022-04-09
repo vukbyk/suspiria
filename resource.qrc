@@ -26,20 +26,19 @@
         <file>assets/white.png</file>
         <file>assets/cubeinvert.obj</file>
         <file>assets/cubeinvertmini.obj</file>
-        <file>assets/sky/clouds.jpg</file>
-        <file>assets/sky/interstellarClouds.jpg</file>
-        <file>assets/sky/miramarClouds.jpg</file>
-        <file>assets/sky/RuCa.png</file>
         <file>assets/sky/skycube.obj</file>
         <file>assets/sky/skycubeinv.obj</file>
-        <file>assets/sky/stormyDays.jpg</file>
-        <file>assets/sky/violentDays.jpg</file>
-        <file>assets/sky/daylight.png</file>
         <file>assets/sky/bottom.jpg</file>
         <file>assets/sky/back.jpg</file>
         <file>assets/sky/left.jpg</file>
         <file>assets/sky/front.jpg</file>
         <file>assets/sky/right.jpg</file>
         <file>assets/sky/top.jpg</file>
+        <file>assets/sky/stormydays_bk.tga</file>
+        <file>assets/sky/stormydays_dn.tga</file>
+        <file>assets/sky/stormydays_ft.tga</file>
+        <file>assets/sky/stormydays_lf.tga</file>
+        <file>assets/sky/stormydays_rt.tga</file>
+        <file>assets/sky/stormydays_up.tga</file>
     </qresource>
 </RCC>

@@ -71,17 +71,6 @@ GLWindow::GLWindow()
 //    glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(m.transform.getTransformMatrix()) );//&mtm[0][0]);
 //    scene->addChild(lightByScene);
 
-//    scene.world.emplace<TransformComponent>(entity, getTransform());
-//    //ruzno za ent
-//    Scene *s = &scene;
-//    parentSpacial = s;
-
-//    meshMng = new MeshManager;
-
-//    camera->getTransform().setPosition(glm::vec3(0.0, 0.0, -5.0) );
-//    camera->getTransform().setRotation(glm::vec3(.2, 0, 0));
-//    qDebug( "cam position %f", camera->getTransform().getPosition().z);
-//    camera->getTransform().moveForward(3.0);
 }
 
 GLWindow::~GLWindow()
@@ -105,18 +94,25 @@ void GLWindow::initializeGL()
 
     std::vector<std::string> faces
     {
-        "sky/right.jpg",
-        "sky/left.jpg",
-        "sky/top.jpg",
-        "sky/bottom.jpg",
-        "sky/front.jpg",
-        "sky/back.jpg"
+//        "sky/right.jpg",
+//        "sky/left.jpg",
+//        "sky/top.jpg",
+//        "sky/bottom.jpg",
+//        "sky/front.jpg",
+//        "sky/back.jpg"
+        "sky/stormydays_ft.tga",
+        "sky/stormydays_bk.tga",
+        "sky/stormydays_up.tga",
+        "sky/stormydays_dn.tga",
+        "sky/stormydays_rt.tga",
+        "sky/stormydays_lf.tga"
+
     };
-    world->getTextureManager()->load("skyCube", faces);
+    world->getTextureManager()->loadBoxTexture("skyCube", faces);
 
     shaderProgram->initShaders("tutorial");
 
-    world->getMeshManager()->loadAssimp("vulture.obj");
+//    world->getMeshManager()->loadAssimp("vulture.obj");
     world->getMeshManager()->loadAssimp("cube.obj");
     world->getMeshManager()->loadAssimp("cubeinvert.obj");
     world->getMeshManager()->loadAssimp("cubeinvertmini.obj");
@@ -124,53 +120,26 @@ void GLWindow::initializeGL()
     world->getMeshManager()->loadAssimp("sky/skycube.obj");
     world->getMeshManager()->loadAssimp("sky/skycubeinv.obj");
 
-    world->getTextureManager()->load("defaultComplex.png", true);
 
+    world->getTextureManager()->load("defaultComplex.png", true);
     world->getTextureManager()->load("white.png",     false);
     world->getTextureManager()->load("exoalbedo.jpg", false);
     world->getTextureManager()->load("brickwall.jpg", false);
     world->getTextureManager()->load("cube.png", false);
-//    world->getTextureManager()->load("sky/RuCa.png", false);
-//    world->getTextureManager()->load("sky/stormyDays.jpg", false);
-//    world->getTextureManager()->load("sky/miramarClouds.jpg", false);
-//    world->getTextureManager()->load("sky/violentDays.jpg", false);
-//    world->getTextureManager()->load("sky/pngwing.png", false);
-    world->getTextureManager()->load("sky/daylight.png", false);
-
-    world->getTextureManager()->load("sky/right.jpg", false);
-    world->getTextureManager()->load("sky/left.jpg", false);
-    world->getTextureManager()->load("sky/top.jpg", false);
-    world->getTextureManager()->load("sky/bottom.jpg", false);
-    world->getTextureManager()->load("sky/front.jpg", false);
-    world->getTextureManager()->load("sky/back.jpg", false);
-
     world->getTextureManager()->load("defaultNormal.png", false);
     world->getTextureManager()->load("brickwall_normal.png", false);
     world->getTextureManager()->load("brickwall_normal.jpg", false);
-    world->getTextureManager()->load("exoskelet_Exoskelet_Normal.png", false);
+//    world->getTextureManager()->load("exoskelet_Exoskelet_Normal.png", false);
 
-//    Model *skyCube = new Model("cubeinvert.obj", "brickwall.jpg");//, "Vulture_Diffuse.alpha_normal.jpg");
-//    Model *skyCube = new Model(world->getMeshManager()->get("cubeinvert.obj"), world->getTextureManager()->get("brickwall.jpg"), world->getTextureManager()->get("defaultNormal.png"));
-
-
-    skyDome = world->CreateEntity();
-    skyDome.addComponent(TransformComponent(Transform()));
-//    skyDome.addSimpleRenderComponent("sky/skycubeinv.obj", "sky/daylight.png", "defaultNormal.png");
-    skyDome.addSimpleRenderComponent("sky/skycubeinv.obj", "sky/top.jpg", "defaultNormal.png");
-    //ERASE
-//    skyDome.addTransformComponent(0.0f, 20.0f, 0.0f);
+    skyCube = world->CreateEntity();
+    skyCube.addComponent(TransformComponent(Transform()));
+    skyCube.addSimpleRenderComponent("sky/skycubeinv.obj", "skyCube", "defaultNormal.png");
 
     light = world->CreateEntity();
     light.addTransformComponent(0.0f, 3.0f, -6.0f);
-    light.addSimpleRenderComponent("cubeinvertmini.obj", "white.png", "defaultNormal.png");
+    light.addSimpleRenderComponent("sky/skycubeinv.obj", "white.png", "defaultNormal.png");
     GLint lightID = shaderProgram->getUniform( "light");
     light.addComponent(LightComponent(lightID));
-
-//    skyCube->getTransform().setOrigin(btVector3(0,0,0));
-//    skyCube->getTransform().setPosition( glm::vec3(0.0f, 0.0f, 0.0f) );
-//    skyCube->getTransform().setScale( glm::vec3(50.0f, 50.0f, 50.0f) );
-//    skyScene->addChild(skyCube);
-
 
     Entity e;
 
@@ -184,8 +153,8 @@ void GLWindow::initializeGL()
         for(int j=0; j<250; j++)
         {
             e=world->CreateEntity();
-//            e.addSimpleRenderComponent("cube.obj", "white.png", "brickwall_normal.jpg");
-            e.addSimpleRenderComponent("cube.obj", "defaultComplex.png", "defaultNormal.png");
+            e.addSimpleRenderComponent("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
+//            e.addSimpleRenderComponent("sphare.obj", "defaultComplex.png", "defaultNormal.png");
 //            if(j%2)
 //                e.addSimpleRenderComponent("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
 //            else
@@ -195,44 +164,6 @@ void GLWindow::initializeGL()
         }
     }
 
-
-    {
-//    Model *exo = new Model("vulture.obj", "vulture.jpg", "Vulture_Diffuse.alpha_normal.png");
-////    Model *room = new Model("cube.obj", "white.png");
-//    exo->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -2.0f) );
-////    exo->getTransform().setScale( glm::vec3(2.0f, 2.0f, 2.0f) );
-//    scene->addChild(exo);
-
-//    modelLight = new Model("sphare.obj", "white.png");
-//    modelLight->getTransform().setPosition(btVector3(2.0, 5.0, .0));
-//    scene->addChild(modelLight);
-
-//    Model *sphare = new Model("sphare.obj", "white.png");//, "brickwall_normal.jpg");
-////    sphare->getTransform().setPosition( glm::vec3(0.0f, 0.0f, -20.0f) );
-////    sphare->getTransform().setScale( glm::vec3(12.0f, 12.0f, 12.0f) );
-////    sphare->getTransform().setPosition(btVector3(2.0, 5.0, .0));
-//    scene->addChild(sphare);
-
-////    Model *bike = new Model("vulture.obj", "vulture.png", "Vulture_Diffuse.alpha_normal.jpg");
-
-////    Material *matBike = new Material("vulture.png", "Vulture_Diffuse.alpha_normal.jpg" );
-////    Mesh *modBike= new Mesh("vulture.obj") ;
-
-//    for(int i=0; i<200; i++) //100000 rel = 53-55 fps, dbg = 28fps
-//    {
-//        for(int j=0; j<250; j++)
-//        {
-//            Model *bike = new Model(matHelper, modHelper);
-////            bike->getTransform().setOrigin(btVector3(-100.0f+i*3, 0.0f, -100.0f+j*6));
-//            bike->getTransform().setPosition( glm::vec3(-50.0f+i*3, 0.0f, -50.0f+j*6) );
-////            bike->getTransform().setScale( glm::vec3(1.0f, 1.0f, 1.0f) );
-////            //bike->getTransform().rotate( glm::vec3(glm::radians(45.0f),
-////            //                                           glm::radians(45.0f),
-////            //                                           glm::radians(45.0f)));
-//            scene->addChild(bike);
-//        }
-//    }
-    }
 
     // Enable depth buffer
     glEnable(GL_DEPTH_TEST);
@@ -252,19 +183,13 @@ void GLWindow::initializeGL()
 
 void GLWindow::resizeGL(int w, int h)
 {
-    // Calculate aspect ratio
     GLfloat aspect = GLfloat(w) / GLfloat(h ? h : 1);
     projectionMat = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
     shaderProgram->bindShader();
     shaderProgram->setProjectionMat(&projectionMat[0][0]);
-    //???
+
     skyShaderProgram->bindShader();
     skyShaderProgram->setProjectionMat(&projectionMat[0][0]);
-    // Reset projection
-//    projection = glm::mat4(1.0f);
-
-    // Set perspective projection
-//    projection = glm::perspective(fov, aspect, zNear, zFar);
 }
 
 void GLWindow::paintGL()
@@ -272,24 +197,11 @@ void GLWindow::paintGL()
     auto &cameraHandleTrans = world->reg()->get<TransformComponent>(camera);
     glm::mat4 invertMat = cameraHandleTrans.transform.getCameraTransformMatrix();
     auto *viewMat = glm::value_ptr(invertMat);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    skyShaderProgram->bindShader();
-    skyShaderProgram->setViewMat(viewMat);
-
-    auto &renderSky = world->reg()->get<SimpleRenderComponent>(skyDome);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, world->getTextureManager()->getId("skyCube"));
-    glBindTexture(GL_TEXTURE_2D, renderSky.albedoId);
-
-    glBindVertexArray(renderSky.VAO);
-    glDrawElements(GL_TRIANGLES, renderSky.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
-
-
-    glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT);
 
     //Separated to change of size for Perspective when window is resized,
-    //but also should have for zoom in future
+    //but also should have for zoom in future or jsut for evry case
 //    shaderProgram->bindSetPVMat(pPointerPM, cameraMat);
 
     shaderProgram->bindShader();
@@ -299,8 +211,6 @@ void GLWindow::paintGL()
     auto &lightID = world->reg()->get<LightComponent>(light);
     glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(lightTransform.transform.getTransformMatrix()) );//&mtm[0][0]);
 
-
-//    btVector3 cam = camera->getPosition() * (-1.0);
     btVector3 cam = cameraHandleTrans.transform.getPosition();
     GLint viewPosCam = glGetUniformLocation(shaderProgram->programId(), "viewPosCam");
 
@@ -309,8 +219,8 @@ void GLWindow::paintGL()
 
     btScalar tm[16];
     auto group = world->reg()->group<SimpleRenderComponent, TransformComponent>();//, cMesh>();
+    //world.view<cRender>().each([this](auto &render) //as alternative
     group.each([this, &model, &tm, cameraHandleTrans](auto &render, TransformComponent &transform)//, auto &mesh)
-//    world.view<cRender>().each([this](auto &render)
     {
         btVector3 relativPos=transform.transform.getPosition() -
                              cameraHandleTrans.transform.getPosition();
@@ -334,6 +244,19 @@ void GLWindow::paintGL()
         glDrawElements(GL_TRIANGLES, render.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
 
     });
+
+    //with this only unset pixels are drawne
+    glDepthFunc(GL_LEQUAL);
+    skyShaderProgram->bindShader();
+    skyShaderProgram->setViewMat(viewMat);
+    auto &renderSky = world->reg()->get<SimpleRenderComponent>(skyCube);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, world->getTextureManager()->getId("skyCube"));
+    glBindVertexArray(renderSky.VAO);
+    glDrawElements(GL_TRIANGLES, renderSky.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
+    glBindVertexArray(0);
+    glDepthFunc(GL_LESS);
+
 
 
     count ++;
@@ -583,76 +506,6 @@ void GLWindow::mouseReleaseEvent(QMouseEvent *e)
 ////    angularSpeed += acc;
 }
 
-void GLWindow::tempSkyboxmeshInit()
-{
-    float skyboxVertices[] = {
-            // positions
-            -1.0f,  1.0f, -1.0f,
-            -1.0f, -1.0f, -1.0f,
-             1.0f, -1.0f, -1.0f,
-             1.0f, -1.0f, -1.0f,
-             1.0f,  1.0f, -1.0f,
-            -1.0f,  1.0f, -1.0f,
-
-            -1.0f, -1.0f,  1.0f,
-            -1.0f, -1.0f, -1.0f,
-            -1.0f,  1.0f, -1.0f,
-            -1.0f,  1.0f, -1.0f,
-            -1.0f,  1.0f,  1.0f,
-            -1.0f, -1.0f,  1.0f,
-
-             1.0f, -1.0f, -1.0f,
-             1.0f, -1.0f,  1.0f,
-             1.0f,  1.0f,  1.0f,
-             1.0f,  1.0f,  1.0f,
-             1.0f,  1.0f, -1.0f,
-             1.0f, -1.0f, -1.0f,
-
-            -1.0f, -1.0f,  1.0f,
-            -1.0f,  1.0f,  1.0f,
-             1.0f,  1.0f,  1.0f,
-             1.0f,  1.0f,  1.0f,
-             1.0f, -1.0f,  1.0f,
-            -1.0f, -1.0f,  1.0f,
-
-            -1.0f,  1.0f, -1.0f,
-             1.0f,  1.0f, -1.0f,
-             1.0f,  1.0f,  1.0f,
-             1.0f,  1.0f,  1.0f,
-            -1.0f,  1.0f,  1.0f,
-            -1.0f,  1.0f, -1.0f,
-
-            -1.0f, -1.0f, -1.0f,
-            -1.0f, -1.0f,  1.0f,
-             1.0f, -1.0f, -1.0f,
-             1.0f, -1.0f, -1.0f,
-            -1.0f, -1.0f,  1.0f,
-             1.0f, -1.0f,  1.0f
-        };
-    // skybox VAO
-    glGenVertexArrays(1, &skyboxVAO);
-    glGenBuffers(1, &skyboxVBO);
-    glBindVertexArray(skyboxVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, world->getTextureManager()->getId("skyCube"));
-//    //    skyboxShader.use();
-//    glUseProgram(skyShaderProgram->programId();
-//    view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
-//    skyboxShader.setMat4("view", view);
-//    skyboxShader.setMat4("projection", projection);
-//    // skybox cube
-//    glBindVertexArray(skyboxVAO);
-//    glActiveTexture(GL_TEXTURE0);
-//    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-//    glDrawArrays(GL_TRIANGLES, 0, 36);
-//    glBindVertexArray(0);
-//    glDepthFunc(GL_LESS); // set depth function back to default
-}
 
 
 

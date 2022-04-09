@@ -124,7 +124,7 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection, const 
 // +Z (front)
 // -Z (back)
 // -------------------------------------------------------
-Texture::Texture(std::vector<std::string> faces)
+Texture::Texture(std::vector<std::string> faces, const bool gammaCorrection)
 {
         initializeOpenGLFunctions();
     glGenTextures(1, &textureId);

@@ -27,7 +27,7 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 //    class Camera *camera;
     Entity light;
     Entity camera;
-    Entity skyDome;
+    Entity skyCube;
     Entity *controlledEntity=nullptr;
     TransformComponent *controlledTransform=nullptr;
 
@@ -58,9 +58,6 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     glm::ivec2 mouseWheel = glm::ivec2(-1,-1);
 
     glm::mat4 projectionMat;
-
-    GLuint skyboxVAO, skyboxVBO;//delete after skubox refactor
-    void tempSkyboxmeshInit();
 
 protected:
     void timerEvent(QTimerEvent *e) override;

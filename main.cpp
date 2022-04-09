@@ -26,70 +26,70 @@ void bulletTestCopyFromMain();
 
 int main(int argc, char *argv[])
 {
-//START ENTT test
-    struct d
-    {
-        int data;
-        d(const int val=0):data(val){}
+////START ENTT test
+//    struct d
+//    {
+//        int data;
+//        d(const int val=0):data(val){}
 
-        operator int&() {return data;}
-        operator const int&() const {return data;}
-    };
+//        operator int&() {return data;}
+//        operator const int&() const {return data;}
+//    };
 
-    entt::registry registry;
+//    entt::registry registry;
 
-//    entt::entity mesh[10];
+////    entt::entity mesh[10];
+////    for(int i = 0 ; i<10; i++)
+////    {
+////        mesh[i]= registry.create();
+////        registry.emplace<btVector3>(mesh[i], btVector3(i,i,i));
+////        registry.emplace<d>(mesh[i], i);
+////    }
+////    auto &m = registry.get<btVector3>(mesh[0]);
+////    m.setX(1000);
+
 //    for(int i = 0 ; i<10; i++)
 //    {
-//        mesh[i]= registry.create();
-//        registry.emplace<btVector3>(mesh[i], btVector3(i,i,i));
-//        registry.emplace<d>(mesh[i], i);
+//        entt::entity m;
+//        m = registry.create();
+//        registry.emplace<btVector3>(m, btVector3(i,i,i));
+//        registry.emplace<d>(m, i);
 //    }
-//    auto &m = registry.get<btVector3>(mesh[0]);
-//    m.setX(1000);
 
-    for(int i = 0 ; i<10; i++)
-    {
-        entt::entity m;
-        m = registry.create();
-        registry.emplace<btVector3>(m, btVector3(i,i,i));
-        registry.emplace<d>(m, i);
-    }
+////    entt::entity mesh2 = registry.create();
+////    registry.emplace<btVector3>(mesh2, btVector3(2,2,2));
+////    registry.emplace<d>(mesh2, 6662);
 
-//    entt::entity mesh2 = registry.create();
-//    registry.emplace<btVector3>(mesh2, btVector3(2,2,2));
-//    registry.emplace<d>(mesh2, 6662);
-
-//    entt::entity cam = registry.create();
-//    registry.emplace<btVector3>(cam, btVector3(3,3,3));
+////    entt::entity cam = registry.create();
+////    registry.emplace<btVector3>(cam, btVector3(3,3,3));
 
 
-    auto testView = registry.view<btVector3>();
-    for(auto mesh: testView)
-    {
-//        d &n = testView.get<d>(mesh);
-//        std::cout << "for:  " << n.data <<"  !!!!!\n\n\n";
-        btVector3 &n = testView.get<btVector3>(mesh);
-        std::cout << "for:  " << n.x() <<"  !!!!!\n\n\n";
-    }
+//    auto testView = registry.view<btVector3>();
+//    for(auto mesh: testView)
+//    {
+////        d &n = testView.get<d>(mesh);
+////        std::cout << "for:  " << n.data <<"  !!!!!\n\n\n";
+//        btVector3 &n = testView.get<btVector3>(mesh);
+//        std::cout << "for:  " << n.x() <<"  !!!!!\n\n\n";
+//    }
 
-    auto testGroup = registry.group<d>(entt::get<btVector3>);
-    for(auto entity: testGroup)
-    {
-        auto[vec, dn] = testGroup.get<btVector3, d>(entity);
-//        auto dn = group.get<d>(entity);
-//        auto vec = group.get<btVector3>(entity);
-        vec.setX(vec.getX()+333);
+//    auto testGroup = registry.group<d>(entt::get<btVector3>);
+//    for(auto entity: testGroup)
+//    {
+//        auto[vec, dn] = testGroup.get<btVector3, d>(entity);
+////        auto dn = group.get<d>(entity);
+////        auto vec = group.get<btVector3>(entity);
+//        vec.setX(vec.getX()+333);
+////        std::cout << "for:  " << vec.x() <<" d: " << dn <<"  !!!!!\n\n\n";
+//    }
+//    for(auto entity: testGroup)
+//    {
+//        auto[vec, dn] = testGroup.get<btVector3, d>(entity);
+////        auto dn = group.get<d>(entity);
+////        auto vec = group.get<btVector3>(entity);
 //        std::cout << "for:  " << vec.x() <<" d: " << dn <<"  !!!!!\n\n\n";
-    }
-    for(auto entity: testGroup)
-    {
-        auto[vec, dn] = testGroup.get<btVector3, d>(entity);
-//        auto dn = group.get<d>(entity);
-//        auto vec = group.get<btVector3>(entity);
-        std::cout << "for:  " << vec.x() <<" d: " << dn <<"  !!!!!\n\n\n";
-    }
-//END ENTT test
+//    }
+////END ENTT test
 
     //Disable QML debug level logging
 //    QLoggingCategory::setFilterRules("*.debug=false");
