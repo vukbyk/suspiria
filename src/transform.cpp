@@ -47,6 +47,11 @@ void Transform::getOpenGLMatrix(btScalar *tm)
     transform.getOpenGLMatrix(tm);
 }
 
+btTransform Transform::getT() const
+{
+    return transform;
+}
+
 glm::mat4 Transform::getTransformMatrix(void) const
 {
 //    return glm::translate(position) * glm::toMat4(rotation);//* glm::scale(scale);
@@ -78,9 +83,9 @@ glm::vec3 Transform::getGLMPosition(void) const
     return bulletToGlm(transform.getOrigin());
 }
 
-void Transform::setOrigin(const btVector3 &position)
+void Transform::setOrigin(const btVector3 &origin)
 {
-    transform.setOrigin(position);
+    transform.setOrigin(origin);
 }
 
 void Transform::setPosition(const btVector3 &position)
@@ -142,16 +147,29 @@ void Transform::setRotation(const glm::vec3 &aAxis, float aAngle)
 
 void Transform::addYawPitch(float rotYaw, float rotPitch)
 {
+
+//    m=<glm::mat4//&tm;
 //Totally suboptimal. Angels should be saved and added!
     btScalar r,y,p;
-    transform.getBasis().getEulerZYX(r, y, p);
+    transform.getBasis().getEulerZYX( p, y, r);
+    qDebug("Before %f %f %f", glm::degrees(y), glm::degrees(p), glm::degrees(r));
 
-    y+=rotYaw;
-    p+=rotPitch;
-    transform.getBasis().setEulerYPR(0, y, p);
+//    y+=rotYaw;
+//    p+=rotPitch;
+//    qDebug("After %f %f %f\n", glm::degrees(y), glm::degrees(p), glm::degrees(r));
+//    transform.getBasis().setEulerZYX(0,y,0);//setEulerZYX(p, y, 0);
+
 //    btQuaternion newPitch(right(), x);
 //    btQuaternion newRot=
 //    transform.getBasis().setRotation(newPitch);
+
+    btVector3 right = glmToBullet(rightGLM());//btVector3(1.f ,0.f ,0.f));
+    btQuaternion qPitch(right , rotPitch    );
+    transform.setRotation( qPitch * transform.getRotation() );
+    btQuaternion qYaw(btVector3(0, 1, 0), rotYaw);
+//    transform.setRotation(transform.getRotation() * qYaw);
+    btQuaternion btQuat =  qYaw * qPitch ;
+    transform.setRotation(transform.getRotation() * btQuat );
 
 }
 void Transform::rotate(const float aAngle, const btVector3 &aAxis)
@@ -209,27 +227,29 @@ glm::vec3 Transform::getDirectionGLM(void) const
 
 btVector3 Transform::forward() const
 {
-    const btQuaternion rot = transform.getRotation();
-    btVector3 dir = btVector3(0.0, 0.0, -1.0);
-    dir.rotate(rot.getAxis(), rot.getAngle() );
-    return dir;
+    return transform.getBasis().getColumn(2);
+//    const btQuaternion rot = transform.getRotation();
+//    btVector3 dir = btVector3(0.0, 0.0, -1.0);
+//    dir.rotate(rot.getAxis(), rot.getAngle());
+//    return dir;
 }
 
 btVector3 Transform::right() const
 {
-    const btQuaternion rot = transform.getRotation();
-    btVector3 dir = btVector3(1.0, 0.0, 0.0);
-    dir.rotate(rot.getAxis(), rot.getAngle() );
-
-    return dir;
+    return transform.getBasis().getColumn(0);
+//    const btQuaternion rot = transform.getRotation();
+//    btVector3 dir = btVector3(1.0, 0.0, 0.0);
+//    dir.rotate(rot.getAxis(), rot.getAngle());
+//    return dir;
 }
 
 btVector3 Transform::up() const
 {
-    const btQuaternion rot = transform.getRotation();
-    btVector3 dir = btVector3(0.0f, 1.0, 0.0);
-    dir.rotate(rot.getAxis(), rot.getAngle() );
-    return dir;
+    return transform.getBasis().getColumn(1);
+//    const btQuaternion rot = transform.getRotation();
+//    btVector3 dir = btVector3(0.0f, 1.0, 0.0);
+//    dir.rotate(rot.getAxis(), rot.getAngle());
+//    return dir;
 }
 
 glm::vec3 Transform::forwardGLM() const
@@ -338,83 +358,6 @@ glm::mat4 Transform::bulletToGlm(const btTransform& t) const
     return m;
 }
 
-void Transform::toEuler(btVector3 &EulerZXY) const
-{
-    btScalar squ;
-    btScalar sqx;
-    btScalar sqy;
-    btScalar sqz;
-    btScalar sarg;
-
-    sqx = transform.getRotation()[0] * transform.getRotation()[0];
-    sqy = transform.getRotation()[1] * transform.getRotation()[1];
-    sqz = transform.getRotation()[2] * transform.getRotation()[2];
-    squ = transform.getRotation()[3] * transform.getRotation()[3];
-    sarg = btScalar(-2.) * (transform.getRotation()[0] * transform.getRotation()[2] - transform.getRotation()[3] * transform.getRotation()[1]);
-
-    // If the pitch angle is PI/2 or -PI/2, we can only compute
-    // the sum roll + yaw.  However, any combination that gives
-    // the right sum will produce the correct orientation, so we
-    // set rollX = 0 and compute yawZ.
-    if (sarg <= -btScalar(0.99999))
-    {
-        EulerZXY.setY(btScalar(-0.5) * SIMD_PI);
-        EulerZXY.setX(0);
-        EulerZXY.setZ( btScalar(2) * btAtan2(transform.getRotation()[0], -transform.getRotation()[1]));
-    }
-    else if (sarg >= btScalar(0.99999))
-    {
-        EulerZXY.setZ( btScalar(0.5) * SIMD_PI) ;
-        EulerZXY.setX( 0 );
-        EulerZXY.setY(btScalar(2) * btAtan2(-transform.getRotation()[0], transform.getRotation()[1]));
-    }
-    else
-    {
-        EulerZXY.setZ(btAsin(sarg));
-        EulerZXY.setX(btAtan2(2 * (transform.getRotation()[1] * transform.getRotation()[2] + transform.getRotation()[3] * transform.getRotation()[0]), squ - sqx - sqy + sqz));
-        EulerZXY.setY(btAtan2(2 * (transform.getRotation()[0] * transform.getRotation()[1] + transform.getRotation()[3] * transform.getRotation()[2]), squ + sqx - sqy - sqz));
-    }
-}
-
-btVector3 Transform::getEuler() const
-{
-    btVector3 EulerZXY;
-    btScalar squ;
-    btScalar sqx;
-    btScalar sqy;
-    btScalar sqz;
-    btScalar sarg;
-
-    sqx = transform.getRotation()[0] * transform.getRotation()[0];
-    sqy = transform.getRotation()[1] * transform.getRotation()[1];
-    sqz = transform.getRotation()[2] * transform.getRotation()[2];
-    squ = transform.getRotation()[3] * transform.getRotation()[3];
-    sarg = btScalar(-2.) * (transform.getRotation()[0] * transform.getRotation()[2] - transform.getRotation()[3] * transform.getRotation()[1]);
-
-    // If the pitch angle is PI/2 or -PI/2, we can only compute
-    // the sum roll + yaw.  However, any combination that gives
-    // the right sum will produce the correct orientation, so we
-    // set rollX = 0 and compute yawZ.
-    if (sarg <= -btScalar(0.99999))
-    {
-        EulerZXY.setY(btScalar(-0.5) * SIMD_PI);
-        EulerZXY.setX(0);
-        EulerZXY.setZ( btScalar(2) * btAtan2(transform.getRotation()[0], -transform.getRotation()[1]));
-    }
-    else if (sarg >= btScalar(0.99999))
-    {
-        EulerZXY.setZ( btScalar(0.5) * SIMD_PI) ;
-        EulerZXY.setX( 0 );
-        EulerZXY.setY(btScalar(2) * btAtan2(-transform.getRotation()[0], transform.getRotation()[1]));
-    }
-    else
-    {
-        EulerZXY.setZ(btAsin(sarg));
-        EulerZXY.setX(btAtan2(2 * (transform.getRotation()[1] * transform.getRotation()[2] + transform.getRotation()[3] * transform.getRotation()[0]), squ - sqx - sqy + sqz));
-        EulerZXY.setY(btAtan2(2 * (transform.getRotation()[0] * transform.getRotation()[1] + transform.getRotation()[3] * transform.getRotation()[2]), squ + sqx - sqy - sqz));
-    }
-    return EulerZXY;
-}
 
 //glm::vec3 Transform::getScale(void) const
 //{

@@ -26,7 +26,8 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection, const 
         qDebug("File %s is loaded", fileName.c_str());
 
     QByteArray DataFile = file.readAll();
-    unsigned char *data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(DataFile.data()), DataFile.size(), &width, &height, &nChannels, 0);
+    unsigned char *data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(DataFile.data()),
+                                                DataFile.size(), &width, &height, &nChannels, 0);
 
     if (data == NULL)
     {
@@ -58,7 +59,8 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection, const 
 
     glGenTextures(1, &textureId);
     glBindTexture(GL_TEXTURE_2D, textureId);
-    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0,
+                 dataFormat, GL_UNSIGNED_BYTE, data);
 
 //    glTexStorage2D(GL_TEXTURE_2D, 1, internalFormat, width, height);
 //    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, internalFormat, GL_UNSIGNED_BYTE, data);
@@ -111,7 +113,52 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection, const 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     stbi_image_free(data);
+}
 
+// loads a cubemap texture from 6 individual texture faces
+// order:
+// +X (right)
+// -X (left)
+// +Y (top)
+// -Y (bottom)
+// +Z (front)
+// -Z (back)
+// -------------------------------------------------------
+Texture::Texture(std::vector<std::string> faces)
+{
+        initializeOpenGLFunctions();
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureId);
+
+    int width, height, nChannels;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        qDebug("Loading texture: %s", std::string(":/assets/").append(faces[i]).c_str());
+
+        QFile file( std::string(":/assets/").append(faces[i]).c_str() );
+        if(!file.open(QIODevice::ReadOnly))
+            qDebug("Failed to load file %s", faces[i].c_str());
+        else
+            qDebug("File %s is loaded", faces[i].c_str());
+
+        QByteArray DataFile = file.readAll();
+
+        unsigned char *data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(DataFile.data()),
+                                                    DataFile.size(), &width, &height, &nChannels, 0);
+        if (data == NULL)
+        {
+            qDebug("Unable to load texture: %s", faces[i].c_str());
+            return;
+        }
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height,
+                     0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        stbi_image_free(data);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
 Texture::~Texture()

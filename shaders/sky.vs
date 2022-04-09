@@ -20,8 +20,8 @@ out vec2 uvFrag;
 void main()
 {
     uvFrag=uv;
-    mat4 staticVieaw = view;
-    staticVieaw[3].xyz = vec3(0.0);
-    gl_Position = projection * staticVieaw /** model*/ * vec4(pos, 1.0);
+    mat4 staticView = view;
+    staticView[3].xyz = vec3(0.0);
+    gl_Position = projection * staticView /** model*/ * vec4(pos, 1.0);
 }
 

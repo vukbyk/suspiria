@@ -6,6 +6,7 @@
 class Light: public Spacial
 {
     class ShaderProgram *shaderProgram = nullptr;
+    GLint lightID;
 public:
     Light(ShaderProgram *aShaderProgram);
     void renderAll();

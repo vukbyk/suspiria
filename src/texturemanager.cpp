@@ -20,6 +20,16 @@ void TextureManager::load(const std::string fileName, bool gammaCorrection)
     texture[fileName] = new Texture(fileName, gammaCorrection);
 }
 
+void TextureManager::load(const std::string boxTextureName, const std::vector<std::string> faces)
+{
+//    if(texture.count(boxTextureName))
+//    {
+//            qDebug("Texture \"%s\" already loaded", boxTextureName.c_str());
+//            return;
+//    }
+    texture[boxTextureName] = new Texture(faces);
+}
+
 Texture *TextureManager::get(const std::string fileName)
 {
 

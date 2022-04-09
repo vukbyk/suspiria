@@ -7,12 +7,12 @@
 Light::Light(ShaderProgram *aShaderProgram)
 {
     shaderProgram = aShaderProgram;
+    lightID = shaderProgram->getUniform( "light");
 }
 
 void Light::renderAll()
 {
     initializeOpenGLFunctions();
-    GLint lightID = shaderProgram->getUniform( "light");
 //    glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(transform.getTransformMatrix()) );//&mtm[0][0]);
 //    Transform t = transform;
 //    glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(t.getTransformMatrix()) );//&mtm[0][0]);

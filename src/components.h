@@ -37,7 +37,7 @@ struct SimpleRenderComponent
 struct LightComponent
 {
     GLint lightID;
-    LightComponent(const GLint val):lightID(val){};
+    LightComponent(const GLint aLightID):lightID(aLightID){};
 
     operator GLint&() {return lightID;};
     operator const GLint&() const {return lightID;}

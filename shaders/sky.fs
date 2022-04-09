@@ -17,4 +17,5 @@ void main()
 ////    color = pow(color, vec3( gamma));    //instead of SRGB,
 //    color = pow(color, vec3(1.0/gamma) );// 1.0/gamma for brigthen up
     FragColor = vec4(color, 0.5);
+
 }

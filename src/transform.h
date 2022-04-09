@@ -30,6 +30,7 @@ public:
     ~Transform();
 
     void getOpenGLMatrix(btScalar *tm);
+    btTransform getT() const;
     btScalar *getOpenGLMatrix();
     glm::mat4 getTransformMatrix() const;
     glm::mat4 getCameraTransformMatrix() const;
@@ -38,7 +39,7 @@ public:
     btVector3 getPosition() const;
     glm::vec3 getGLMPosition() const;
     void setPosition(const btVector3 &position);
-    void setOrigin(const btVector3 &position);
+    void setOrigin(const btVector3 &origin);
     void translate(const btVector3 &position);
     void setPosition(const glm::vec3 &position);
     void translate(const glm::vec3 &position);
@@ -88,9 +89,6 @@ public:
     btMatrix3x3 glmToBullet(const glm::mat3 &m)const;
     btTransform glmToBullet(const glm::mat4 &m)const;
     glm::mat4 bulletToGlm(const btTransform &t)const;
-
-    void toEuler(btVector3 &EulerZXY)const;
-    btVector3 getEuler()const;
 
 //    glm::vec3 getScale() const;
 //    Transform &setScale(const glm::vec3 &scale);

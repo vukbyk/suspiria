@@ -7,5 +7,7 @@
         <file>shaders/tutorial.vs</file>
         <file>shaders/sky.fs</file>
         <file>shaders/sky.vs</file>
+        <file>shaders/skybox.fs</file>
+        <file>shaders/skybox.vs</file>
     </qresource>
 </RCC>

@@ -20,7 +20,6 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 //    class Scene *skyScene;
 
     class World *world;
-
     class ShaderProgram *shaderProgram;
     class ShaderProgram *skyShaderProgram;
 
@@ -28,12 +27,14 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 //    class Camera *camera;
     Entity light;
     Entity camera;
+    Entity skyDome;
     Entity *controlledEntity=nullptr;
     TransformComponent *controlledTransform=nullptr;
 
     QBasicTimer timer;
 
     glm::vec2 mousePressPosition;
+    btVector3 camerEulerYP;
 
     // Set near plane to 3.0, far plane to 7.0, field of view 45 degrees
     GLfloat zNear = 0.3f;
@@ -51,12 +52,15 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     qint64 nanoSec=0;
     long count=0;
 
-    std::map<GLint, GLboolean> keys;
+    std::map<GLuint, GLboolean> keys;//or maybe GLint
     glm::ivec2 mouseDelta = glm::ivec2(-1,-1);
     glm::ivec2 lastMousePosition = glm::ivec2(-1,-1);
     glm::ivec2 mouseWheel = glm::ivec2(-1,-1);
 
     glm::mat4 projectionMat;
+
+    GLuint skyboxVAO, skyboxVBO;//delete after skubox refactor
+    void tempSkyboxmeshInit();
 
 protected:
     void timerEvent(QTimerEvent *e) override;

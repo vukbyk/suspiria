@@ -17,6 +17,7 @@ public:
     ~TextureManager();
 
     void load(const std::string fileName, bool gammaCorrection);
+    void load(const std::string boxTextureName, const std::vector<std::string> faces);
     Texture* get(const std::string fileName);
     GLuint getId(const std::string fileName);
 
