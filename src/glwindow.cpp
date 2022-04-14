@@ -44,6 +44,7 @@ GLWindow::GLWindow()
     camerEulerYP = btVector3(0,0,0);
 
     mousePressPosition=glm::vec2(0);
+    setAspectFowMultiplayer();//for Frustum culling multyply ony if W<H
 
 
     timer.start(1, this);
@@ -160,7 +161,7 @@ void GLWindow::initializeGL()
     reflectiveAsset.addTextureBoxComp("reflectCube");
     reflectiveAsset.addMeshComponent("cyborg.obj");
     reflectiveAsset.addTransformComponent( 0, 2.0f, -7.0f);
-    reflectiveAsset.addFixSphereBVComp();
+//    reflectiveAsset.addFixSphereBVComp();
 
     light = world->CreateEntity();
     light.addTransformComponent(0.0f, 3.0f, -6.0f);
@@ -169,7 +170,7 @@ void GLWindow::initializeGL()
     light.addTexturePBRComp("white.png", "defaultNormal.png");
     GLint lightID = shaderProgramPBR->getUniform("light");
     light.addComponent(LightComp(lightID));
-    light.addFixSphereBVComp();
+//    light.addFixSphereBVComp();
 
     Entity e;
     e=world->CreateEntity();
@@ -177,14 +178,14 @@ void GLWindow::initializeGL()
     e.addTextureBoxComp("skyCube");
     e.addMeshComponent("sphare.obj");
     e.addTransformComponent( -3.0, 2.0f, -7.0f);
-    e.addFixSphereBVComp();
+//    e.addFixSphereBVComp();
 
     e=world->CreateEntity();
     e.addTexturePBRComp("white.png", "defaultNormal.png");//"brickwall_normal.jpg");
     e.addTextureBoxComp("skyCube");
     e.addMeshComponent("cube.obj");
     e.addTransformComponent( 3.0, 2.0f, -7.0f);
-    e.addFixSphereBVComp();
+//    e.addFixSphereBVComp();
 
 //    e = world->CreateEntity();
 //    e.addTexturePBRComp("white.png", "brickwall_normal.jpg");
@@ -200,7 +201,7 @@ void GLWindow::initializeGL()
             e.addTextureBoxComp("reflectCube");
             e.addTransformComponent( -50.0f+i*1, 0.0f, -50.0f+j*1);
             e.addMeshComponent("cube.obj");
-            e.addFixSphereBVComp();
+//            e.addFixSphereBVComp();
 //            e.addComponent(MeshComp(world->getMeshManager()->get("cube.obj")->getVAO(),
 //                                    world->getMeshManager()->get("cube.obj")->getIndicesSize()));
 //            e.addSimpleRenderComp("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
@@ -231,6 +232,7 @@ void GLWindow::initializeGL()
 void GLWindow::resizeGL(int w, int h)
 {
     aspect = GLfloat(w) / GLfloat(h ? h : 1);
+    setAspectFowMultiplayer();
 
     projectionMat = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
     shaderProgramPBR->bindShader();
@@ -269,7 +271,7 @@ void GLWindow::paintGL()
 
     btScalar tm[16];
 
-    auto group = world->reg()->group<MeshComp, MaterialPBRComp, TransformComp, FixSphereBVComp>();//, cMesh>();
+    auto group = world->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();//, FixSphereBVComp>();//, cMesh>();
     //world.view<cRender>().each([this](auto &render) //as alternative
 
 
@@ -298,14 +300,13 @@ void GLWindow::paintGL()
     glActiveTexture(GL_REFLECTION_MAP + 0 );
     glBindTexture(GL_REFLECTION_MAP, lastCubeMapId);
     Frustum frustum =Frustum(createFrustumFromCamera(cameraTransformComp));
-
-    group.each([this, &model, &tm, &cam, &lastAlbedoId, &lastNormalId, &lastMeshVAO, &frustum]
-               (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform, FixSphereBVComp &boundingVol)
+    group.each([this, &model, &tm, &cameraTransformComp, &lastAlbedoId, &lastNormalId, &lastMeshVAO]//, &frustum]
+               (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform)//,FixSphereBVComp)// &boundingVol)
     {
-//        if(!isInCameraFrustumAndDistance(cameraTransformComp, transform))
-//            return;
-        if(!boundingVol.isOnFrustum(cam, frustum))
-            return ;
+        if(!isInCameraFrustumAndDistance(cameraTransformComp, transform))
+            return;
+//        if(!boundingVol.isOnFrustum(cam, frustum))
+//            return ;
         transform.transform.getOpenGLMatrix(tm);
         glUniformMatrix4fv(model, 1, GL_FALSE, tm);
 
@@ -372,6 +373,7 @@ void GLWindow::paintGL()
     glDepthFunc(GL_LESS);
 
 
+
     count ++;
     nanoSec += deltaTimer.nsecsElapsed();
     if (count >= 100)
@@ -391,17 +393,29 @@ void GLWindow::paintGL()
 
     deltaTimer.restart();
 }
-
 //TODO: Camera to first rate citizen (add as class member pointer)
 bool GLWindow::isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, TransformComp &actor)
 {
-    btVector3 relativPos=actor.transform.getPosition() -
-                         cameraTransformComp.transform.getPosition();
-    btVector3 norm = cameraTransformComp.transform.forward();
-    btScalar nearPlaneDist=norm.dot( relativPos );
-    if(nearPlaneDist > -4 || relativPos.length2()>100*100 )
+    btVector3 forward = cameraTransformComp.transform.forward();
+    btVector3 offsetPos = cameraTransformComp.transform.getPosition() + (-forward * -5.0f);
+    btVector3 relativPos=actor.transform.getPosition() - offsetPos;
+
+//    btScalar nearPlaneDist=forward.dot( relativPos );
+//    if(nearPlaneDist > 5 )//|| relativPos.length2()>200*200 )
+//        return false;
+
+    if( //relativPos.length2()>200*200   ||
+        relativPos.angle(-forward) > qDegreesToRadians(fov * aspectFowMultiplayer))
         return false;
+
     return true;
+
+    Frustum frustum= createFrustumFromCamera(cameraTransformComp);
+}
+
+void GLWindow::setAspectFowMultiplayer()
+{
+    aspectFowMultiplayer = GLfloat(width() > GLfloat(height())? aspect: 1);
 }
 
 void GLWindow::timerEvent(QTimerEvent *)
@@ -630,13 +644,6 @@ void GLWindow::mouseReleaseEvent(QMouseEvent *e)
 ////    angularSpeed += acc;
 }
 
-//btVector3 relativPos=actor.transform.getPosition() -
-//                     cameraTransformComp.transform.getPosition();
-//btVector3 norm = cameraTransformComp.transform.forward();
-//btScalar nearPlaneDist=norm.dot( relativPos );
-//if(nearPlaneDist > -4 || relativPos.length2()>100*100 )
-//    return false;
-//return true;
 
 Frustum GLWindow::createFrustumFromCamera(const Transform& cam, float nearOffset, float farOffset)
 {
@@ -646,7 +653,6 @@ Frustum GLWindow::createFrustumFromCamera(const Transform& cam, float nearOffset
     const btVector3 frontMultFar = zFar * cam.forward();
 
     frustum.nearFace = { cam.getPosition() + zNear * cam.forward(), cam.forward() };
-
     frustum.farFace = { cam.getPosition() + frontMultFar, -cam.forward() };
     frustum.rightFace = { cam.getPosition(),
                             btCross(cam.up(),frontMultFar + cam.right() * halfHSide) };

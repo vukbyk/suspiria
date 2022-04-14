@@ -43,6 +43,7 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     GLfloat zNear = 0.3f;
     GLfloat zFar = 100.0f;
     GLfloat fov = 45.0f;
+    GLfloat aspectFowMultiplayer = 1;
     GLfloat aspect;
 
     const float moveSpeed = 2.0;
@@ -83,5 +84,7 @@ public:
     using QOpenGLWindow::QOpenGLWindow;
     GLWindow();
     ~GLWindow();
+
+    void setAspectFowMultiplayer();
 };
 
