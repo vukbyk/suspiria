@@ -76,7 +76,7 @@ void Spacial::setParentSpacial(Spacial *value)
 void Spacial::createEntity(Scene &scene)
 {
     entity = scene.world.create();
-    scene.world.emplace<TransformComponent>(entity, getTransform());
+    scene.world.emplace<TransformComp>(entity, getTransform());
     //ruzno za ent
     Scene *s = &scene;
     parentSpacial = s;

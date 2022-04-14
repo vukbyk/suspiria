@@ -10,18 +10,19 @@ TextureManager::~TextureManager()
     }
 }
 
-void TextureManager::load(const std::string fileName, bool gammaCorrection)
+void TextureManager::load(const std::string fileName, bool gammaCorrection, bool flip)
 {
     if(texture.count(fileName))
     {
             qDebug("Texture \"%s\" already loaded", fileName.c_str());
             return;
     }
-    texture[fileName] = new Texture(fileName, gammaCorrection);
+    texture[fileName] = new Texture(fileName, gammaCorrection, flip);
 }
 
 void TextureManager::loadBoxTexture(const std::string boxTextureName,
                                     const std::vector<std::string> faces,
+                                    bool flip,
                                     bool gammaCorrection)
 {
 //    if(texture.count(boxTextureName))
@@ -34,7 +35,6 @@ void TextureManager::loadBoxTexture(const std::string boxTextureName,
 
 Texture *TextureManager::get(const std::string fileName)
 {
-
     if(texture.count(fileName))
     {
         return texture[fileName];

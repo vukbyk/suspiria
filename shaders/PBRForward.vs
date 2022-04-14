@@ -32,12 +32,17 @@ out vec3 TangentLightPos;
 out vec3 TangentViewPos;
 out vec3 TangentFragPos;
 
+
 out vec3 nrm;
 out vec3 tg;
 out vec3 bi;
+out mat3 TBN;
 
 out vec3 lightPosition;
 out mat4 lightMat;
+
+out vec3 ReflectionVector;
+out vec3 BoxPosition;
 
 void main()
 {
@@ -61,12 +66,17 @@ void main()
 
 //    B = normalize(B - dot(B, T) * T);
 //    vec3 B = cross(N, T);
+    TBN = mat3(T, B, N);
+    mat3 inverseTBN = transpose(TBN); //in special cases you can use transponse
+                                      //to inverse (cheaper option)
 
-    mat3 TBN = transpose(mat3(T, B, N));
+    TangentLightPos = inverseTBN * lightPosition;
+    TangentViewPos  = inverseTBN * viewPosCam;
+    TangentFragPos  = inverseTBN * FragPos;
 
-    TangentLightPos = TBN * lightPosition;
-    TangentViewPos  = TBN * viewPosCam;
-    TangentFragPos  = TBN * FragPos;
+    ReflectionVector = N;//mat3(transpose(inverse(model))) * nor;
+    BoxPosition = vec3(model * vec4(pos, 1.0));
+
 
     gl_Position = projection * view * model * vec4(pos, 1.0);
 }

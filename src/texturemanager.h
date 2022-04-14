@@ -16,9 +16,10 @@ public:
     TextureManager() = default;
     ~TextureManager();
 
-    void load(const std::string fileName, bool gammaCorrection);
+    void load(const std::string fileName, bool gammaCorrection=false, bool flip=false);
     void loadBoxTexture(const std::string boxTextureName,
                         const std::vector<std::string> faces,
+                        bool flip=true,
                         bool gammaCorrection=false);
     Texture* get(const std::string fileName);
     GLuint getId(const std::string fileName);

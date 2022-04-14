@@ -13,23 +13,26 @@
 
 #include "entity.h"
 
+
+
 class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 {
     Q_OBJECT
-
 //    class Scene *skyScene;
 
     class World *world;
-    class ShaderProgram *shaderProgram;
-    class ShaderProgram *skyShaderProgram;
+    class ShaderProgram *shaderProgramPBR;
+    class ShaderProgram *shaderProgramSky;
+    class ShaderProgram *mirrorShaderProgram;
 
 
 //    class Camera *camera;
     Entity light;
     Entity camera;
     Entity skyCube;
+    Entity reflectiveAsset;
     Entity *controlledEntity=nullptr;
-    TransformComponent *controlledTransform=nullptr;
+    TransformComp *controlledTransform=nullptr;
 
     QBasicTimer timer;
 
@@ -40,6 +43,7 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     GLfloat zNear = 0.3f;
     GLfloat zFar = 100.0f;
     GLfloat fov = 45.0f;
+    GLfloat aspect;
 
     const float moveSpeed = 2.0;
     const float rotSpeed = .2;
@@ -67,11 +71,13 @@ protected:
     void initializeGL() override;
     void resizeGL(int w, int h) override;
     void paintGL() override;
+    bool isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, TransformComp &actor);
 
     bool event(QEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
     void mouseMoveEvent(QMouseEvent *mouseEvent) override;
+    Frustum createFrustumFromCamera(const Transform& cam, GLfloat nearOffset=0, GLfloat farOffset=0);
 
 public:
     using QOpenGLWindow::QOpenGLWindow;

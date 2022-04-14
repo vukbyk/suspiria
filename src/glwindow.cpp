@@ -23,6 +23,8 @@
 
 #include "texture.h"
 #include "mesh.h"
+#include "glwindow.h"
+#include "glwindow.h"
 
 #ifdef GL_ES_VERSION_2_0
     #include <qopengles2ext.h>
@@ -48,10 +50,7 @@ GLWindow::GLWindow()
 
     m_t1 = QTime::currentTime();
 
-    skyShaderProgram = new ShaderProgram();
 //    skyScene = new Scene();
-
-    shaderProgram = new ShaderProgram();
 //    scene = new Scene();
 //    camera = new Camera();
 //    camera->getTransform().moveForward(10);
@@ -60,11 +59,12 @@ GLWindow::GLWindow()
 
     world = new World();
     camera = world->CreateEntity();
-    camera.addTransformComponent(0.0f, 2.0f, 0.0f);
+    camera.addTransformComponent(0.0f, 2.0f, 0.0f);//For FPS benchmark 0,2,0
 //    camera.addComponent(TransformComponent(Transform()));
 //    auto transformCamera = &world->reg()->get<TransformComponent>(camera);
 //    transformCamera->transform.setRotation(btVector3(1,0,0), -.5);
     controlledEntity = &camera;
+
 
 //    entt::entity entity;
 //    auto &m = world->reg()->get<TransformComponent>(entity);
@@ -87,10 +87,13 @@ GLWindow::~GLWindow()
 void GLWindow::initializeGL()
 {
     initializeOpenGLFunctions();
+//    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    const auto textureList = std::vector<std::string>({"reflectionBox", "albedoTexture", "normalTexture"});
 
-    skyShaderProgram->initShaders("sky");
+    shaderProgramPBR = new ShaderProgram("PBRForward");
+    shaderProgramPBR->setUniformNamesAndIds(textureList);
+    shaderProgramSky = new ShaderProgram("sky", {"albedoTexture"});
 
     std::vector<std::string> faces
     {
@@ -100,70 +103,114 @@ void GLWindow::initializeGL()
 //        "sky/bottom.jpg",
 //        "sky/front.jpg",
 //        "sky/back.jpg"
-        "sky/stormydays_ft.tga",
-        "sky/stormydays_bk.tga",
-        "sky/stormydays_up.tga",
-        "sky/stormydays_dn.tga",
-        "sky/stormydays_rt.tga",
-        "sky/stormydays_lf.tga"
+
+//        "sky/stormydays_ft.tga",
+//        "sky/stormydays_bk.tga",
+//        "sky/stormydays_up.tga",
+////        "sky/stormydays_dn.tga",
+//        "brickwall.jpg",
+//        "sky/stormydays_rt.tga",
+//        "sky/stormydays_lf.tga"
+
+        "sky/arrakisday_ft.tga",
+        "sky/arrakisday_bk.tga",
+        "sky/arrakisday_up.tga",
+        "sky/arrakisday_dn.tga",
+        "sky/arrakisday_rt.tga",
+        "sky/arrakisday_lf.tga"
 
     };
     world->getTextureManager()->loadBoxTexture("skyCube", faces);
+    world->getTextureManager()->loadBoxTexture("reflectCube", faces, false);
 
-    shaderProgram->initShaders("tutorial");
 
-//    world->getMeshManager()->loadAssimp("vulture.obj");
+    world->getTextureManager()->load("defaultComplex.png", true);
+    world->getTextureManager()->load("white.png",     false);
+    world->getTextureManager()->load("exoalbedo.jpg", true);
+    world->getTextureManager()->load("brickwall.jpg", false);
+//    world->getTextureManager()->load("cube.png", false);
+    world->getTextureManager()->load("defaultNormal.png", false);
+    world->getTextureManager()->load("brickwall_normal.png", false);
+    world->getTextureManager()->load("brickwall_normal.jpg", false);
+    world->getTextureManager()->load("exoskelet_Exoskelet_BaseColor.png", false);
+    world->getTextureManager()->load("exoskelet_Exoskelet_Normal.png", false,false);
+    world->getTextureManager()->load("cyborg_normal.png", true, true);
+    world->getTextureManager()->load("cyborg_diffuse.png", true, true);
+    world->getTextureManager()->load("vulture.png",true, true);
+    world->getTextureManager()->load("Vulture_Diffuse.alpha_normal.jpg",true, true);
+    world->getTextureManager()->load("Vulture_Diffuse.alpha.png",false, true);
+
+
+    world->getMeshManager()->loadAssimp("vulture.obj");
     world->getMeshManager()->loadAssimp("cube.obj");
     world->getMeshManager()->loadAssimp("cubeinvert.obj");
     world->getMeshManager()->loadAssimp("cubeinvertmini.obj");
     world->getMeshManager()->loadAssimp("sphare.obj");
     world->getMeshManager()->loadAssimp("sky/skycube.obj");
     world->getMeshManager()->loadAssimp("sky/skycubeinv.obj");
-
-
-    world->getTextureManager()->load("defaultComplex.png", true);
-    world->getTextureManager()->load("white.png",     false);
-    world->getTextureManager()->load("exoalbedo.jpg", false);
-    world->getTextureManager()->load("brickwall.jpg", false);
-    world->getTextureManager()->load("cube.png", false);
-    world->getTextureManager()->load("defaultNormal.png", false);
-    world->getTextureManager()->load("brickwall_normal.png", false);
-    world->getTextureManager()->load("brickwall_normal.jpg", false);
-//    world->getTextureManager()->load("exoskelet_Exoskelet_Normal.png", false);
+    world->getMeshManager()->loadAssimp("cyborg.obj");
 
     skyCube = world->CreateEntity();
-    skyCube.addComponent(TransformComponent(Transform()));
-    skyCube.addSimpleRenderComponent("sky/skycubeinv.obj", "skyCube", "defaultNormal.png");
+    skyCube.addComponent(TransformComp(Transform()));
+    skyCube.addMeshComponent("sky/skycubeinv.obj");
+    skyCube.addTextureBoxComp("skyCube");
+
+    reflectiveAsset=world->CreateEntity();
+    reflectiveAsset.addTexturePBRComp("cyborg_diffuse.png", "cyborg_normal.png");//"brickwall_normal.jpg");
+    reflectiveAsset.addTextureBoxComp("reflectCube");
+    reflectiveAsset.addMeshComponent("cyborg.obj");
+    reflectiveAsset.addTransformComponent( 0, 2.0f, -7.0f);
+    reflectiveAsset.addFixSphereBVComp();
 
     light = world->CreateEntity();
     light.addTransformComponent(0.0f, 3.0f, -6.0f);
-    light.addSimpleRenderComponent("sky/skycubeinv.obj", "white.png", "defaultNormal.png");
-    GLint lightID = shaderProgram->getUniform( "light");
-    light.addComponent(LightComponent(lightID));
+//    light.addSimpleRenderComp("cubeinvertmini.obj", "white.png", "defaultNormal.png");
+    light.addMeshComponent("cubeinvertmini.obj");
+    light.addTexturePBRComp("white.png", "defaultNormal.png");
+    GLint lightID = shaderProgramPBR->getUniform("light");
+    light.addComponent(LightComp(lightID));
+    light.addFixSphereBVComp();
 
     Entity e;
+    e=world->CreateEntity();
+    e.addTexturePBRComp("white.png", "defaultNormal.png");//"brickwall_normal.jpg");
+    e.addTextureBoxComp("skyCube");
+    e.addMeshComponent("sphare.obj");
+    e.addTransformComponent( -3.0, 2.0f, -7.0f);
+    e.addFixSphereBVComp();
 
-//    e=world->CreateEntity();
-//    e.addSimpleRenderComponent("cube.obj", "white.png", "defaultNormal.png");
-//    e.addTransformComponent(0.0, -5.0, 0.0f);
+    e=world->CreateEntity();
+    e.addTexturePBRComp("white.png", "defaultNormal.png");//"brickwall_normal.jpg");
+    e.addTextureBoxComp("skyCube");
+    e.addMeshComponent("cube.obj");
+    e.addTransformComponent( 3.0, 2.0f, -7.0f);
+    e.addFixSphereBVComp();
 
+//    e = world->CreateEntity();
+//    e.addTexturePBRComp("white.png", "brickwall_normal.jpg");
+//    e.addMeshComponent("cube.obj");
+//    e.addTransformComponent( 0, 2.0f, -5.0f);
     //100000 = 28fpsGentoo/Suse 24dbg-53dbg (56.5 after  remove rot and pos separate
     for(int i=0; i<400; i++)
     {
         for(int j=0; j<250; j++)
         {
             e=world->CreateEntity();
-            e.addSimpleRenderComponent("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
-//            e.addSimpleRenderComponent("sphare.obj", "defaultComplex.png", "defaultNormal.png");
-//            if(j%2)
-//                e.addSimpleRenderComponent("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
-//            else
-//                e.addSimpleRenderComponent("cube.obj", "white.png", "defaultNormal.png");
-
+            e.addTexturePBRComp("brickwall.jpg", "brickwall_normal.jpg");
+            e.addTextureBoxComp("reflectCube");
             e.addTransformComponent( -50.0f+i*1, 0.0f, -50.0f+j*1);
+            e.addMeshComponent("cube.obj");
+            e.addFixSphereBVComp();
+//            e.addComponent(MeshComp(world->getMeshManager()->get("cube.obj")->getVAO(),
+//                                    world->getMeshManager()->get("cube.obj")->getIndicesSize()));
+//            e.addSimpleRenderComp("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
+//            e.addSimpleRenderComponent("cube.obj", "defaultComplex.png", "defaultNormal.png");
+////            if(j%2)
+////                e.addSimpleRenderComponent("cube.obj", "brickwall.jpg", "brickwall_normal.jpg");
+////            else
+////                e.addSimpleRenderComponent("cube.obj", "white.png", "defaultNormal.png");
         }
     }
-
 
     // Enable depth buffer
     glEnable(GL_DEPTH_TEST);
@@ -183,19 +230,21 @@ void GLWindow::initializeGL()
 
 void GLWindow::resizeGL(int w, int h)
 {
-    GLfloat aspect = GLfloat(w) / GLfloat(h ? h : 1);
-    projectionMat = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
-    shaderProgram->bindShader();
-    shaderProgram->setProjectionMat(&projectionMat[0][0]);
+    aspect = GLfloat(w) / GLfloat(h ? h : 1);
 
-    skyShaderProgram->bindShader();
-    skyShaderProgram->setProjectionMat(&projectionMat[0][0]);
+    projectionMat = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
+    shaderProgramPBR->bindShader();
+    shaderProgramPBR->setProjectionMat(&projectionMat[0][0]);
+
+    shaderProgramSky->bindShader();
+    shaderProgramSky->setProjectionMat(&projectionMat[0][0]);
+
 }
 
 void GLWindow::paintGL()
 {
-    auto &cameraHandleTrans = world->reg()->get<TransformComponent>(camera);
-    glm::mat4 invertMat = cameraHandleTrans.transform.getCameraTransformMatrix();
+    TransformComp &cameraTransformComp = world->reg()->get<TransformComp>(camera);
+    glm::mat4 invertMat = cameraTransformComp.transform.getCameraTransformMatrix();
     auto *viewMat = glm::value_ptr(invertMat);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -204,64 +253,128 @@ void GLWindow::paintGL()
     //but also should have for zoom in future or jsut for evry case
 //    shaderProgram->bindSetPVMat(pPointerPM, cameraMat);
 
-    shaderProgram->bindShader();
-    shaderProgram->setViewMat(viewMat);
+    shaderProgramPBR->bindShader();
+    shaderProgramPBR->setViewMat(viewMat);
+    shaderProgramPBR->setTextureUniforms();
 
-    auto &lightTransform = world->reg()->get<TransformComponent>(light);
-    auto &lightID = world->reg()->get<LightComponent>(light);
+    auto &lightTransform = world->reg()->get<TransformComp>(light);
+    auto &lightID = world->reg()->get<LightComp>(light);
     glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(lightTransform.transform.getTransformMatrix()) );//&mtm[0][0]);
 
-    btVector3 cam = cameraHandleTrans.transform.getPosition();
-    GLint viewPosCam = glGetUniformLocation(shaderProgram->programId(), "viewPosCam");
+    btVector3 cam = cameraTransformComp.transform.getPosition();
+    GLint viewPosCam = glGetUniformLocation(shaderProgramPBR->programId(), "viewPosCam");
 
     glUniform3fv(viewPosCam, 1, &cam[0]);
-    GLint model = shaderProgram->getUniform("model");
+    GLint model = shaderProgramPBR->getUniform("model");
 
     btScalar tm[16];
-    auto group = world->reg()->group<SimpleRenderComponent, TransformComponent>();//, cMesh>();
+
+    auto group = world->reg()->group<MeshComp, MaterialPBRComp, TransformComp, FixSphereBVComp>();//, cMesh>();
     //world.view<cRender>().each([this](auto &render) //as alternative
-    group.each([this, &model, &tm, cameraHandleTrans](auto &render, TransformComponent &transform)//, auto &mesh)
+
+
+//    GLuint lastAlbedoId = group.raw<TexturesPBRComp>()->albedoId;
+//    glActiveTexture(GL_TEXTURE0 + 0 );
+//    glBindTexture(GL_TEXTURE_2D, lastAlbedoId);
+
+//    GLuint lastNormalId = group.raw<TexturesPBRComp>()->normalId;
+//    glActiveTexture(GL_TEXTURE0 + 1 );
+//    glBindTexture(GL_TEXTURE_2D, lastNormalId);
+
+//    GLuint textureBox = world->reg()->get<TexturesBoxComp>(reflectiveAsset).albedoId;
+//    glActiveTexture(GL_TEXTURE0 + 2 );
+//    glBindTexture(GL_TEXTURE_CUBE_MAP, textureBox);
+
+//    GLuint lastMeshVAO = group.raw<MeshComp>()->VAO;
+//    glBindVertexArray(lastMeshVAO);
+//    glDrawElements(GL_TRIANGLES, group.raw<MeshComp>()->indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
+
+
+    GLuint lastAlbedoId;
+    GLuint lastNormalId;
+    GLuint lastMeshVAO;
+
+    GLuint lastCubeMapId= world->reg()->get<TexturesBoxComp>(reflectiveAsset).albedoId;
+    glActiveTexture(GL_REFLECTION_MAP + 0 );
+    glBindTexture(GL_REFLECTION_MAP, lastCubeMapId);
+    Frustum frustum =Frustum(createFrustumFromCamera(cameraTransformComp));
+
+    group.each([this, &model, &tm, &cam, &lastAlbedoId, &lastNormalId, &lastMeshVAO, &frustum]
+               (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform, FixSphereBVComp &boundingVol)
     {
-        btVector3 relativPos=transform.transform.getPosition() -
-                             cameraHandleTrans.transform.getPosition();
-        btVector3 norm = cameraHandleTrans.transform.forward();
-//        qDebug("xyz %f %f %f\n", norm.x(), norm.y(), norm.z());
-        btScalar nearPlaneDist=btDot(norm, relativPos);
-        if(nearPlaneDist > 0 || relativPos.length2()>100*100 )
-            return;
-
+//        if(!isInCameraFrustumAndDistance(cameraTransformComp, transform))
+//            return;
+        if(!boundingVol.isOnFrustum(cam, frustum))
+            return ;
         transform.transform.getOpenGLMatrix(tm);
-
         glUniformMatrix4fv(model, 1, GL_FALSE, tm);
-//      if(render.albedoId != save){...
-        glActiveTexture(GL_TEXTURE0 + 0 );
-        glBindTexture(GL_TEXTURE_2D, render.albedoId);
 
-        glActiveTexture(GL_TEXTURE0 + 1 );
-        glBindTexture(GL_TEXTURE_2D, render.normalId);
+//ToDo: Material and Material instance based on textures and other param
 
-        glBindVertexArray(render.VAO);
-        glDrawElements(GL_TRIANGLES, render.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
+        if(lastMeshVAO != mesh.VAO)
+        {
+            lastMeshVAO = mesh.VAO;
+            glBindVertexArray(mesh.VAO);
+        }
+        if(lastAlbedoId != texture.albedoId)
+        {
+            lastAlbedoId = texture.albedoId;
+            glActiveTexture(GL_TEXTURE0 + 1 );
+            glBindTexture(GL_TEXTURE_2D, lastAlbedoId);
+        }
+        if(lastNormalId != texture.normalId)
+        {
+            lastNormalId = texture.normalId;
+            glActiveTexture(GL_TEXTURE0 + 2);
+            glBindTexture(GL_TEXTURE_2D, lastNormalId);
+        }
+        glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
 
     });
 
-    //with this only unset pixels are drawne
+//    qDebug("xyz %f %f %f\n", norm.x(), norm.y(), norm.z());
+
+
+////    glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(lightTransform.transform.getTransformMatrix()) );//&mtm[0][0]);
+
+//    auto mirrorCam = cameraTransformComp.transform.getPosition();
+//    auto viewPosCamMirror = glGetUniformLocation(mirrorShaderProgram->programId(), "viewPosCam");
+
+//    glUniform3fv(viewPosCamMirror, 1, &mirrorCam[0]);
+//    auto mirrormodel = mirrorShaderProgram->getUniform("model");
+
+//    auto transform = world->reg()->get<TransformComponent>(reflectiveAsset);
+//    transform.transform.getOpenGLMatrix(tm);
+//    glUniformMatrix4fv(mirrormodel, 1, GL_FALSE, tm);
+
+//    auto texture = world->reg()->get<TexturesBoxComp>(reflectiveAsset);
+
+
+//    glActiveTexture(GL_TEXTURE0 + 0 );
+//    glBindTexture(GL_TEXTURE_CUBE_MAP, texture.albedoId);
+
+//    auto meshMirror = world->reg()->get<MeshComp>(reflectiveAsset);
+//    glBindVertexArray(meshMirror.VAO);
+//    glDrawElements(GL_TRIANGLES, meshMirror.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
+
+
+
     glDepthFunc(GL_LEQUAL);
-    skyShaderProgram->bindShader();
-    skyShaderProgram->setViewMat(viewMat);
-    auto &renderSky = world->reg()->get<SimpleRenderComponent>(skyCube);
+    shaderProgramSky->bindShader();
+    shaderProgramSky->setViewMat(viewMat);
+    auto &textureId = world->reg()->get<TexturesBoxComp>(skyCube).albedoId;
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, world->getTextureManager()->getId("skyCube"));
-    glBindVertexArray(renderSky.VAO);
-    glDrawElements(GL_TRIANGLES, renderSky.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureId);
+    auto &mesh = world->reg()->get<MeshComp>(skyCube);
+    glBindVertexArray(mesh.VAO);
+    glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
     glBindVertexArray(0);
     glDepthFunc(GL_LESS);
 
 
-
     count ++;
     nanoSec += deltaTimer.nsecsElapsed();
-    if (count  >= 100)
+    if (count >= 100)
     {
         qDebug()<< "timing:" << ( (double)nanoSec) / (count*1000000000) << "ns (ms*100)";
         qDebug()<< "timing:" << ((double)count*1000000000) /nanoSec  << "FPS";
@@ -271,13 +384,24 @@ void GLWindow::paintGL()
 //    //qDebug()<< "timing:" << ((double)nanoSec / count) << "ns/call";
 
     deltaTime = (double)deltaTimer.nsecsElapsed()/1000000000;
-
 //    m_t1 = QTime::currentTime();
 //    float curDelta = m_t0.msecsTo(m_t1);
 //    m_t0 = m_t1;
 //    qDebug()<< "Old delta: "<<curDelta <<  "dt: " << (float)deltaTime/1000000000;//deltaTimer.nsecsElapsed();
 
     deltaTimer.restart();
+}
+
+//TODO: Camera to first rate citizen (add as class member pointer)
+bool GLWindow::isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, TransformComp &actor)
+{
+    btVector3 relativPos=actor.transform.getPosition() -
+                         cameraTransformComp.transform.getPosition();
+    btVector3 norm = cameraTransformComp.transform.forward();
+    btScalar nearPlaneDist=norm.dot( relativPos );
+    if(nearPlaneDist > -4 || relativPos.length2()>100*100 )
+        return false;
+    return true;
 }
 
 void GLWindow::timerEvent(QTimerEvent *)
@@ -326,7 +450,7 @@ void GLWindow::timerEvent(QTimerEvent *)
     }
     else
     {
-        controlledTransform = &world->reg()->get<TransformComponent>(*controlledEntity);
+        controlledTransform = &world->reg()->get<TransformComp>(*controlledEntity);
     }
 
     if(keys[Qt::Key_W])
@@ -506,6 +630,35 @@ void GLWindow::mouseReleaseEvent(QMouseEvent *e)
 ////    angularSpeed += acc;
 }
 
+//btVector3 relativPos=actor.transform.getPosition() -
+//                     cameraTransformComp.transform.getPosition();
+//btVector3 norm = cameraTransformComp.transform.forward();
+//btScalar nearPlaneDist=norm.dot( relativPos );
+//if(nearPlaneDist > -4 || relativPos.length2()>100*100 )
+//    return false;
+//return true;
+
+Frustum GLWindow::createFrustumFromCamera(const Transform& cam, float nearOffset, float farOffset)
+{
+    Frustum frustum;
+    const float halfVSide = zFar * tanf(fov * .5f);
+    const float halfHSide = halfVSide * aspect;
+    const btVector3 frontMultFar = zFar * cam.forward();
+
+    frustum.nearFace = { cam.getPosition() + zNear * cam.forward(), cam.forward() };
+
+    frustum.farFace = { cam.getPosition() + frontMultFar, -cam.forward() };
+    frustum.rightFace = { cam.getPosition(),
+                            btCross(cam.up(),frontMultFar + cam.right() * halfHSide) };
+    frustum.leftFace = { cam.getPosition(),
+                            btCross(frontMultFar - cam.right() * halfHSide, cam.up()) };
+    frustum.topFace = { cam.getPosition(),
+                            btCross(cam.right(), frontMultFar - cam.up() * halfVSide) };
+    frustum.bottomFace =
+        { cam.getPosition(), btCross(frontMultFar + cam.up() * halfVSide, cam.right()) };
+
+    return frustum;
+}
 
 
 

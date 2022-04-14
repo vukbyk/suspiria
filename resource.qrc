@@ -40,5 +40,21 @@
         <file>assets/sky/stormydays_lf.tga</file>
         <file>assets/sky/stormydays_rt.tga</file>
         <file>assets/sky/stormydays_up.tga</file>
+        <file>assets/sky/arrakisday_bk.tga</file>
+        <file>assets/sky/arrakisday_dn.tga</file>
+        <file>assets/sky/arrakisday_ft.tga</file>
+        <file>assets/sky/arrakisday_lf.tga</file>
+        <file>assets/sky/arrakisday_rt.tga</file>
+        <file>assets/sky/arrakisday_up.tga</file>
+        <file>assets/cyborg_diffuse.png</file>
+        <file>assets/cyborg_normal.png</file>
+        <file>assets/cyborg_specular.png</file>
+        <file>assets/cyborg.obj</file>
+        <file>assets/sky/negx.jpg</file>
+        <file>assets/sky/negy.jpg</file>
+        <file>assets/sky/negz.jpg</file>
+        <file>assets/sky/posx.jpg</file>
+        <file>assets/sky/posy.jpg</file>
+        <file>assets/sky/posz.jpg</file>
     </qresource>
 </RCC>

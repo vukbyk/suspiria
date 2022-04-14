@@ -106,12 +106,12 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection, const 
 
 
 //     set the texture wrapping/filtering options (on the currently bound texture object)
-    glGenerateMipmap(GL_TEXTURE_2D);
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
+    glGenerateMipmap(GL_TEXTURE_2D);
     stbi_image_free(data);
 }
 
@@ -124,9 +124,10 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection, const 
 // +Z (front)
 // -Z (back)
 // -------------------------------------------------------
-Texture::Texture(std::vector<std::string> faces, const bool gammaCorrection)
+Texture::Texture(std::vector<std::string> faces, const bool flip, const bool gammaCorrection)
 {
-        initializeOpenGLFunctions();
+    initializeOpenGLFunctions();
+    stbi_set_flip_vertically_on_load(flip);
     glGenTextures(1, &textureId);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureId);
 

@@ -20,7 +20,7 @@ void Light::renderAll()
     auto s = dynamic_cast<Scene*>(parentSpacial);
     if(s)
     {
-        auto &m = s->world.get<TransformComponent>(entity);
+        auto &m = s->world.get<TransformComp>(entity);
         glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(m.transform.getTransformMatrix()) );//&mtm[0][0]);
     }
 }

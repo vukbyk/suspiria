@@ -5,7 +5,7 @@
 Entity::Entity(class World *aWorld, entt::entity aHandle)
     : world(aWorld), handle(aHandle){}
 
-Entity *Entity::addSimpleRenderComponent(const char *mesh, const char *albedo, const char *normal)
+Entity *Entity::addSimpleRenderComp(const char *mesh, const char *albedo, const char *normal)
 {
     addComponent(SimpleRenderComponent(world->getMeshManager()->get(mesh)->getVAO(),
                                          world->getMeshManager()->get(mesh)->getIndicesSize(),
@@ -14,11 +14,41 @@ Entity *Entity::addSimpleRenderComponent(const char *mesh, const char *albedo, c
     return this;
 }
 
-Entity *Entity::addTransformComponent(const GLfloat x, const GLfloat y, const GLfloat z)
+
+Entity *Entity::addMeshComponent(const char *mesh)
 {
-    addComponent(TransformComponent(btVector3(x , y, z)));
+    addComponent(MeshComp(world->getMeshManager()->get(mesh)->getVAO(),
+                               world->getMeshManager()->get(mesh)->getIndicesSize()));
     return this;
 }
+
+Entity *Entity::addTexturePBRComp(const char *albedo, const char *normal)
+{
+    addComponent(MaterialPBRComp(world->getTextureManager()->getId(albedo),
+                                 world->getTextureManager()->getId(normal)));
+    return this;
+}
+
+Entity *Entity::addTextureBoxComp(const char *albedo)
+{
+    addComponent(TexturesBoxComp(world->getTextureManager()->getId(albedo)));
+    return this;
+}
+
+Entity *Entity::addTransformComponent(const GLfloat x, const GLfloat y, const GLfloat z)
+{
+    addComponent(TransformComp(btVector3(x , y, z)));
+    return this;
+}
+
+Entity *Entity::addFixSphereBVComp(const float inRadius)
+{
+    addComponent(FixSphereBVComp());
+    return this;
+}
+
+
+
 //Entity *Entity::addTransformComponent(const glm::vec3 v)
 //{
 //    glm::mat4 mat(1);

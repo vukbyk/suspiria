@@ -7,7 +7,9 @@
         <file>shaders/tutorial.vs</file>
         <file>shaders/sky.fs</file>
         <file>shaders/sky.vs</file>
-        <file>shaders/skybox.fs</file>
-        <file>shaders/skybox.vs</file>
+        <file>shaders/mirrorboxmap.fs</file>
+        <file>shaders/mirrorboxmap.vs</file>
+        <file>shaders/PBRForward.vs</file>
+        <file>shaders/PBRForward.fs</file>
     </qresource>
 </RCC>
