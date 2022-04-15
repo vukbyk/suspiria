@@ -15,7 +15,7 @@ public:
     Texture(std::vector<std::string> faces, const bool flip = true ,const bool gammaCorrection=false);
     ~Texture();
 
-    void bind(GLushort unit);
+//    void bind(GLushort unit);
 
     //  void bind(GLuint unit = 0) const;
     GLuint getTextureId() const;

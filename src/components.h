@@ -93,11 +93,11 @@ struct MaterialPBRComp
         :albedoId(aAlbedoId), normalId(aNormalID){};
 };
 
-struct TexturesBoxComp
+struct cubeMapComp
 {
-    GLuint albedoId;
-    TexturesBoxComp(const GLuint aAlbedoId)
-        :albedoId(aAlbedoId){};
+    GLuint cubeTextureId;
+    cubeMapComp(const GLuint aBoxTextureId)
+        :cubeTextureId(aBoxTextureId){};
 };
 
 struct AlbedoTextureComponent

@@ -30,6 +30,7 @@
     #include <qopengles2ext.h>
 #endif
 
+unsigned int quadVAO, quadVBO;
 
 GLWindow::GLWindow()
 {
@@ -82,6 +83,7 @@ GLWindow::~GLWindow()
 //    doneCurrent();
 //    delete skyScene;
 //    delete scene;
+    glDeleteFramebuffers(1, &framebuffer);
     delete world;
 }
 
@@ -90,12 +92,67 @@ void GLWindow::initializeGL()
     initializeOpenGLFunctions();
 //    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-    const auto textureList = std::vector<std::string>({"reflectionBox", "albedoTexture", "normalTexture"});
+    glEnable(GL_DEPTH_TEST);
+    // framebuffer configuration
+    // -------------------------
+    shaderProgramFBScr = new ShaderProgram("fbscreen");//, {"screenTexture"});
+    shaderProgramFBScr->bind();
+    shaderProgramFBScr->setTextureUniforms();
 
-    shaderProgramPBR = new ShaderProgram("PBRForward");
-    shaderProgramPBR->setUniformNamesAndIds(textureList);
-    shaderProgramSky = new ShaderProgram("sky", {"albedoTexture"});
+    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+    // positions   // texCoords
+    -1.0f,  1.0f,  0.0f, 1.0f,
+    -1.0f, -1.0f,  0.0f, 0.0f,
+     1.0f, -1.0f,  1.0f, 0.0f,
 
+    -1.0f,  1.0f,  0.0f, 1.0f,
+     1.0f, -1.0f,  1.0f, 0.0f,
+     1.0f,  1.0f,  1.0f, 1.0f
+    };
+
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    // create a color attachment texture
+
+    glGenTextures(1, &textureColorbuffer);
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width(), height(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width(), height()); // use a single renderbuffer object for both a depth AND stencil buffer.
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+    // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        qDebug() << "!!! ERROR !! ::FRAMEBUFFER:: Framebuffer is not complete!";
+        return;
+    }
+    // Bind default framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+    const auto textureList = std::vector<std::string>({"albedoTexture", "normalTexture", "skyCube"});
+
+    shaderProgramMain = new ShaderProgram("renderbuffer");
+    shaderProgramMain->setUniformNamesAndIds(textureList);
+
+    shaderProgramMain->bind();
+    shaderProgramMain->setTextureUniforms();
     std::vector<std::string> faces
     {
 //        "sky/right.jpg",
@@ -126,30 +183,34 @@ void GLWindow::initializeGL()
 
 
     world->getTextureManager()->load("defaultComplex.png", true);
-    world->getTextureManager()->load("white.png",     false);
-    world->getTextureManager()->load("exoalbedo.jpg", true);
-    world->getTextureManager()->load("brickwall.jpg", false);
-//    world->getTextureManager()->load("cube.png", false);
     world->getTextureManager()->load("defaultNormal.png", false);
-    world->getTextureManager()->load("brickwall_normal.png", false);
+    world->getTextureManager()->load("white.png",     false);
     world->getTextureManager()->load("brickwall_normal.jpg", false);
-    world->getTextureManager()->load("exoskelet_Exoskelet_BaseColor.png", false);
-    world->getTextureManager()->load("exoskelet_Exoskelet_Normal.png", false,false);
+    world->getTextureManager()->load("brickwall.jpg", false);
     world->getTextureManager()->load("cyborg_normal.png", true, true);
     world->getTextureManager()->load("cyborg_diffuse.png", true, true);
-    world->getTextureManager()->load("vulture.png",true, true);
-    world->getTextureManager()->load("Vulture_Diffuse.alpha_normal.jpg",true, true);
-    world->getTextureManager()->load("Vulture_Diffuse.alpha.png",false, true);
+//    world->getTextureManager()->load("exoskelet_Exoskelet_BaseColor.png", false);
+//    world->getTextureManager()->load("exoskelet_Exoskelet_Normal.png", false,false);
+
+//    world->getTextureManager()->load("exoalbedo.jpg", true);
+
+//    world->getTextureManager()->load("cube.png", false);
+//    world->getTextureManager()->load("vulture.png",true, true);
+//    world->getTextureManager()->load("Vulture_Diffuse.alpha_normal.jpg",true, true);
+//    world->getTextureManager()->load("Vulture_Diffuse.alpha.png",false, true);
 
 
-    world->getMeshManager()->loadAssimp("vulture.obj");
+//    world->getMeshManager()->loadAssimp("vulture.obj");
     world->getMeshManager()->loadAssimp("cube.obj");
-    world->getMeshManager()->loadAssimp("cubeinvert.obj");
+//    world->getMeshManager()->loadAssimp("cubeinvert.obj");
     world->getMeshManager()->loadAssimp("cubeinvertmini.obj");
     world->getMeshManager()->loadAssimp("sphare.obj");
-    world->getMeshManager()->loadAssimp("sky/skycube.obj");
+//    world->getMeshManager()->loadAssimp("sky/skycube.obj");
     world->getMeshManager()->loadAssimp("sky/skycubeinv.obj");
     world->getMeshManager()->loadAssimp("cyborg.obj");
+
+
+    shaderProgramSky = new ShaderProgram("sky", {"skyCube"});
 
     skyCube = world->CreateEntity();
     skyCube.addComponent(TransformComp(Transform()));
@@ -168,21 +229,21 @@ void GLWindow::initializeGL()
 //    light.addSimpleRenderComp("cubeinvertmini.obj", "white.png", "defaultNormal.png");
     light.addMeshComponent("cubeinvertmini.obj");
     light.addTexturePBRComp("white.png", "defaultNormal.png");
-    GLint lightID = shaderProgramPBR->getUniform("light");
+    GLint lightID = shaderProgramMain->getUniform("light");
     light.addComponent(LightComp(lightID));
 //    light.addFixSphereBVComp();
 
     Entity e;
     e=world->CreateEntity();
     e.addTexturePBRComp("white.png", "defaultNormal.png");//"brickwall_normal.jpg");
-    e.addTextureBoxComp("skyCube");
+    e.addTextureBoxComp("reflectCube");
     e.addMeshComponent("sphare.obj");
     e.addTransformComponent( -3.0, 2.0f, -7.0f);
 //    e.addFixSphereBVComp();
 
     e=world->CreateEntity();
     e.addTexturePBRComp("white.png", "defaultNormal.png");//"brickwall_normal.jpg");
-    e.addTextureBoxComp("skyCube");
+    e.addTextureBoxComp("reflectCube");
     e.addMeshComponent("cube.obj");
     e.addTransformComponent( 3.0, 2.0f, -7.0f);
 //    e.addFixSphereBVComp();
@@ -214,17 +275,15 @@ void GLWindow::initializeGL()
     }
 
     // Enable depth buffer
-    glEnable(GL_DEPTH_TEST);
+//    glEnable(GL_DEPTH_TEST);
 
     // Enable back face culling
-    glEnable(GL_CULL_FACE);
+//    glEnable(GL_CULL_FACE);
+////    glCullFace(GL_BACK);
+////    glFrontFace(GL_CW);
 
     //collor gamma
     glEnable(GL_FRAMEBUFFER_SRGB_EXT);
-
-    // Use texture unit 0 which contains cube.png
-//    program.setUniformValue("texture", 0); //Qt Alternative
-//    GLint texLoc = shaderProgram->uniformLocation("uv");
 
     deltaTimer.start();
 }
@@ -235,11 +294,24 @@ void GLWindow::resizeGL(int w, int h)
     setAspectFowMultiplayer();
 
     projectionMat = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
-    shaderProgramPBR->bindShader();
-    shaderProgramPBR->setProjectionMat(&projectionMat[0][0]);
+    shaderProgramMain->bindShader();
+    shaderProgramMain->setProjectionMat(&projectionMat[0][0]);
 
     shaderProgramSky->bindShader();
     shaderProgramSky->setProjectionMat(&projectionMat[0][0]);
+
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width(), height(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width(), height()); // use a single renderbuffer object for both a depth AND stencil buffer.
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+    // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        qDebug() << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!";
+        return;
+    }
 
 }
 
@@ -248,26 +320,36 @@ void GLWindow::paintGL()
     TransformComp &cameraTransformComp = world->reg()->get<TransformComp>(camera);
     glm::mat4 invertMat = cameraTransformComp.transform.getCameraTransformMatrix();
     auto *viewMat = glm::value_ptr(invertMat);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Enable depth buffer
+    glEnable(GL_DEPTH_TEST);
+
+    // Enable back face culling
+    glEnable(GL_CULL_FACE);
+//    glCullFace(GL_BACK);
+//    glFrontFace(GL_CCW);
 
     //Separated to change of size for Perspective when window is resized,
     //but also should have for zoom in future or jsut for evry case
 //    shaderProgram->bindSetPVMat(pPointerPM, cameraMat);
 
-    shaderProgramPBR->bindShader();
-    shaderProgramPBR->setViewMat(viewMat);
-    shaderProgramPBR->setTextureUniforms();
+
+    shaderProgramMain->bindShader();
+    shaderProgramMain->setViewMat(viewMat);
+    shaderProgramMain->setTextureUniforms();
 
     auto &lightTransform = world->reg()->get<TransformComp>(light);
     auto &lightID = world->reg()->get<LightComp>(light);
     glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(lightTransform.transform.getTransformMatrix()) );//&mtm[0][0]);
 
     btVector3 cam = cameraTransformComp.transform.getPosition();
-    GLint viewPosCam = glGetUniformLocation(shaderProgramPBR->programId(), "viewPosCam");
+    GLint viewPosCam = glGetUniformLocation(shaderProgramMain->programId(), "viewPosCam");
 
     glUniform3fv(viewPosCam, 1, &cam[0]);
-    GLint model = shaderProgramPBR->getUniform("model");
+    GLint model = shaderProgramMain->getUniform("model");
 
     btScalar tm[16];
 
@@ -275,32 +357,18 @@ void GLWindow::paintGL()
     //world.view<cRender>().each([this](auto &render) //as alternative
 
 
-//    GLuint lastAlbedoId = group.raw<TexturesPBRComp>()->albedoId;
-//    glActiveTexture(GL_TEXTURE0 + 0 );
-//    glBindTexture(GL_TEXTURE_2D, lastAlbedoId);
-
-//    GLuint lastNormalId = group.raw<TexturesPBRComp>()->normalId;
-//    glActiveTexture(GL_TEXTURE0 + 1 );
-//    glBindTexture(GL_TEXTURE_2D, lastNormalId);
-
-//    GLuint textureBox = world->reg()->get<TexturesBoxComp>(reflectiveAsset).albedoId;
-//    glActiveTexture(GL_TEXTURE0 + 2 );
-//    glBindTexture(GL_TEXTURE_CUBE_MAP, textureBox);
-
-//    GLuint lastMeshVAO = group.raw<MeshComp>()->VAO;
-//    glBindVertexArray(lastMeshVAO);
-//    glDrawElements(GL_TRIANGLES, group.raw<MeshComp>()->indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
-
+    shaderProgramFBScr->setTextureUniforms();
 
     GLuint lastAlbedoId;
     GLuint lastNormalId;
     GLuint lastMeshVAO;
-
-    GLuint lastCubeMapId= world->reg()->get<TexturesBoxComp>(reflectiveAsset).albedoId;
-    glActiveTexture(GL_REFLECTION_MAP + 0 );
-    glBindTexture(GL_REFLECTION_MAP, lastCubeMapId);
-    Frustum frustum =Frustum(createFrustumFromCamera(cameraTransformComp));
-    group.each([this, &model, &tm, &cameraTransformComp, &lastAlbedoId, &lastNormalId, &lastMeshVAO]//, &frustum]
+    GLuint lastCubeMapId= world->reg()->get<cubeMapComp>(reflectiveAsset).cubeTextureId;
+    glActiveTexture(GL_TEXTURE0 + 2 );
+//        glActiveTexture(GL_TEXTURE2);
+//        glUniform1i(glGetUniformLocation(shaderProgramFBScr->programId(), "skyCube"), 2);
+//        shaderProgramFBScr->setTextureUniforms();
+    glBindTexture(GL_TEXTURE_CUBE_MAP, lastCubeMapId);
+    group.each([this, &model, &tm, &cameraTransformComp, &lastAlbedoId, &lastNormalId, &lastMeshVAO]//,&lastCubeMapId]
                (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform)//,FixSphereBVComp)// &boundingVol)
     {
         if(!isInCameraFrustumAndDistance(cameraTransformComp, transform))
@@ -320,51 +388,26 @@ void GLWindow::paintGL()
         if(lastAlbedoId != texture.albedoId)
         {
             lastAlbedoId = texture.albedoId;
-            glActiveTexture(GL_TEXTURE0 + 1 );
+            glActiveTexture(GL_TEXTURE0 + 0);
             glBindTexture(GL_TEXTURE_2D, lastAlbedoId);
-        }
-        if(lastNormalId != texture.normalId)
-        {
+//        }
+//        if(lastNormalId != texture.normalId)
+//        {
             lastNormalId = texture.normalId;
-            glActiveTexture(GL_TEXTURE0 + 2);
+            glActiveTexture(GL_TEXTURE0 + 1);
             glBindTexture(GL_TEXTURE_2D, lastNormalId);
         }
         glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
-
     });
 
 //    qDebug("xyz %f %f %f\n", norm.x(), norm.y(), norm.z());
 
 
-////    glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(lightTransform.transform.getTransformMatrix()) );//&mtm[0][0]);
-
-//    auto mirrorCam = cameraTransformComp.transform.getPosition();
-//    auto viewPosCamMirror = glGetUniformLocation(mirrorShaderProgram->programId(), "viewPosCam");
-
-//    glUniform3fv(viewPosCamMirror, 1, &mirrorCam[0]);
-//    auto mirrormodel = mirrorShaderProgram->getUniform("model");
-
-//    auto transform = world->reg()->get<TransformComponent>(reflectiveAsset);
-//    transform.transform.getOpenGLMatrix(tm);
-//    glUniformMatrix4fv(mirrormodel, 1, GL_FALSE, tm);
-
-//    auto texture = world->reg()->get<TexturesBoxComp>(reflectiveAsset);
-
-
-//    glActiveTexture(GL_TEXTURE0 + 0 );
-//    glBindTexture(GL_TEXTURE_CUBE_MAP, texture.albedoId);
-
-//    auto meshMirror = world->reg()->get<MeshComp>(reflectiveAsset);
-//    glBindVertexArray(meshMirror.VAO);
-//    glDrawElements(GL_TRIANGLES, meshMirror.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
-
-
-
     glDepthFunc(GL_LEQUAL);
     shaderProgramSky->bindShader();
     shaderProgramSky->setViewMat(viewMat);
-    auto &textureId = world->reg()->get<TexturesBoxComp>(skyCube).albedoId;
-    glActiveTexture(GL_TEXTURE0);
+    auto &textureId = world->reg()->get<cubeMapComp>(skyCube).cubeTextureId;
+    glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureId);
     auto &mesh = world->reg()->get<MeshComp>(skyCube);
     glBindVertexArray(mesh.VAO);
@@ -372,6 +415,22 @@ void GLWindow::paintGL()
     glBindVertexArray(0);
     glDepthFunc(GL_LESS);
 
+
+    // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
+//    // clear all relevant buffers
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
+    glClear(GL_COLOR_BUFFER_BIT);
+
+
+    shaderProgramFBScr->bind();
+    glBindVertexArray(quadVAO);
+    shaderProgramFBScr->setTextureUniforms();
+    glActiveTexture(GL_TEXTURE0 + 0 );
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// use the color attachment texture as the texture of the quad plane
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
 
     count ++;
@@ -397,20 +456,17 @@ void GLWindow::paintGL()
 bool GLWindow::isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, TransformComp &actor)
 {
     btVector3 forward = cameraTransformComp.transform.forward();
-    btVector3 offsetPos = cameraTransformComp.transform.getPosition() + (-forward * -5.0f);
+    btVector3 offsetPos = cameraTransformComp.transform.getPosition() + (-forward * -1.0f);
     btVector3 relativPos=actor.transform.getPosition() - offsetPos;
 
 //    btScalar nearPlaneDist=forward.dot( relativPos );
-//    if(nearPlaneDist > 5 )//|| relativPos.length2()>200*200 )
+//    if(nearPlaneDist > 0 )//|| relativPos.length2()>200*200 )
 //        return false;
 
     if( //relativPos.length2()>200*200   ||
         relativPos.angle(-forward) > qDegreesToRadians(fov * aspectFowMultiplayer))
         return false;
-
     return true;
-
-    Frustum frustum= createFrustumFromCamera(cameraTransformComp);
 }
 
 void GLWindow::setAspectFowMultiplayer()
@@ -561,7 +617,7 @@ void GLWindow::mouseMoveEvent(QMouseEvent *mouseEvent)
     if( lastMousePosition == glm::ivec2(-1,-1) )
     {
         lastMousePosition =  glm::ivec2(mouseEvent->position().x(), mouseEvent->position().y());
-        return;//????
+        return;//???
     }
 
     mouseDelta = glm::ivec2(mouseEvent->position().x(), mouseEvent->position().y())  - lastMousePosition;

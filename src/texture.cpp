@@ -17,11 +17,12 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection, const 
     stbi_set_flip_vertically_on_load(flipNormalVertically);
 
     int width, height, nChannels;
+
     qDebug("Loading texture: %s", std::string(":/assets/").append(fileName).c_str());
 
     QFile file( std::string(":/assets/").append(fileName).c_str() );
     if(!file.open(QIODevice::ReadOnly))
-        qDebug("Failed to load file %s", fileName.c_str());
+        qDebug("!!! ERROR !!! Failed to load file %s", fileName.c_str());
     else
         qDebug("File %s is loaded", fileName.c_str());
 
@@ -138,7 +139,7 @@ Texture::Texture(std::vector<std::string> faces, const bool flip, const bool gam
 
         QFile file( std::string(":/assets/").append(faces[i]).c_str() );
         if(!file.open(QIODevice::ReadOnly))
-            qDebug("Failed to load file %s", faces[i].c_str());
+            qDebug("!!! ERROR !!!  Failed to load file %s", faces[i].c_str());
         else
             qDebug("File %s is loaded", faces[i].c_str());
 
@@ -166,11 +167,11 @@ Texture::~Texture()
 {
 }
 
-void Texture::bind(GLushort unit)
-{
-    glActiveTexture(GL_TEXTURE0 + unit );
-    glBindTexture(GL_TEXTURE_2D, textureId);
-}
+//void Texture::bind(GLushort unit)
+//{
+//    glActiveTexture(GL_TEXTURE0 + unit );
+//    glBindTexture(GL_TEXTURE_2D, textureId);
+//}
 
 GLuint Texture::getTextureId() const
 {

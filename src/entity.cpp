@@ -31,7 +31,7 @@ Entity *Entity::addTexturePBRComp(const char *albedo, const char *normal)
 
 Entity *Entity::addTextureBoxComp(const char *albedo)
 {
-    addComponent(TexturesBoxComp(world->getTextureManager()->getId(albedo)));
+    addComponent(cubeMapComp(world->getTextureManager()->getId(albedo)));
     return this;
 }
 

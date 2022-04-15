@@ -11,5 +11,11 @@
         <file>shaders/mirrorboxmap.vs</file>
         <file>shaders/PBRForward.vs</file>
         <file>shaders/PBRForward.fs</file>
+        <file>shaders/renderbuffer.fs</file>
+        <file>shaders/renderbuffer.vs</file>
+        <file>shaders/cubemaps.vs</file>
+        <file>shaders/cubemaps.fs</file>
+        <file>shaders/fbscreen.fs</file>
+        <file>shaders/fbscreen.vs</file>
     </qresource>
 </RCC>

@@ -94,10 +94,7 @@ void ShaderProgram::bindShader()
 {
     // Bind shader pipeline for use
     if (!bind())
-    {
         qDebug() << "Error: Shader program bind!";
-//        close();
-    }
 //    glUniform1i(glGetUniformLocation(programId(), "albedoTexture"), 0);
 //    glUniform1i(glGetUniformLocation(programId(), "normalTexture"), 1);
 }

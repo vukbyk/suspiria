@@ -1,7 +1,6 @@
 #include "texturemanager.h"
 #include "texture.h"
 
-
 TextureManager::~TextureManager()
 {
     for ( const auto &t : texture )
@@ -41,7 +40,7 @@ Texture *TextureManager::get(const std::string fileName)
     }
     else
     {
-        qDebug("Texture \"%s\" not loaded...", fileName.c_str());
+        qDebug("!!! ERROR !!! Texture \"%s\" not loaded...", fileName.c_str());
         return nullptr;
     }
 }
@@ -55,7 +54,7 @@ GLuint TextureManager::getId(const std::string fileName)
     }
     else
     {
-        qDebug("Texture \"%s\" not loaded...", fileName.c_str());
+        qDebug("!!! ERROR !!! Texture \"%s\" not loaded...", fileName.c_str());
         return -1;
     }
 }

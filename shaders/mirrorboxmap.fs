@@ -12,7 +12,7 @@ in vec3 Position;
 
 //uniform vec3 cameraPos;
 uniform vec3 viewPosCam;
-uniform samplerCube skybox;
+uniform samplerCube skyCube;
 
 void main()
 {
@@ -21,8 +21,8 @@ void main()
     vec3 refraction =  refract(I, normalize(ReflectionVector), 1.0/1.332);
     vec3 refref = normalize(mix(R, refraction, 0.0));
     vec3 color = vec3(.1,1,.3);
-//    vec3 frag =(texture(skybox, refraction).rgb)*0.66 + color + (texture(skybox, R).rgb)*0.23;
-    vec3 fragRR =mix((texture(skybox, refraction).rgb),(texture(skybox, R).rgb),0.23);
+//    vec3 frag =(texture(skyCube, refraction).rgb)*0.66 + color + (texture(skyCube, R).rgb)*0.23;
+    vec3 fragRR =mix((texture(skyCube, refraction).rgb),(texture(skyCube, R).rgb),0.23);
     vec3 frag = mix(fragRR, color, 0.1);
     FragColor = vec4(frag.rgb, 1.0);
 }

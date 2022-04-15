@@ -42,7 +42,7 @@ void MeshManager::loadAssimp(const std::string fileName)
 
 
     if(!FullFilePath.open(QIODevice::ReadOnly))
-        qDebug("Failed to load file \"%s\"", fileName.c_str());
+        qDebug("!!! ERROR !!! Failed to load file \"%s\"", fileName.c_str());
     else
         qDebug("File \"%s\" is loaded into mesh", fileName.c_str());
 
@@ -55,12 +55,12 @@ void MeshManager::loadAssimp(const std::string fileName)
                                                         aiProcess_CalcTangentSpace);//, "obj");
     if (!scene)
     {
-        qDebug("Failed to load mesh: %s", FullFilePath.symLinkTarget().toStdString().c_str());
+        qDebug("!!! ERROR !!! Failed to load mesh: %s", FullFilePath.symLinkTarget().toStdString().c_str());
         return;
     }
     else
     {
-        qDebug("Suicess to load mesh: %s", FullFilePath.symLinkTarget().toStdString().c_str());
+        qDebug("Success to load mesh: %s", FullFilePath.symLinkTarget().toStdString().c_str());
         loadScene(scene, fileName);
     }
 }
@@ -114,7 +114,7 @@ Mesh* MeshManager::get(const std::string fileName)
     }
     else
     {
-        qDebug("Mesh \"%s\" not loaded. Try to load...", fileName.c_str());
+        qDebug("!!! ERROR !!! Mesh \"%s\" not loaded. Try to load...", fileName.c_str());
         loadAssimp(fileName);
 
         return mesh[fileName];

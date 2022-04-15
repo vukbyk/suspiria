@@ -27,7 +27,7 @@ AssimpLoad::AssimpLoad(const std::string fileName)
 
     QFile file( std::string(":/assets/").append(fileName).c_str() );
     if(!file.open(QIODevice::ReadOnly))
-        qDebug("Failed to load file %s", fileName.c_str());
+        qDebug("!!! ERROR !!! Failed to load file %s", fileName.c_str());
     else
         qDebug("File %s is loaded", fileName.c_str());
 
@@ -40,12 +40,12 @@ AssimpLoad::AssimpLoad(const std::string fileName)
                                                         aiProcess_CalcTangentSpace);//, "obj");
     if (!scene)
     {
-        qDebug("Failed to load mesh: %s", file.symLinkTarget().toStdString().c_str());
+        qDebug("!!! ERROR !!! Failed to load mesh: %s", file.symLinkTarget().toStdString().c_str());
         return;
     }
     else
     {
-        qDebug("Suicess to load mesh: %s", file.symLinkTarget().toStdString().c_str());
+        qDebug("Success to load mesh: %s", file.symLinkTarget().toStdString().c_str());
         loadScene(scene, fileName);
     }
 }

@@ -6,11 +6,12 @@ precision highp float;
 
 out vec4 FragColor;
 
-in vec3 TexCoords;
+in vec2 TexCoords;
 
-uniform samplerCube skyCube;
+uniform sampler2D screenTexture;
 
 void main()
 {
-    FragColor = texture(skyCube, TexCoords);
+    vec3 col = texture(screenTexture, TexCoords).rgb;
+    FragColor = vec4(col, 1.0);
 }

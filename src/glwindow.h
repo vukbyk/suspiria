@@ -18,13 +18,16 @@
 class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 {
     Q_OBJECT
-//    class Scene *skyScene;
 
     class World *world;
-    class ShaderProgram *shaderProgramPBR;
+    class ShaderProgram *shaderProgramMain;
     class ShaderProgram *shaderProgramSky;
     class ShaderProgram *mirrorShaderProgram;
+    class ShaderProgram *shaderProgramFBScr;
 
+    GLuint framebuffer;
+    GLuint textureColorbuffer;
+    GLuint rbo;
 
 //    class Camera *camera;
     Entity light;

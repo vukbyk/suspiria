@@ -8,8 +8,6 @@
         <file>assets/bricks2_normal.jpg</file>
         <file>assets/bricks2_specular.png</file>
         <file>assets/bricks2.jpg</file>
-        <file>assets/brickwall_normal.jpg</file>
-        <file>assets/brickwall_normal.png</file>
         <file>assets/brickwall.jpg</file>
         <file>assets/default_specular.jpg</file>
         <file>assets/defaultComplex.png</file>
@@ -56,5 +54,6 @@
         <file>assets/sky/posx.jpg</file>
         <file>assets/sky/posy.jpg</file>
         <file>assets/sky/posz.jpg</file>
+        <file>assets/brickwall_normal.jpg</file>
     </qresource>
 </RCC>

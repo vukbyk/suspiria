@@ -24,8 +24,8 @@ Material::~Material()
 
 void Material::bind()
 {
-    albedo->bind(0);
-    normal->bind(1);
+//    albedo->bind(0);
+//    normal->bind(1);
     //metal->bind();
 }
 
