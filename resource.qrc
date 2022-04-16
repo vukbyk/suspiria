@@ -11,7 +11,6 @@
         <file>assets/brickwall.jpg</file>
         <file>assets/default_specular.jpg</file>
         <file>assets/defaultComplex.png</file>
-        <file>assets/defaultNormal.png</file>
         <file>assets/defaultrgba.png</file>
         <file>assets/exoalbedo.jpg</file>
         <file>assets/exoskelet_Exoskelet_BaseColor.png</file>
@@ -55,5 +54,8 @@
         <file>assets/sky/posy.jpg</file>
         <file>assets/sky/posz.jpg</file>
         <file>assets/brickwall_normal.jpg</file>
+        <file>assets/cubemaya.obj</file>
+        <file>assets/cubemaya.fbx</file>
+        <file>assets/normal1x1.png</file>
     </qresource>
 </RCC>

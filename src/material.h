@@ -12,7 +12,7 @@ private:
 //    Texture *metal;
 
 public:
-    Material(const char *aAlbedoPath = "defaultComplex.png", const char *aNormalPath = "defaultNormal.png");
+    Material(const char *aAlbedoPath = "defaultComplex.png", const char *aNormalPath = "normal1x1.png");
 
     Material(Texture *aAlbedo, Texture *aNormal = nullptr);
 

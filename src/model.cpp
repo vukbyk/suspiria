@@ -18,7 +18,7 @@ Model::Model(): Spacial()
 
 //Model::Model(const char *aMeshPath, const char *aAlbedoPath, const char *aNormalPath)
 //{
-////    "defaultNormal.png"
+////    "normal1x1.png"
 ////    std::string texturePath = aTexturePath;
 //    Texture *albedo = new Texture(aAlbedoPath, true);//GL_TEXTURE_2D, GL_LINEAR);
 //    Texture *normal = new Texture(aNormalPath);//GL_TEXTURE_2D, GL_LINEAR);

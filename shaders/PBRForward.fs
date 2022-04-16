@@ -20,19 +20,22 @@ in vec3 TangentLightPos;
 in vec3 TangentViewPos;
 in vec3 TangentFragPos;
 
-in mat3 TBN;
+//in mat3 TBN;
+in mat3 inverseTBN;
 
 uniform sampler2D albedoTexture;
 uniform sampler2D normalTexture;
 
-in vec3 lightPosition;
+//in vec3 lightPosition;
 
 in vec3 BoxPosition;
 in vec3 ReflectionVector;
-uniform vec3 viewPosCam;
 
+//uniform vec3 viewPosCam;
 uniform samplerCube skyCube;
 
+//in vec3 NormalTutorial;
+//in vec3 Position;
 
 void main()
 {
@@ -66,38 +69,49 @@ void main()
     // transform normal vector to range [-1,1]
     normal = normalize(normal * 2.0 - 1.0); //this normal is in tangent space
                                             //for switching light and loc in tan space
-
-    vec3 normalTBN = normalize(TBN *  normal);
-//    normal*= vec3(1.0, -1.0, 1.0);
+//    normal = vec3(1,0,0);
 
 
-    //Reflection
-    vec3 I = normalize( BoxPosition - viewPosCam);
-    vec3 R  = reflect( I, normalTBN);
-    vec3 reflection = texture(skyCube, normalize(R)).rgb;
 
-    // get diffuse color
+
+
+    // Get diffuse color
     vec3 color = texture(albedoTexture, uvFrag).rgb;
-//    color = mix(reflection, color, .5);
-//    const float gamma = 2.2;             //instead of SRGB default 2.2
-////    color = pow(color, vec3( gamma));    //instead of SRGB,
-//    color = pow(color, vec3(1.0/gamma) );// 1.0/gamma for brigthen up
 
-    // ambient
-    vec3 ambient = color*  reflection *.5; //0.1 * color  ;
-
-    // diffuse
+    // Diffuse
     vec3 lightDir = normalize(TangentLightPos - TangentFragPos);
     float diffIntensity = max(dot(lightDir, normal), 0.0) ;
     vec3 diffuse = diffIntensity * color * lightColor * attenuation;
 
-    // specular
+    // Specular
     vec3 viewDir = normalize(TangentViewPos - TangentFragPos);
     vec3 reflectDir = reflect(-lightDir, normal);
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
     vec3 specular = vec3(.75) * spec * lightColor * attenuation;
 
+
+    // Reflection
+    //ok for normal = vec3(1,0,0);
+//    vec3 I = normalize(Position - viewPosCam);
+//    vec3 R = reflect(I, normalize(NormalTutorial));
+    // Works
+//    vec3 normalTBN = normalize(TBN *  normal);//maybe ionverse???
+//    vec3 I = normalize(Position - viewPosCam );
+//    vec3 R  = reflect( I, normalTBN);
+
+    // Works
+    vec3 I = normalize(TangentFragPos - TangentViewPos );
+    vec3 R  = reflect( I, normal);
+    vec3 reflection  = vec3(texture(skyCube, R*inverseTBN));
+
+//    color = mix(reflection, color, .5);
+//    const float gamma = 2.2;             //instead of SRGB default 2.2
+////    color = pow(color, vec3( gamma));    //instead of SRGB,
+//    color = pow(color, vec3(1.0/gamma) );// 1.0/gamma for brigthen up
+
+    // Ambient
+    vec3 ambient = color*  reflection *.5; //0.1 * color  ;
 //    ambient = mix(ambient, texture(reflectionBoxTexture, reflection).rgb, .5);
 
 //    result = texture(albedoTexture, uvFrag).rgb;
@@ -106,7 +120,7 @@ void main()
     vec3 withReflection =   mix( reflection , lightCombine, 0.97);
 //    FragColor = vec4(withReflection.rgb, 1);
     FragColor = vec4(ambient + diffuse + specular, 1.0);
-//    FragColor = vec4(withReflection.rgb, 0.5);
+//    FragColor = vec4(reflection.rgb, 1);
 
 //    vec4 aten = vec4(1.0 / (ambient + diffuse * dist + spec * (dist * dist)), 1.0);
 //FragColor = vec4( ambient + diffuse * (theta - cos(cutOff)) * 2 * cos(cutOff) + specular, 1.0);

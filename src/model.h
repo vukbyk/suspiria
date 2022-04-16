@@ -11,7 +11,7 @@ public:
     Model();
 //TODO: change texture to material
 //    Model(const char *aMeshPath);
-    Model(const char *aMeshPath, const char *aAlbedoPath = "defaultComplex.png", const char *aNormalPath = "defaultNormal.png");
+    Model(const char *aMeshPath, const char *aAlbedoPath = "defaultComplex.png", const char *aNormalPath = "normal1x1.png");
     Model(class Mesh *aMesh, class Material *material );
     Model(class Mesh *aMesh, class Texture *albedo, class Texture *normal);
 

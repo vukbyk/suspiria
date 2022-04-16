@@ -5,15 +5,6 @@
 Entity::Entity(class World *aWorld, entt::entity aHandle)
     : world(aWorld), handle(aHandle){}
 
-Entity *Entity::addSimpleRenderComp(const char *mesh, const char *albedo, const char *normal)
-{
-    addComponent(SimpleRenderComponent(world->getMeshManager()->get(mesh)->getVAO(),
-                                         world->getMeshManager()->get(mesh)->getIndicesSize(),
-                                         world->getTextureManager()->getId(albedo),
-                                         world->getTextureManager()->getId(normal)));
-    return this;
-}
-
 
 Entity *Entity::addMeshComponent(const char *mesh)
 {
@@ -47,6 +38,15 @@ Entity *Entity::addFixSphereBVComp(const float inRadius)
     return this;
 }
 
+
+//Entity *Entity::addSimpleRenderComp(const char *mesh, const char *albedo, const char *normal)
+//{
+//    addComponent(SimpleRenderComponent(world->getMeshManager()->get(mesh)->getVAO(),
+//                                         world->getMeshManager()->get(mesh)->getIndicesSize(),
+//                                         world->getTextureManager()->getId(albedo),
+//                                         world->getTextureManager()->getId(normal)));
+//    return this;
+//}
 
 
 //Entity *Entity::addTransformComponent(const glm::vec3 v)

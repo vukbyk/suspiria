@@ -26,67 +26,63 @@ uniform vec3 viewPosCam;
 //    vec3 outTangentFragPos;
 //} vso;
 
-out vec3 FragPos;
+//out vec3 FragPos;
 out vec2 uvFrag;
 out vec3 TangentLightPos;
 out vec3 TangentViewPos;
 out vec3 TangentFragPos;
 
 
-out vec3 nrm;
-out vec3 tg;
-out vec3 bi;
-out mat3 TBN;
+//out vec3 nrm;
+//out vec3 tg;
+//out vec3 bi;
+//out mat3 TBN;
+out mat3 inverseTBN;
 
 out vec3 lightPosition;
 out mat4 lightMat;
 
-out vec3 ReflectionVector;
-out vec3 BoxPosition;
+//out vec3 ReflectionVector;
+//out vec3 BoxPosition;
+
+//out vec3 NormalTutorial;
+//out vec3 Position;
 
 void main()
 {
+    uvFrag=uv;
     lightMat = light;
     lightPosition = light[3].xyz;
 //    vec3 viewPosCam = vec3(view[3].xyz);
 //    viewPosition = vec3(view[3].xyz);//??? maybe have to send real data????
-
     //Probabli can be used directlyviewPosCam
 //    vec3 viewPosition = viewPosCam;
 
-    FragPos = vec3(model * vec4(pos, 1.0));
-    uvFrag=uv;
+//    FragPos = vec3(model * vec4(pos, 1.0));
+    vec3 FragPos= vec3(model * vec4(pos, 1.0));
 
     mat3 normalMatrix = transpose(inverse(mat3(model)));
     vec3 T = normalize(normalMatrix * tng);
     vec3 N = normalize(normalMatrix * nor);
+    vec3 B = normalize(normalMatrix * bit);//Maybe this insted of calculating who knows why and where from
     T = normalize(T - dot(T, N) * N);
-//    vec3 B = normalize(normalMatrix * bit);//who knows why and where from
-    vec3 B = cross(N, T);//from tutorial
+//    vec3 B = cross(N, T);//from tutorial but somtimes you get mirrored nor tng bitng
 
-//    B = normalize(B - dot(B, T) * T);
-//    vec3 B = cross(N, T);
-    TBN = mat3(T, B, N);
-    mat3 inverseTBN = transpose(TBN); //in special cases you can use transponse
+    B = normalize(B - dot(B, T) * T);
+
+    mat3 TBN = mat3(T, B, N);
+    inverseTBN = transpose(TBN); //in special cases you can use transponse
                                       //to inverse (cheaper option)
 
     TangentLightPos = inverseTBN * lightPosition;
     TangentViewPos  = inverseTBN * viewPosCam;
     TangentFragPos  = inverseTBN * FragPos;
 
-    ReflectionVector = N;//mat3(transpose(inverse(model))) * nor;
-    BoxPosition = vec3(model * vec4(pos, 1.0));
+//    ReflectionVector = mat3(transpose(inverse(model))) * nor;//N;
+//    BoxPosition = vec3(model * vec4(pos, 1.0));
+//    NormalTutorial = /*N.xyz;*/mat3(transpose(inverse(model))) * nor;
+//    Position = vec3(model * vec4(pos, 1.0));
 
 
     gl_Position = projection * view * model * vec4(pos, 1.0);
 }
-
-
-//void main()
-//{
-//    vec3 lightPos = light[3].xyz;//vec3(0,0,5);//
-//    gl_Position = projection * view * model * vec4(pos, 1.0);
-//    FragPos = vec3(view * model * vec4(pos, 1.0));
-//    normalTest = mat3(transpose(inverse(view * model))) * nor;
-//    lightPosition = vec3(view * vec4(lightPos, 1.0)); // Transform world-space light position to view-space light position
-//}

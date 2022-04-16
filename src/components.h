@@ -6,25 +6,25 @@
 #include <QOpenGLExtraFunctions>
 #include <string>
 
-struct SimpleRenderComponent
-{
+//struct SimpleRenderComponent
+//{
 
-//    Transform transform;
-//    btScalar transform[16];
+////    Transform transform;
+////    btScalar transform[16];
 
 
-    GLuint VAO;
-//    GLuint VBO;
-//    GLuint IBO;
-    GLuint indicesSize;
+//    GLuint VAO;
+////    GLuint VBO;
+////    GLuint IBO;
+//    GLuint indicesSize;
 
-    GLuint albedoId;
-    GLuint normalId;
+//    GLuint albedoId;
+//    GLuint normalId;
 
-    SimpleRenderComponent()=default;
-    SimpleRenderComponent(const GLuint aVAO, const GLuint aIndicesSize, const GLuint albedo, const GLuint normal)
-    :VAO(aVAO), indicesSize(aIndicesSize), albedoId(albedo), normalId(normal) {};
-};
+//    SimpleRenderComponent()=default;
+//    SimpleRenderComponent(const GLuint aVAO, const GLuint aIndicesSize, const GLuint albedo, const GLuint normal)
+//    :VAO(aVAO), indicesSize(aIndicesSize), albedoId(albedo), normalId(normal) {};
+//};
 
 //struct CameraComponent
 //{

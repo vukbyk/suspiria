@@ -19,16 +19,18 @@ public:
 
     operator entt::entity() const { return handle; }
     Entity(const Entity& other) = default;
-    Entity *addSimpleRenderComp(const char* mesh, const char* albedo, const char* normal);
+
     Entity *addMeshComponent(const char *mesh);
     Entity *addTexturePBRComp(const char *albedo, const char *normal);
     Entity *addTextureBoxComp(const char *albedo);
-//    Entity *addTransformComponent();
-//    Entity *addTransformComponent(const glm::vec3 v);
+
     Entity *addTransformComponent(const GLfloat x, const GLfloat y, const GLfloat z);
     Entity *addFixSphereBVComp(const float inRadius=2.5f);
 
 
+//    Entity *addSimpleRenderComp(const char* mesh, const char* albedo, const char* normal);
+//    Entity *addTransformComponent();
+//    Entity *addTransformComponent(const glm::vec3 v);
 //    operator bool() const { return handle != entt::null; }
 //    operator uint32_t() const { return (uint32_t)handle; }
 
