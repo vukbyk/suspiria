@@ -21,8 +21,8 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 
     class World *world;
     class ShaderProgram *shaderProgramMain;
+    class ShaderProgram *shaderProgramPBR;
     class ShaderProgram *shaderProgramSky;
-    class ShaderProgram *mirrorShaderProgram;
     class ShaderProgram *shaderProgramFBScr;
 
     GLuint framebuffer;
@@ -33,7 +33,6 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     Entity light;
     Entity camera;
     Entity skyCube;
-    Entity reflectiveAsset;
     Entity *controlledEntity=nullptr;
     TransformComp *controlledTransform=nullptr;
 

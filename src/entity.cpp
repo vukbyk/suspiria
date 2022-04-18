@@ -2,6 +2,7 @@
 #include "world.h"
 #include "components.h"
 
+
 Entity::Entity(class World *aWorld, entt::entity aHandle)
     : world(aWorld), handle(aHandle){}
 
@@ -13,12 +14,24 @@ Entity *Entity::addMeshComponent(const char *mesh)
     return this;
 }
 
-Entity *Entity::addTexturePBRComp(const char *albedo, const char *normal)
+Entity *Entity::addTexturePBRComp(const char *albedo, const char *normal, const char *metallic, const char *roughness, const char *ao)
 {
     addComponent(MaterialPBRComp(world->getTextureManager()->getId(albedo),
-                                 world->getTextureManager()->getId(normal)));
+                                 world->getTextureManager()->getId(normal),
+                                 world->getTextureManager()->getId(metallic),
+                                 world->getTextureManager()->getId(roughness),
+                                 world->getTextureManager()->getId(ao) ));
     return this;
 }
+
+
+Entity *Entity::addTextureAlbedoNormalComp(const char *albedo, const char *normal)
+{
+    addComponent(MaterialAlbedoNormalComp(world->getTextureManager()->getId(albedo),
+                                          world->getTextureManager()->getId(normal)));
+    return this;
+}
+
 
 Entity *Entity::addTextureBoxComp(const char *albedo)
 {

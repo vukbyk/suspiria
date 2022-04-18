@@ -6,14 +6,6 @@ precision highp float;
 
 out vec4 FragColor;
 
-//in VSO {
-//    vec3 FragPos;
-//    vec2 uvFrag;
-//    vec3 TangentLightPos;
-//    vec3 TangentViewPos;
-//    vec3 TangentFragPos;
-//} fsi;
-
 in vec3 FragPos;
 in vec2 uvFrag;
 in vec3 TangentLightPos;
@@ -41,26 +33,6 @@ void main()
 {
     vec3 lightColor = vec3(1.0, 1.0, 1.0)*5.0;
 
-//    float depth = LinearizeDepth(gl_FragCoord.z) / far; // divide by far for demonstration
-//    vec3 result = vec3(1,1,1)-vec3(depth);// To DELETE
-
-//    //Test: no normals
-//    vec3 colorT = texture(albedoTexture, uvFrag).rgb;
-//    vec3 ambientt = 0.1 * colorT;
-//    vec3 relVecT = lightPosition - FragPos;
-//    float distT = length(relVecT);
-
-//    vec3 lightDirT = normalize(relVecT);
-//    vec3 nnormalTest = normalize(normalTest);
-//    float diffintensT = max(dot(nnormalTest, lightDirT), 0.0);
-
-//    float attenuationT = 1 / (distT);// * distT);
-//    float diffT = diffintensT * attenuationT;
-
-//    result = diffT * colorT * lightColor;
-//    FragColor = vec4(texture(normalTexture, uvFrag).rgb, 1);//vec4(result, 1);
-//    //TEST
-
     float dist = length(TangentFragPos - TangentLightPos);
     float attenuation = 1.0 / ( dist * dist );
 
@@ -69,11 +41,6 @@ void main()
     // transform normal vector to range [-1,1]
     normal = normalize(normal * 2.0 - 1.0); //this normal is in tangent space
                                             //for switching light and loc in tan space
-//    normal = vec3(1,0,0);
-
-
-
-
 
     // Get diffuse color
     vec3 color = texture(albedoTexture, uvFrag).rgb;
@@ -89,16 +56,6 @@ void main()
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
     vec3 specular = vec3(.75) * spec * lightColor * attenuation;
-
-
-    // Reflection
-    //ok for normal = vec3(1,0,0);
-//    vec3 I = normalize(Position - viewPosCam);
-//    vec3 R = reflect(I, normalize(NormalTutorial));
-    // Works
-//    vec3 normalTBN = normalize(TBN *  normal);//maybe ionverse???
-//    vec3 I = normalize(Position - viewPosCam );
-//    vec3 R  = reflect( I, normalTBN);
 
     // Works
     vec3 I = normalize(TangentFragPos - TangentViewPos );
@@ -157,57 +114,3 @@ void main()
     //    FragColor = vec4(bi , 1) ;
     //    FragColor = vec4(len,0,0,0);
 }
-
-
-
-//not used?
-//in vec3 viewPosition;
-
-//in vec3 normalTest;
-
-//float far=100.0;
-//float near = .3;
-//
-//float LinearizeDepth(float depth)
-//{
-//    float z = depth * 2.0 - 1.0; // back to NDC
-//    return (2.0 * near * far) / (far + near - z * (far - near));
-//}
-
-//float far=100.0;
-//float near = .3;
-//
-//float LinearizeDepth(float depth)
-//{
-//    float z = depth * 2.0 - 1.0; // back to NDC
-//    return (2.0 * near * far) / (far + near - z * (far - near));
-//}
-
-//void main()
-//{
-//    vec3 objectColor = vec3(1,1,1);
-//    vec3 lightColor = vec3(1,0,0);
-//    vec3 specularColor = vec3(0,1,0);
-//    // ambient
-//    float ambientStrength = 0.1;
-//    vec3 ambient = ambientStrength * vec3(1,1,1);
-
-//    float dist = length(FragPos - lightPosition);
-//    float attenuation = 1.0 / ( dist * dist );
-
-//     // diffuse
-//    vec3 norm = normalize(normalTest);
-//    vec3 lightTangentPosition = normalize(lightPosition - FragPos);
-//    float diff = max(dot(norm, lightTangentPosition), 0.0);
-//    vec3 diffuse = diff * lightColor * 30* attenuation;
-
-//    // specular
-//    float specularStrength = 15.5;
-//    vec3 viewDir = normalize(-FragPos); // the viewer is always at (0,0,0) in view-space, so viewDir is (0,0,0) - Position => -Position
-//    vec3 reflectDir = reflect(-lightTangentPosition, norm);
-//    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32)* attenuation;
-//    vec3 specular = specularStrength * spec * specularColor;
-
-//    vec3 result = (ambient + diffuse + specular) * objectColor;
-//    FragColor = vec4(result, 1.0);
-//}

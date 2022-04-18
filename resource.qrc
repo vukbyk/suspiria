@@ -57,5 +57,10 @@
         <file>assets/cubemaya.obj</file>
         <file>assets/cubemaya.fbx</file>
         <file>assets/normal1x1.png</file>
+        <file>assets/rustediron/albedo.png</file>
+        <file>assets/rustediron/ao.png</file>
+        <file>assets/rustediron/metallic.png</file>
+        <file>assets/rustediron/normal.png</file>
+        <file>assets/rustediron/roughness.png</file>
     </qresource>
 </RCC>

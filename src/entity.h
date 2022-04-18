@@ -20,8 +20,23 @@ public:
     operator entt::entity() const { return handle; }
     Entity(const Entity& other) = default;
 
+    template<typename T>//,  typename... Args>
+    Entity *addComponent(T component)
+    {
+        world->registry.emplace<T>(handle, component);
+        return this;
+    }
+
     Entity *addMeshComponent(const char *mesh);
-    Entity *addTexturePBRComp(const char *albedo, const char *normal);
+
+    Entity *addTexturePBRComp(const char *albedo,
+                              const char *normal,
+                              const char *metallic,
+                              const char *roughness,
+                              const char *ao);
+
+    Entity *addTextureAlbedoNormalComp(const char *albedo, const char *normal);
+
     Entity *addTextureBoxComp(const char *albedo);
 
     Entity *addTransformComponent(const GLfloat x, const GLfloat y, const GLfloat z);
@@ -55,12 +70,7 @@ public:
 //        return component;
 //    }
 
-    template<typename T>//,  typename... Args>
-    Entity *addComponent(T component)
-    {
-        world->registry.emplace<T>(handle, component);
-        return this;
-    }
+
 
 //    template<typename T>
 //    T &GetComponent()
@@ -77,7 +87,7 @@ public:
 //        if(HasComponent<T>())
 //            qDebug("Entity does not have component!");
 //        world->registry.remove<T>(handle);
-//    }
+    //    }
 };
 
 #endif // ENTITY_H

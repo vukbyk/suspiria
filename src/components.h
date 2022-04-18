@@ -88,8 +88,26 @@ struct MaterialPBRComp
 {
     GLuint albedoId;
     GLuint normalId;
+    GLuint metallicId;
+    GLuint roughnessId;
+    GLuint aoId;
     //GLuint metalId;
-    MaterialPBRComp(const GLuint aAlbedoId, const GLuint aNormalID)
+    MaterialPBRComp(const GLuint aAlbedoId,
+                    const GLuint aNormalID,
+                    const GLuint aMetallicId,
+                    const GLuint aRoughnessId,
+                    const GLuint aAoId)
+        :albedoId(aAlbedoId), normalId(aNormalID), metallicId(aMetallicId), roughnessId(aRoughnessId), aoId(aAoId)
+    {};
+};
+
+struct MaterialAlbedoNormalComp
+
+{
+    GLuint albedoId;
+    GLuint normalId;
+    //GLuint metalId;
+    MaterialAlbedoNormalComp(const GLuint aAlbedoId, const GLuint aNormalID)
         :albedoId(aAlbedoId), normalId(aNormalID){};
 };
 

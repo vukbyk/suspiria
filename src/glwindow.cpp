@@ -146,9 +146,8 @@ void GLWindow::initializeGL()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
-    const auto textureList = std::vector<std::string>({"albedoTexture", "normalTexture", "skyCube"});
-
-    shaderProgramMain = new ShaderProgram("renderbuffer");
+    const auto textureList = std::vector<std::string>({"albedoTexture", "normalTexture", "skyCube", "metallicTexture", "roughnessTexture", "aoTexture"});
+    shaderProgramMain = new ShaderProgram("PBRForward");
     shaderProgramMain->setUniformNamesAndIds(textureList);
 
     shaderProgramMain->bind();
@@ -185,7 +184,6 @@ void GLWindow::initializeGL()
     world->getTextureManager()->load("defaultComplex.png", true);
     world->getTextureManager()->load("normal1x1.png", false);
     world->getTextureManager()->load("white.png",     false);
-    world->getTextureManager()->load("normal1x1.png", false);
 
     world->getTextureManager()->load("cyborg_normal.png", true, true);
     world->getTextureManager()->load("cyborg_diffuse.png", true, true);
@@ -198,6 +196,13 @@ void GLWindow::initializeGL()
     world->getTextureManager()->load("vulture.png",false, true);
     world->getTextureManager()->load("Vulture_Diffuse.alpha_normal.jpg",false , true);
 //    world->getTextureManager()->load("Vulture_Diffuse.alpha.png",false, true);
+
+
+    world->getTextureManager()->load("rustediron/albedo.png",false, true);
+    world->getTextureManager()->load("rustediron/normal.png", false , true);
+    world->getTextureManager()->load("rustediron/roughness.png");
+    world->getTextureManager()->load("rustediron/metallic.png");
+    world->getTextureManager()->load("rustediron/ao.png");
 
 
     world->getMeshManager()->loadAssimp("vulture.obj");
@@ -216,31 +221,31 @@ void GLWindow::initializeGL()
     skyCube.addMeshComponent("sky/skycubeinv.obj");
     skyCube.addTextureBoxComp("skyCubeTex");
 
-    reflectiveAsset=world->CreateEntity();
-    reflectiveAsset.addTexturePBRComp("cyborg_diffuse.png", "cyborg_normal.png");//"brickwall_normal.jpg");
-    reflectiveAsset.addTextureBoxComp("reflectCube");
-    reflectiveAsset.addMeshComponent("cyborg.obj");
-    reflectiveAsset.addTransformComponent( 0, 2.0f, -7.0f);
-//    reflectiveAsset.addFixSphereBVComp();
-
     light = world->CreateEntity();
     light.addTransformComponent(0.0f, 3.0f, -6.0f);
 //    light.addSimpleRenderComp("cubeinvertmini.obj", "white.png", "normal1x1.png");
     light.addMeshComponent("cubeinvertmini.obj");
-    light.addTexturePBRComp("white.png", "normal1x1.png");
+    light.addTextureAlbedoNormalComp("white.png", "normal1x1.png");
+    light.addTextureBoxComp("reflectCube");
     GLint lightID = shaderProgramMain->getUniform("light");
     light.addComponent(LightComp(lightID));
 //    light.addFixSphereBVComp();
 
     Entity e;
 
+    e=world->CreateEntity();
+    e.addTextureAlbedoNormalComp("cyborg_diffuse.png", "cyborg_normal.png");//"brickwall_normal.jpg");
+    e.addTextureBoxComp("reflectCube");
+    e.addMeshComponent("cyborg.obj");
+    e.addTransformComponent( 0, 2.0f, -7.0f);
+//    reflectiveAsset.addFixSphereBVComp();
     //100000 = 28fpsGentoo/Suse 24dbg-53dbg (56.5 after  remove rot and pos separate
     for(int i=0; i<400; i++)
     {
         for(int j=0; j<250; j++)
         {
             e=world->CreateEntity();
-            e.addTexturePBRComp("brickwall.jpg", "brickwall_normal.jpg");
+            e.addTextureAlbedoNormalComp("rustediron/albedo.png", "rustediron/normal.png");
             e.addTextureBoxComp("reflectCube");
             e.addTransformComponent( -50.0f+i*1, 0.0f, -50.0f+j*1);
             e.addMeshComponent("cubemaya.obj");
@@ -257,34 +262,29 @@ void GLWindow::initializeGL()
     }
 
     e=world->CreateEntity();
-    e.addTexturePBRComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");
+    e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");
     e.addTextureBoxComp("reflectCube");
     e.addMeshComponent("cubemaya.obj");
     e.addTransformComponent( 3.0, 4.0f, -7.0f);
 
     e=world->CreateEntity();
-    e.addTexturePBRComp("vulture.png", "Vulture_Diffuse.alpha_normal.jpg");
+    e.addTextureAlbedoNormalComp("vulture.png", "Vulture_Diffuse.alpha_normal.jpg");
     e.addTextureBoxComp("reflectCube");
     e.addMeshComponent("vulture.obj");
     e.addTransformComponent( 0.0, 1.0f, -7.0f);
 
     e=world->CreateEntity();
-    e.addTexturePBRComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");
+    e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");
     e.addTextureBoxComp("reflectCube");
     e.addMeshComponent("sphare.obj");
     e.addTransformComponent( -3.0, 2.0f, -7.0f);
 
-
     e=world->CreateEntity();
-    e.addTexturePBRComp("white.png", "bricks2_normal.jpg");//"brickwall_normal.jpg");
+    e.addTextureAlbedoNormalComp("white.png", "bricks2_normal.jpg");//"brickwall_normal.jpg");
     e.addTextureBoxComp("reflectCube");
     e.addMeshComponent("cubemaya.obj");
     e.addTransformComponent( 3.0, 2.0f, -7.0f);
 
-//    e = world->CreateEntity();
-//    e.addTexturePBRComp("white.png", "brickwall_normal.jpg");
-//    e.addMeshComponent("cubemaya.obj");
-//    e.addTransformComponent( 0, 2.0f, -5.0f);
 
     // Enable depth buffer
 //    glEnable(GL_DEPTH_TEST);
@@ -365,7 +365,7 @@ void GLWindow::paintGL()
 
     btScalar tm[16];
 
-    auto group = world->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();//, FixSphereBVComp>();//, cMesh>();
+    auto group = world->reg()->group<MeshComp, MaterialAlbedoNormalComp, TransformComp>();//, FixSphereBVComp>();//, cMesh>();
     //world.view<cRender>().each([this](auto &render) //as alternative
 
 
@@ -374,14 +374,14 @@ void GLWindow::paintGL()
     GLuint lastAlbedoId;
     GLuint lastNormalId;
     GLuint lastMeshVAO;
-    GLuint lastCubeMapId= world->reg()->get<cubeMapComp>(reflectiveAsset).cubeTextureId;
+    GLuint lastCubeMapId= world->reg()->get<cubeMapComp>(light).cubeTextureId;
     glActiveTexture(GL_TEXTURE0 + 2 );
 //        glActiveTexture(GL_TEXTURE2);
 //        glUniform1i(glGetUniformLocation(shaderProgramFBScr->programId(), "skyCubeTex"), 2);
 //        shaderProgramFBScr->setTextureUniforms();
     glBindTexture(GL_TEXTURE_CUBE_MAP, lastCubeMapId);
     group.each([this, &model, &tm, &cameraTransformComp, &lastAlbedoId, &lastNormalId, &lastMeshVAO]//,&lastCubeMapId]
-               (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform)//,FixSphereBVComp)// &boundingVol)
+               (MeshComp &mesh, MaterialAlbedoNormalComp &texture, TransformComp &transform)//,FixSphereBVComp)// &boundingVol)
     {
 //        if(!isInCameraFrustumAndDistance(cameraTransformComp, transform))
 //            return;
@@ -409,6 +409,16 @@ void GLWindow::paintGL()
             glActiveTexture(GL_TEXTURE0 + 1);
             glBindTexture(GL_TEXTURE_2D, lastNormalId);
         }
+
+//        glActiveTexture(GL_TEXTURE0 + 3);
+//        glBindTexture(GL_TEXTURE_2D, texture.metallicId);
+
+//        glActiveTexture(GL_TEXTURE0 + 4);
+//        glBindTexture(GL_TEXTURE_2D, texture.roughnessId);
+
+//        glActiveTexture(GL_TEXTURE0 + 5);
+//        glBindTexture(GL_TEXTURE_2D, texture.aoId);
+
         glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
     });
 
