@@ -155,6 +155,18 @@ struct Plan
     }
 };
 
+struct FPSEulerComponent
+{
+    btVector3 euler;
+    FPSEulerComponent(const btVector3 val):euler(val){};
+
+    operator btVector3&() {return euler;};
+    operator const btVector3&() const {return euler;}
+};
+
+//struct ControlComponent
+
+
 struct Frustum
 {
     Plan topFace;

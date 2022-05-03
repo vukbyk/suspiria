@@ -13,8 +13,6 @@
 
 #include "entity.h"
 
-
-
 class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 {
     Q_OBJECT
@@ -24,10 +22,25 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     class ShaderProgram *shaderProgramPBR;
     class ShaderProgram *shaderProgramSky;
     class ShaderProgram *shaderProgramFBScr;
+    class ShaderProgram *shaderShadow;
+    class ShaderProgram *shaderDebugQuad;
+    class ShaderProgram *shaderIrradiance;
+    class ShaderProgram *shaderBrdf;
 
     GLuint framebuffer;
     GLuint textureColorbuffer;
     GLuint rbo;
+
+
+    GLuint captureFBO;
+    GLuint captureRBO;
+    GLuint irradianceMap;
+
+    const GLuint shMapW=1024, shMapH=1024;
+    GLuint depthMapFBO;
+    GLuint depthMap;
+
+    GLuint quadVAO, quadVBO;
 
 //    class Camera *camera;
     Entity light;
@@ -35,13 +48,13 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     Entity skyCube;
     Entity *controlledEntity=nullptr;
     TransformComp *controlledTransform=nullptr;
+    glm::mat4 projectionMat;
 
     QBasicTimer timer;
 
     glm::vec2 mousePressPosition;
-    btVector3 camerEulerYP;
+    class FPSEulerComponent *eulerYP;
 
-    // Set near plane to 3.0, far plane to 7.0, field of view 45 degrees
     GLfloat zNear = 0.3f;
     GLfloat zFar = 100.0f;
     GLfloat fov = 45.0f;
@@ -64,7 +77,8 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     glm::ivec2 lastMousePosition = glm::ivec2(-1,-1);
     glm::ivec2 mouseWheel = glm::ivec2(-1,-1);
 
-    glm::mat4 projectionMat;
+
+
 
 protected:
     void timerEvent(QTimerEvent *e) override;
@@ -88,5 +102,11 @@ public:
     ~GLWindow();
 
     void setAspectFowMultiplayer();
+
+    void importTextures();
+    void importMeshes();
+    void prepareAssets();
+    void initQuadForFB();
+
 };
 

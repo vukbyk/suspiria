@@ -13,12 +13,17 @@ ShaderProgram::ShaderProgram(const std::string &shaderGroupName)
     initShaders(shaderGroupName);
 }
 
-ShaderProgram::ShaderProgram(const std::string &shaderGroupName,
-                             std::vector<std::string> aTextureUniformName)
+ShaderProgram::ShaderProgram(const std::string &vsShaderGroupName, const std::string &fsShaderGroupName)
 {
-    initShaders(shaderGroupName);
-    setUniformNamesAndIds(aTextureUniformName);
+    initShaders(vsShaderGroupName, fsShaderGroupName);
 }
+
+//ShaderProgram::ShaderProgram(const std::string &shaderGroupName,
+//                             std::vector<std::string> aTextureUniformName)
+//{
+//    initShaders(shaderGroupName);
+//    setUniformNamesAndIds(aTextureUniformName);
+//}
 
 
 GLuint ShaderProgram::getUniform(const char *name)
@@ -64,6 +69,59 @@ void ShaderProgram::initShaders(const std::string &shaderGroupName)
     }
 //    QFile fragmentShaderSource(std::string(":/shaders/fshader.glsl").c_str());
     QFile fragmentShaderSource(std::string(":/shaders/").append(shaderGroupName).append(".fs").c_str());
+    if (!fragmentShaderSource.open(QIODevice::ReadOnly|QFile::Text))
+    {
+        qDebug() << "Can not open file ";
+//        close();
+    }
+    QTextStream infs(&fragmentShaderSource);
+    QString fsSource = infs.readAll();
+    /*qDebug() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n" << */versionedShaderCode(fsSource);
+    fragmentShaderSource.close();
+
+    // Compile fragment shader
+    if (!addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(fsSource)))
+    {
+        qDebug() << "Error: Fragment shader, versionedShaderCode(fsSource)! ";
+//        close();
+    }
+    // Link shader pipeline
+    if (!link())
+    {
+        qDebug() << "Error: Shader program link!";
+//        close();
+    }
+    projectionid = glGetUniformLocation(programId(), "projection");
+    view = glGetUniformLocation(programId(),"view");
+}
+
+void ShaderProgram::initShaders(const std::string &vsShaderGroupName, const std::string &fsShaderGroupName)
+{
+    initializeOpenGLFunctions();
+
+    // Compile vertex shader
+
+//    stream.setCodec("UTF-8");
+//    QFile filevertexShaderSource(std::string(":/shaders/vshader.glsl").c_str());
+    QFile filevertexShaderSource(std::string(":/shaders/").append(vsShaderGroupName).c_str());
+    if (!filevertexShaderSource.open(QIODevice::ReadOnly|QFile::Text))
+    {
+        qDebug() << "Can not open file ";
+//        close();
+    }
+    QTextStream invs(&filevertexShaderSource);
+    QString vsSource = invs.readAll();
+//    /*qDebug() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n" << */versionedShaderCode(vsSource);
+
+    filevertexShaderSource.close();
+
+    if (!addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vsSource)))
+    {
+        qDebug() << "Error: Vertex shader, versionedShaderCode(vsSource)";
+//        close();
+    }
+//    QFile fragmentShaderSource(std::string(":/shaders/fshader.glsl").c_str());
+    QFile fragmentShaderSource(std::string(":/shaders/").append(fsShaderGroupName).c_str());
     if (!fragmentShaderSource.open(QIODevice::ReadOnly|QFile::Text))
     {
         qDebug() << "Can not open file ";

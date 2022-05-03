@@ -14,7 +14,7 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 light;
-uniform vec3 viewPosCam;
+uniform vec3 camPos;
 
 //uniform mat4 transforms[3];
 //uniform uint index;
@@ -53,10 +53,10 @@ void main()
     uvFrag=uv;
     lightMat = light;
     lightPosition = light[3].xyz;
-//    vec3 viewPosCam = vec3(view[3].xyz);
+//    vec3 camPos = vec3(view[3].xyz);
 //    viewPosition = vec3(view[3].xyz);//??? maybe have to send real data????
-    //Probabli can be used directlyviewPosCam
-//    vec3 viewPosition = viewPosCam;
+    //Probabli can be used directlycamPos
+//    vec3 viewPosition = camPos;
 
 //    FragPos = vec3(model * vec4(pos, 1.0));
     vec3 FragPos= vec3(model * vec4(pos, 1.0));
@@ -75,7 +75,7 @@ void main()
                                       //to inverse (cheaper option)
 
     TangentLightPos = inverseTBN * lightPosition;
-    TangentViewPos  = inverseTBN * viewPosCam;
+    TangentViewPos  = inverseTBN * camPos;
     TangentFragPos  = inverseTBN * FragPos;
 
 //    ReflectionVector = mat3(transpose(inverse(model))) * nor;//N;

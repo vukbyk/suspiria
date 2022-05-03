@@ -17,5 +17,19 @@
         <file>shaders/cubemaps.fs</file>
         <file>shaders/fbscreen.fs</file>
         <file>shaders/fbscreen.vs</file>
+        <file>shaders/background.fs</file>
+        <file>shaders/background.vs</file>
+        <file>shaders/brdf.fs</file>
+        <file>shaders/brdf.vs</file>
+        <file>shaders/cubemap.vs</file>
+        <file>shaders/equirectangular_to_cubemap.fs</file>
+        <file>shaders/irradiance_convolution.fs</file>
+        <file>shaders/pbr.fs</file>
+        <file>shaders/pbr.vs</file>
+        <file>shaders/prefilter.fs</file>
+        <file>shaders/shadowmap.fs</file>
+        <file>shaders/shadowmap.vs</file>
+        <file>shaders/debugquad.fs</file>
+        <file>shaders/debugquad.vs</file>
     </qresource>
 </RCC>

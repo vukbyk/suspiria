@@ -30,8 +30,6 @@
     #include <qopengles2ext.h>
 #endif
 
-unsigned int quadVAO, quadVBO;
-
 GLWindow::GLWindow()
 {
 //    QTimer *refereshTimer = new QTimer(this);
@@ -42,7 +40,7 @@ GLWindow::GLWindow()
 
     zNear = 0.3f;
     zFar = 1500.0f;
-    camerEulerYP = btVector3(0,0,0);
+
 
     mousePressPosition=glm::vec2(0);
     setAspectFowMultiplayer();//for Frustum culling multyply ony if W<H
@@ -61,6 +59,8 @@ GLWindow::GLWindow()
 
     world = new World();
     camera = world->CreateEntity();
+    camera.addComponent<FPSEulerComponent>(btVector3(0,0,0));
+    eulerYP = &world->reg()->get<FPSEulerComponent>(camera);
     camera.addTransformComponent(0.0f, 2.0f, 0.0f);//For FPS benchmark 0,2,0
 //    camera.addComponent(TransformComponent(Transform()));
 //    auto transformCamera = &world->reg()->get<TransformComponent>(camera);
@@ -90,35 +90,84 @@ GLWindow::~GLWindow()
 void GLWindow::initializeGL()
 {
     initializeOpenGLFunctions();
-//    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-    glEnable(GL_DEPTH_TEST);
+    importTextures();
+    importMeshes();
+    initQuadForFB();
+
+
+    glGenFramebuffers(1, &depthMapFBO);
+    // create depth texture
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+                 shMapW, shMapH, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // attach depth texture as FBO's depth buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    //Shadow shader configuration
+    shaderShadow = new ShaderProgram("shadowmap.vs");
+
+    shaderDebugQuad = new ShaderProgram("debugquad");
+    shaderDebugQuad->setUniformNamesAndIds({"depthMap"});
+    shaderDebugQuad->bind();
+    shaderDebugQuad->setTextureUniforms();
+
+
+    std::vector<std::string> faces
+    {
+        "sky/right.jpg",
+        "sky/left.jpg",
+        "sky/top.jpg",
+        "sky/bottom.jpg",
+        "sky/front.jpg",
+        "sky/back.jpg"
+
+//        "sky/stormydays_ft.tga",
+//        "sky/stormydays_bk.tga",
+//        "sky/stormydays_up.tga",
+////        "sky/stormydays_dn.tga",
+//        "brickwall.jpg",
+//        "sky/stormydays_rt.tga",
+//        "sky/stormydays_lf.tga"
+
+//        "sky/arrakisday_ft.tga",
+//        "sky/arrakisday_bk.tga",
+//        "sky/arrakisday_up.tga",
+//        "sky/arrakisday_dn.tga",
+//        "sky/arrakisday_rt.tga",
+//        "sky/arrakisday_lf.tga"
+    };
+    world->getTextureManager()->loadBoxTexture("skyCubeTex", faces);
+
+    std::vector<std::string> reflectCube
+    {
+        "sky/arrakisday_ft.tga",
+        "sky/arrakisday_bk.tga",
+        "sky/arrakisday_up.tga",
+        "sky/arrakisday_dn.tga",
+        "sky/arrakisday_rt.tga",
+        "sky/arrakisday_lf.tga"
+    };
+
+    world->getTextureManager()->loadBoxTexture("reflectCube", reflectCube, false);
+
+
     // framebuffer configuration
     // -------------------------
-    shaderProgramFBScr = new ShaderProgram("fbscreen");//, {"screenTexture"});
+    shaderProgramFBScr = new ShaderProgram("fbscreen");
+    shaderProgramFBScr->setUniformNamesAndIds({"screenTexture"});
     shaderProgramFBScr->bind();
     shaderProgramFBScr->setTextureUniforms();
 
-    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
-    // positions   // texCoords
-    -1.0f,  1.0f,  0.0f, 1.0f,
-    -1.0f, -1.0f,  0.0f, 0.0f,
-     1.0f, -1.0f,  1.0f, 0.0f,
-
-    -1.0f,  1.0f,  0.0f, 1.0f,
-     1.0f, -1.0f,  1.0f, 0.0f,
-     1.0f,  1.0f,  1.0f, 1.0f
-    };
-
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
 
     glGenFramebuffers(1, &framebuffer);
@@ -130,13 +179,17 @@ void GLWindow::initializeGL()
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width(), height(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+    //Attach color texture as color attachment 0 (max 8 different 0-7)
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);//GL_READ_FRAMEBUFFER_EXT GL_DRAW_FRAMEBUFFER_EXT
     // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
     glGenRenderbuffers(1, &rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width(), height()); // use a single renderbuffer object for both a depth AND stencil buffer.
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
-    // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+    // use a single renderbuffer object for both a depth AND stencil buffer.
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width(), height());
+    // now actually attach it
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);//can be only one FBTex2D ^
+    // now that we actually created the framebuffer and added all
+    // attachments we want to check if it is actually complete now
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {
         qDebug() << "!!! ERROR !! ::FRAMEBUFFER:: Framebuffer is not complete!";
@@ -145,146 +198,70 @@ void GLWindow::initializeGL()
     // Bind default framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    // pbr: create an irradiance cubemap, and re-scale capture FBO to irradiance scale.
+    // --------------------------------------------------------------------------------
+//    //unsigned int irradianceMap;
+    glGenTextures(1, &irradianceMap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+    for (unsigned int i = 0; i < 6; ++i)
+    {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 32, 32, 0, GL_RGB, GL_FLOAT, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    const auto textureList = std::vector<std::string>({"albedoTexture", "normalTexture", "skyCube", "metallicTexture", "roughnessTexture", "aoTexture"});
-    shaderProgramMain = new ShaderProgram("PBRForward");
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
+
+
+    // pbr: solve diffuse integral by convolution to create an irradiance (cube)map.
+    // -----------------------------------------------------------------------------
+
+    shaderIrradiance = new ShaderProgram("cubemap.vs", "irradiance_convolution.fs");
+//    shaderIrradiance->setUniformNamesAndIds({"skyCube"});
+    shaderIrradiance->setUniformNamesAndIds({"screenTexture"});
+    shaderIrradiance->bind();
+    shaderIrradiance->setTextureUniforms();
+
+
+//    shaderBrdf = new ShaderProgram("brdf");
+
+    //Todo: SkyMap connect to shader also
+    const auto textureList = std::vector<std::string>(
+                {"albedoMap", "normalMap", "metallicMap", "roughnessMap", "aoMap", "skyCube"});
+    shaderProgramMain = new ShaderProgram("pbr");
     shaderProgramMain->setUniformNamesAndIds(textureList);
+
 
     shaderProgramMain->bind();
     shaderProgramMain->setTextureUniforms();
-    std::vector<std::string> faces
-    {
-//        "sky/right.jpg",
-//        "sky/left.jpg",
-//        "sky/top.jpg",
-//        "sky/bottom.jpg",
-//        "sky/front.jpg",
-//        "sky/back.jpg"
-
-//        "sky/stormydays_ft.tga",
-//        "sky/stormydays_bk.tga",
-//        "sky/stormydays_up.tga",
-////        "sky/stormydays_dn.tga",
-//        "brickwall.jpg",
-//        "sky/stormydays_rt.tga",
-//        "sky/stormydays_lf.tga"
-
-        "sky/arrakisday_ft.tga",
-        "sky/arrakisday_bk.tga",
-        "sky/arrakisday_up.tga",
-        "sky/arrakisday_dn.tga",
-        "sky/arrakisday_rt.tga",
-        "sky/arrakisday_lf.tga"
-
-    };
-    world->getTextureManager()->loadBoxTexture("skyCubeTex", faces);
-    world->getTextureManager()->loadBoxTexture("reflectCube", faces, false);
 
 
-    world->getTextureManager()->load("defaultComplex.png", true);
-    world->getTextureManager()->load("normal1x1.png", false);
-    world->getTextureManager()->load("white.png",     false);
-
-    world->getTextureManager()->load("cyborg_normal.png", true, true);
-    world->getTextureManager()->load("cyborg_diffuse.png", true, true);
-    world->getTextureManager()->load("bricks2_normal.jpg", false, true );
-    world->getTextureManager()->load("brickwall_normal.jpg", false, true );
-    world->getTextureManager()->load("brickwall.jpg", false, true);
-//    world->getTextureManager()->load("exoskelet_Exoskelet_BaseColor.png", false);
-//    world->getTextureManager()->load("exoskelet_Exoskelet_Normal.png", false,false);
-//    world->getTextureManager()->load("exoalbedo.jpg", true);
-    world->getTextureManager()->load("vulture.png",false, true);
-    world->getTextureManager()->load("Vulture_Diffuse.alpha_normal.jpg",false , true);
-//    world->getTextureManager()->load("Vulture_Diffuse.alpha.png",false, true);
-
-
-    world->getTextureManager()->load("rustediron/albedo.png",false, true);
-    world->getTextureManager()->load("rustediron/normal.png", false , true);
-    world->getTextureManager()->load("rustediron/roughness.png");
-    world->getTextureManager()->load("rustediron/metallic.png");
-    world->getTextureManager()->load("rustediron/ao.png");
-
-
-    world->getMeshManager()->loadAssimp("vulture.obj");
-    world->getMeshManager()->loadAssimp("cubemaya.obj");
-//    world->getMeshManager()->loadAssimp("cubeinvert.obj");
-    world->getMeshManager()->loadAssimp("cubeinvertmini.obj");
-    world->getMeshManager()->loadAssimp("sphare.obj");
-//    world->getMeshManager()->loadAssimp("sky/skycube.obj");
-    world->getMeshManager()->loadAssimp("sky/skycubeinv.obj");
-    world->getMeshManager()->loadAssimp("cyborg.obj");
-
-    shaderProgramSky = new ShaderProgram("sky", {"skyCubeTex"});
+    shaderProgramSky = new ShaderProgram("sky.vs", "sky.fs");
+//    shaderProgramSky->setUniformNamesAndIds({"reflectCube"});
+    shaderProgramSky->setUniformNamesAndIds({"skyCubeTex"});
 
     skyCube = world->CreateEntity();
     skyCube.addComponent(TransformComp(Transform()));
     skyCube.addMeshComponent("sky/skycubeinv.obj");
-    skyCube.addTextureBoxComp("skyCubeTex");
+    skyCube.addTextureBoxComp("reflectCube");
+//    skyCube.addTextureBoxComp("skyCubeTex");
 
     light = world->CreateEntity();
     light.addTransformComponent(0.0f, 3.0f, -6.0f);
 //    light.addSimpleRenderComp("cubeinvertmini.obj", "white.png", "normal1x1.png");
     light.addMeshComponent("cubeinvertmini.obj");
-    light.addTextureAlbedoNormalComp("white.png", "normal1x1.png");
-    light.addTextureBoxComp("reflectCube");
+    light.addTexturePBRComp("white.png", "normal1x1.png", "white.png", "white.png", "white.png");
+    light.addTextureBoxComp(/*"reflectCube"*/"skyCubeTex");
     GLint lightID = shaderProgramMain->getUniform("light");
     light.addComponent(LightComp(lightID));
 //    light.addFixSphereBVComp();
 
-    Entity e;
-
-    e=world->CreateEntity();
-    e.addTextureAlbedoNormalComp("cyborg_diffuse.png", "cyborg_normal.png");//"brickwall_normal.jpg");
-    e.addTextureBoxComp("reflectCube");
-    e.addMeshComponent("cyborg.obj");
-    e.addTransformComponent( 0, 2.0f, -7.0f);
-//    reflectiveAsset.addFixSphereBVComp();
-    //100000 = 28fpsGentoo/Suse 24dbg-53dbg (56.5 after  remove rot and pos separate
-    for(int i=0; i<400; i++)
-    {
-        for(int j=0; j<250; j++)
-        {
-            e=world->CreateEntity();
-            e.addTextureAlbedoNormalComp("rustediron/albedo.png", "rustediron/normal.png");
-            e.addTextureBoxComp("reflectCube");
-            e.addTransformComponent( -50.0f+i*1, 0.0f, -50.0f+j*1);
-            e.addMeshComponent("cubemaya.obj");
-//            e.addFixSphereBVComp();
-//            e.addComponent(MeshComp(world->getMeshManager()->get("cubemaya.obj")->getVAO(),
-//                                    world->getMeshManager()->get("cubemaya.obj")->getIndicesSize()));
-//            e.addSimpleRenderComp("cubemaya.obj", "brickwall.jpg", "brickwall_normal.jpg");
-//            e.addSimpleRenderComponent("cubemaya.obj", "defaultComplex.png", "normal1x1.png");
-////            if(j%2)
-////                e.addSimpleRenderComponent("cubemaya.obj", "brickwall.jpg", "brickwall_normal.jpg");
-////            else
-////                e.addSimpleRenderComponent("cubemaya.obj", "white.png", "normal1x1.png");
-        }
-    }
-
-    e=world->CreateEntity();
-    e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");
-    e.addTextureBoxComp("reflectCube");
-    e.addMeshComponent("cubemaya.obj");
-    e.addTransformComponent( 3.0, 4.0f, -7.0f);
-
-    e=world->CreateEntity();
-    e.addTextureAlbedoNormalComp("vulture.png", "Vulture_Diffuse.alpha_normal.jpg");
-    e.addTextureBoxComp("reflectCube");
-    e.addMeshComponent("vulture.obj");
-    e.addTransformComponent( 0.0, 1.0f, -7.0f);
-
-    e=world->CreateEntity();
-    e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");
-    e.addTextureBoxComp("reflectCube");
-    e.addMeshComponent("sphare.obj");
-    e.addTransformComponent( -3.0, 2.0f, -7.0f);
-
-    e=world->CreateEntity();
-    e.addTextureAlbedoNormalComp("white.png", "bricks2_normal.jpg");//"brickwall_normal.jpg");
-    e.addTextureBoxComp("reflectCube");
-    e.addMeshComponent("cubemaya.obj");
-    e.addTransformComponent( 3.0, 2.0f, -7.0f);
-
+    prepareAssets();
 
     // Enable depth buffer
 //    glEnable(GL_DEPTH_TEST);
@@ -293,7 +270,7 @@ void GLWindow::initializeGL()
 //    glEnable(GL_CULL_FACE);
 ////    glCullFace(GL_BACK);
 ////    glFrontFace(GL_CW);
-
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     //collor gamma
     glEnable(GL_FRAMEBUFFER_SRGB_EXT);
 
@@ -312,6 +289,10 @@ void GLWindow::resizeGL(int w, int h)
     shaderProgramSky->bindShader();
     shaderProgramSky->setProjectionMat(&projectionMat[0][0]);
 
+    shaderIrradiance->bindShader();
+    shaderIrradiance->setProjectionMat(&projectionMat[0][0]);
+
+
     glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width(), height(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 
@@ -325,6 +306,8 @@ void GLWindow::resizeGL(int w, int h)
         return;
     }
 
+
+
 }
 
 void GLWindow::paintGL()
@@ -333,6 +316,7 @@ void GLWindow::paintGL()
     glm::mat4 invertMat = cameraTransformComp.transform.getCameraTransformMatrix();
     auto *viewMat = glm::value_ptr(invertMat);
 
+    glViewport(0, 0, width(), height());
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -346,7 +330,7 @@ void GLWindow::paintGL()
 
     //Separated to change of size for Perspective when window is resized,
     //but also should have for zoom in future or jsut for evry case
-//    shaderProgram->bindSetPVMat(pPointerPM, cameraMat);
+//  //shaderProgram->bindSetPVMat(pPointerPM, cameraMat);
 
 
     shaderProgramMain->bindShader();
@@ -358,14 +342,13 @@ void GLWindow::paintGL()
     glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(lightTransform.transform.getTransformMatrix()) );//&mtm[0][0]);
 
     btVector3 cam = cameraTransformComp.transform.getPosition();
-    GLint viewPosCam = glGetUniformLocation(shaderProgramMain->programId(), "viewPosCam");
-
-    glUniform3fv(viewPosCam, 1, &cam[0]);
+    GLint camPos = glGetUniformLocation(shaderProgramMain->programId(), "camPos");
+    glUniform3fv(camPos, 1, &cam[0]);
     GLint model = shaderProgramMain->getUniform("model");
 
     btScalar tm[16];
 
-    auto group = world->reg()->group<MeshComp, MaterialAlbedoNormalComp, TransformComp>();//, FixSphereBVComp>();//, cMesh>();
+    auto group = world->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();//, FixSphereBVComp>();//, cMesh>();
     //world.view<cRender>().each([this](auto &render) //as alternative
 
 
@@ -373,15 +356,19 @@ void GLWindow::paintGL()
 
     GLuint lastAlbedoId;
     GLuint lastNormalId;
+    GLuint lastMetalId;
+    GLuint lastRoughId;
+    GLuint lastAoId;
     GLuint lastMeshVAO;
     GLuint lastCubeMapId= world->reg()->get<cubeMapComp>(light).cubeTextureId;
-    glActiveTexture(GL_TEXTURE0 + 2 );
+    glActiveTexture(GL_TEXTURE0 + 0 );//0-5???
 //        glActiveTexture(GL_TEXTURE2);
 //        glUniform1i(glGetUniformLocation(shaderProgramFBScr->programId(), "skyCubeTex"), 2);
 //        shaderProgramFBScr->setTextureUniforms();
     glBindTexture(GL_TEXTURE_CUBE_MAP, lastCubeMapId);
-    group.each([this, &model, &tm, &cameraTransformComp, &lastAlbedoId, &lastNormalId, &lastMeshVAO]//,&lastCubeMapId]
-               (MeshComp &mesh, MaterialAlbedoNormalComp &texture, TransformComp &transform)//,FixSphereBVComp)// &boundingVol)
+    group.each([this, &model, &tm, &cameraTransformComp,
+               &lastAlbedoId, &lastNormalId, &lastMetalId, &lastRoughId, &lastAoId, &lastMeshVAO]//,&lastCubeMapId]
+               (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform)//,FixSphereBVComp)// &boundingVol)
     {
 //        if(!isInCameraFrustumAndDistance(cameraTransformComp, transform))
 //            return;
@@ -401,35 +388,43 @@ void GLWindow::paintGL()
         {
             lastAlbedoId = texture.albedoId;
             glActiveTexture(GL_TEXTURE0 + 0);
-            glBindTexture(GL_TEXTURE_2D, lastAlbedoId);
+            glBindTexture(GL_TEXTURE_2D, texture.albedoId);
         }
         if(lastNormalId != texture.normalId)
         {
             lastNormalId = texture.normalId;
             glActiveTexture(GL_TEXTURE0 + 1);
-            glBindTexture(GL_TEXTURE_2D, lastNormalId);
+            glBindTexture(GL_TEXTURE_2D, texture.normalId);
         }
-
-//        glActiveTexture(GL_TEXTURE0 + 3);
-//        glBindTexture(GL_TEXTURE_2D, texture.metallicId);
-
-//        glActiveTexture(GL_TEXTURE0 + 4);
-//        glBindTexture(GL_TEXTURE_2D, texture.roughnessId);
-
-//        glActiveTexture(GL_TEXTURE0 + 5);
-//        glBindTexture(GL_TEXTURE_2D, texture.aoId);
-
+        if(lastMetalId != texture.metallicId)
+        {
+            lastMetalId = texture.metallicId;
+            glActiveTexture(GL_TEXTURE0 + 2);
+            glBindTexture(GL_TEXTURE_2D, texture.metallicId);
+        }
+        if(lastRoughId != texture.roughnessId)
+        {
+            lastRoughId = texture.roughnessId;
+            glActiveTexture(GL_TEXTURE0 + 3);
+            glBindTexture(GL_TEXTURE_2D, texture.roughnessId);
+        }
+        if(lastAoId != texture.aoId)
+        {
+            lastAoId = texture.aoId;
+            glActiveTexture(GL_TEXTURE0 + 4);
+            glBindTexture(GL_TEXTURE_2D, texture.aoId);
+        }
         glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
+//        qDebug("xyz %i \n", mesh.VAO);
     });
-
 //    qDebug("xyz %f %f %f\n", norm.x(), norm.y(), norm.z());
-
 
     glDepthFunc(GL_LEQUAL);
     shaderProgramSky->bindShader();
     shaderProgramSky->setViewMat(viewMat);
-    auto &textureId = world->reg()->get<cubeMapComp>(skyCube).cubeTextureId;
-    glActiveTexture(GL_TEXTURE3);
+    GLuint textureId;
+    textureId = world->reg()->get<cubeMapComp>(skyCube).cubeTextureId;
+    glActiveTexture(GL_TEXTURE0);//!!!!!!!!!!
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureId);
     auto &mesh = world->reg()->get<MeshComp>(skyCube);
     glBindVertexArray(mesh.VAO);
@@ -437,12 +432,12 @@ void GLWindow::paintGL()
     glBindVertexArray(0);
     glDepthFunc(GL_LESS);
 
-
+//    glViewport(0, 0, width()/2, height()/2);
     // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
 //    // clear all relevant buffers
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
+    glClearColor(0.0f, 0.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
     glClear(GL_COLOR_BUFFER_BIT);
 
 
@@ -529,12 +524,13 @@ void GLWindow::timerEvent(QTimerEvent *)
     if(keys[Qt::Key_1])
     {
         controlledEntity= &camera;
+        eulerYP = &world->reg()->get<FPSEulerComponent>(camera);
     }
     if(keys[Qt::Key_2])
     {
         controlledEntity = &light;
+        eulerYP = &world->reg()->get<FPSEulerComponent>(light);
     }
-
     if(controlledEntity == nullptr)
     {
         update();
@@ -584,52 +580,40 @@ void GLWindow::timerEvent(QTimerEvent *)
         glm::vec2 rotator( 3.0f * glm::radians(0.1f), 0.0f);
         if(controlledEntity!=nullptr)
         {
-            if(controlledEntity==&camera)
-            camerEulerYP += btVector3(rotator.y,rotator.x,0);
-            btQuaternion q(camerEulerYP.x(), camerEulerYP.y(), 0);
+            eulerYP->euler += btVector3(rotator.y,rotator.x,0);
+            btQuaternion q(eulerYP->euler .x(), eulerYP->euler.y(), 0);
             controlledTransform->transform.setRotation(q);
         }
-        else
-            controlledTransform->transform.addYawPitch(glm::vec3(rotator,0));
     }
     if(keys[Qt::Key_Down])
     {
         glm::vec2 rotator( -3.0f * glm::radians(0.1f), 0.0f);
         if(controlledEntity!=nullptr)
         {
-            if(controlledEntity==&camera)
-            camerEulerYP += btVector3(rotator.y,rotator.x,0);
-            btQuaternion q(camerEulerYP.x(), camerEulerYP.y(), 0);
+            eulerYP->euler  += btVector3(rotator.y,rotator.x,0);
+            btQuaternion q(eulerYP->euler.x(), eulerYP->euler.y(), 0);
             controlledTransform->transform.setRotation(q);
         }
-        else
-            controlledTransform->transform.addYawPitch(glm::vec3(rotator,0));
     }
     if(keys[Qt::Key_Left])
     {
         glm::vec2 rotator( 0.0f, 3.0f * glm::radians(0.1f));
         if(controlledEntity!=nullptr)
         {
-            if(controlledEntity==&camera)
-            camerEulerYP += btVector3(rotator.y,rotator.x,0);
-            btQuaternion q(camerEulerYP.x(), camerEulerYP.y(), 0);
+            eulerYP->euler += btVector3(rotator.y,rotator.x,0);
+            btQuaternion q(eulerYP->euler.x(), eulerYP->euler.y(), 0);
             controlledTransform->transform.setRotation(q);
         }
-        else
-            controlledTransform->transform.addYawPitch(glm::vec3(rotator,0));
     }
     if(keys[Qt::Key_Right])
     {
         glm::vec2 rotator( 0.0f, -3.0f * glm::radians(0.1f));
         if(controlledEntity!=nullptr)
         {
-            if(controlledEntity==&camera)
-            camerEulerYP += btVector3(rotator.y,rotator.x,0);
-            btQuaternion q(camerEulerYP.x(), camerEulerYP.y(), 0);
+            eulerYP->euler += btVector3(rotator.y,rotator.x,0);
+            btQuaternion q(eulerYP->euler.x(), eulerYP->euler.y(), 0);
             controlledTransform->transform.setRotation(q);
         }
-        else
-            controlledTransform->transform.addYawPitch(glm::vec3(rotator,0));
     }
     update();
 }
@@ -646,15 +630,9 @@ void GLWindow::mouseMoveEvent(QMouseEvent *mouseEvent)
     glm::vec2 rotator(mouseDelta.y * glm::radians(0.2f), -mouseDelta.x * glm::radians(0.2f));
     if(controlledEntity!=nullptr)
     {
-        if(controlledEntity==&camera)
-        camerEulerYP += btVector3(rotator.y,rotator.x,0);
-        btQuaternion q(camerEulerYP.x(), camerEulerYP.y(), 0);
+        eulerYP->euler += btVector3(rotator.y,rotator.x,0);
+        btQuaternion q(eulerYP->euler.x(), eulerYP->euler.y(), 0);
         controlledTransform->transform.setRotation(q);
-    }
-    else
-    {
-//        controlledTransform = &world->reg()->get<TransformComponent>(*controlledEntity);
-        controlledTransform->transform.addYawPitch(glm::vec3(rotator,0));
     }
 
     lastMousePosition = glm::ivec2(mouseEvent->position().x(), mouseEvent->position().y());
@@ -745,4 +723,128 @@ Frustum GLWindow::createFrustumFromCamera(const Transform& cam, float nearOffset
 }
 
 
+void GLWindow::importTextures()
+{
+
+    world->getTextureManager()->load("defaultComplex.png", true);
+    world->getTextureManager()->load("normal1x1.png", false);
+    world->getTextureManager()->load("white.png",     false);
+
+    world->getTextureManager()->load("cyborg_normal.png", true, true);
+    world->getTextureManager()->load("cyborg_diffuse.png", true, true);
+    world->getTextureManager()->load("bricks2_normal.jpg", false, true );
+    world->getTextureManager()->load("brickwall_normal.jpg", false, true );
+    world->getTextureManager()->load("brickwall.jpg", false, true);
+//    world->getTextureManager()->load("exoskelet_Exoskelet_BaseColor.png", false);
+//    world->getTextureManager()->load("exoskelet_Exoskelet_Normal.png", false,false);
+//    world->getTextureManager()->load("exoalbedo.jpg", true);
+    world->getTextureManager()->load("vulture.png",false, true);
+    world->getTextureManager()->load("Vulture_Diffuse.alpha_normal.jpg",false , true);
+//    world->getTextureManager()->load("Vulture_Diffuse.alpha.png",false, true);
+
+
+    world->getTextureManager()->load("rustediron/albedo.png",false, true);
+    world->getTextureManager()->load("rustediron/normal.png", false , true);
+    world->getTextureManager()->load("rustediron/roughness.png");
+    world->getTextureManager()->load("rustediron/metallic.png");
+    world->getTextureManager()->load("rustediron/ao.png");
+}
+
+
+
+void GLWindow::importMeshes()
+{
+    world->getMeshManager()->loadAssimp("vulture.obj");
+    world->getMeshManager()->loadAssimp("cubemaya.obj");
+//    world->getMeshManager()->loadAssimp("cubeinvert.obj");
+    world->getMeshManager()->loadAssimp("cubeinvertmini.obj");
+    world->getMeshManager()->loadAssimp("sphare.obj");
+//    world->getMeshManager()->loadAssimp("sky/skycube.obj");
+    world->getMeshManager()->loadAssimp("sky/skycubeinv.obj");
+    world->getMeshManager()->loadAssimp("cyborg.obj");
+}
+
+void GLWindow::initQuadForFB()
+{
+    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+    // positions   // texCoords
+    -1.0f,  1.0f,  0.0f, 1.0f,
+    -1.0f, -1.0f,  0.0f, 0.0f,
+     1.0f, -1.0f,  1.0f, 0.0f,
+
+    -1.0f,  1.0f,  0.0f, 1.0f,
+     1.0f, -1.0f,  1.0f, 0.0f,
+     1.0f,  1.0f,  1.0f, 1.0f
+    };
+
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+}
+
+void GLWindow::prepareAssets()
+{
+    Entity e;
+
+    e=world->CreateEntity();
+    e.addTextureAlbedoNormalComp("cyborg_diffuse.png", "cyborg_normal.png");//"brickwall_normal.jpg");
+    e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+    e.addTextureBoxComp("reflectCube");
+    e.addMeshComponent("cyborg.obj");
+    e.addTransformComponent( 0.0f, 2.0f, -7.0f);
+//    reflectiveAsset.addFixSphereBVComp();
+    //100000 = 28fpsGentoo/Suse 24dbg-53dbg (56.5 after  remove rot and pos separate
+    for(int i=0; i<400; i++)
+    {
+        for(int j=0; j<250; j++)
+        {
+            e=world->CreateEntity();
+            e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+            e.addTextureBoxComp("reflectCube");
+            e.addTransformComponent( -50.0f+i*1, 0.0f, -50.0f+j*1);
+            e.addMeshComponent("cubemaya.obj");
+//            e.addFixSphereBVComp();
+//            e.addComponent(MeshComp(world->getMeshManager()->get("cubemaya.obj")->getVAO(),
+//                                    world->getMeshManager()->get("cubemaya.obj")->getIndicesSize()));
+//            e.addSimpleRenderComp("cubemaya.obj", "brickwall.jpg", "brickwall_normal.jpg");
+//            e.addSimpleRenderComponent("cubemaya.obj", "defaultComplex.png", "normal1x1.png");
+////            if(j%2)
+////                e.addSimpleRenderComponent("cubemaya.obj", "brickwall.jpg", "brickwall_normal.jpg");
+////            else
+////                e.addSimpleRenderComponent("cubemaya.obj", "white.png", "normal1x1.png");
+        }
+    }
+        e=world->CreateEntity();
+        e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");
+        e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+        e.addTextureBoxComp("reflectCube");
+        e.addMeshComponent("cubemaya.obj");
+        e.addTransformComponent( 3.0, 4.0f, -7.0f);
+
+        e=world->CreateEntity();
+        e.addTextureAlbedoNormalComp("vulture.png", "Vulture_Diffuse.alpha_normal.jpg");
+        e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+        e.addTextureBoxComp("reflectCube");
+        e.addMeshComponent("vulture.obj");
+        e.addTransformComponent( 0.0, 1.0f, -7.0f);
+
+        e=world->CreateEntity();
+        e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");
+        e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+        e.addTextureBoxComp("reflectCube");
+        e.addMeshComponent("sphare.obj");
+        e.addTransformComponent( -3.0, 2.0f, -7.0f);
+
+        e=world->CreateEntity();
+        e.addTextureAlbedoNormalComp("white.png", "bricks2_normal.jpg");//"brickwall_normal.jpg");
+        e.addTextureBoxComp("reflectCube");
+        e.addMeshComponent("cubemaya.obj");
+        e.addTransformComponent( 3.0, 2.0f, -7.0f);
+}
 

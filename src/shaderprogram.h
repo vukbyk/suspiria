@@ -13,9 +13,11 @@ protected:
     std::vector<GLuint> textureUniformId;
 public:
     ShaderProgram(const std::string &shaderName);
-    ShaderProgram(const std::string &shaderName,
-                  std::vector<std::string> aTextureUniformList);
+    ShaderProgram(const std::string &vsShaderName, const std::string &fsShaderName);
+//    ShaderProgram(const std::string &shaderName,
+//                  std::vector<std::string> aTextureUniformList);
     void initShaders(const std::string &shaderName);
+    void initShaders(const std::string &vsShaderName, const std::string &fsShaderName);
 
     GLuint getUniform(const char* name);
     void bindShader();
