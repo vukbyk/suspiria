@@ -45,6 +45,12 @@ Entity *Entity::addTransformComponent(const GLfloat x, const GLfloat y, const GL
     return this;
 }
 
+Entity *Entity::addTransformComponent(TransformComp &transComp)
+{
+    addComponent(TransformComp(transComp));
+    return this;
+}
+
 Entity *Entity::addFixSphereBVComp(const float inRadius)
 {
     addComponent(FixSphereBVComp());

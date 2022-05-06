@@ -40,6 +40,8 @@ public:
     Entity *addTextureBoxComp(const char *albedo);
 
     Entity *addTransformComponent(const GLfloat x, const GLfloat y, const GLfloat z);
+    Entity *addTransformComponent(TransformComp &transComp);
+
     Entity *addFixSphereBVComp(const float inRadius=2.5f);
 
 

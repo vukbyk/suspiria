@@ -33,7 +33,7 @@ public:
     btTransform getT() const;
     btScalar *getOpenGLMatrix();
     glm::mat4 getTransformMatrix() const;
-    glm::mat4 getCameraTransformMatrix() const;
+    glm::mat4 getInverseTransformMatrix() const;
 
 
     btVector3 getPosition() const;

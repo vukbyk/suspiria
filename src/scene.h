@@ -26,7 +26,7 @@ public:
     std::vector<class Spacial *> getChildren(void);
 
 //    virtual void updateAll(Input *input);
-    virtual void renderAll();
+    virtual void renderAll() override;
 
     GLint getModel() const;
     void setModel(const GLint &value);

@@ -3,11 +3,11 @@
 #include <QtOpenGL/QOpenGLShaderProgram>
 #include <QOpenGLExtraFunctions>
 
-
+//TODO: Shader system with VS and FS
 class ShaderProgram: public QOpenGLShaderProgram, protected QOpenGLExtraFunctions
 {
 protected:
-    GLint projectionid;
+    GLint projection;
     GLint view;
     std::vector<std::string> textureUniformName;
     std::vector<GLuint> textureUniformId;
@@ -22,10 +22,12 @@ public:
     GLuint getUniform(const char* name);
     void bindShader();
     void setProjectionMat(GLfloat fov, GLfloat aspect, GLfloat zNear, GLfloat zFar);
+    GLint getProjection() const;
     void setProjectionMat(const GLfloat *projectionMat);
     void setViewMat(const GLfloat viewMat[]);
     void bindSetPVMat(const GLfloat *projectionMat,  GLfloat viewMat[]);
     void getAllUniformLocation();
     void setUniformNamesAndIds(std::vector<std::string> aTextureUniformName);
     void setTextureUniforms();
+
 };

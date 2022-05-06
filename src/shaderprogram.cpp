@@ -7,7 +7,6 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-
 ShaderProgram::ShaderProgram(const std::string &shaderGroupName)
 {
     initShaders(shaderGroupName);
@@ -24,7 +23,6 @@ ShaderProgram::ShaderProgram(const std::string &vsShaderGroupName, const std::st
 //    initShaders(shaderGroupName);
 //    setUniformNamesAndIds(aTextureUniformName);
 //}
-
 
 GLuint ShaderProgram::getUniform(const char *name)
 {
@@ -91,7 +89,7 @@ void ShaderProgram::initShaders(const std::string &shaderGroupName)
         qDebug() << "Error: Shader program link!";
 //        close();
     }
-    projectionid = glGetUniformLocation(programId(), "projection");
+    projection = glGetUniformLocation(programId(), "projection");
     view = glGetUniformLocation(programId(),"view");
 }
 
@@ -144,7 +142,7 @@ void ShaderProgram::initShaders(const std::string &vsShaderGroupName, const std:
         qDebug() << "Error: Shader program link!";
 //        close();
     }
-    projectionid = glGetUniformLocation(programId(), "projection");
+    projection = glGetUniformLocation(programId(), "projection");
     view = glGetUniformLocation(programId(),"view");
 }
 
@@ -167,13 +165,13 @@ void ShaderProgram::setTextureUniforms()
 
 void ShaderProgram::setProjectionMat(GLfloat fov, GLfloat aspect, GLfloat zNear, GLfloat zFar)
 {
-    glm::mat4 projection = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
-    glUniformMatrix4fv(projectionid, 1, GL_FALSE, &projection[0][0]);
+    glm::mat4 calcProj = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
+    glUniformMatrix4fv(projection, 1, GL_FALSE, &calcProj[0][0]);
 }
 
 void ShaderProgram::setProjectionMat(const GLfloat *projectionMat)
 {
-    glUniformMatrix4fv(projectionid, 1, GL_FALSE, projectionMat);
+    glUniformMatrix4fv(projection, 1, GL_FALSE, projectionMat);
 }
 
 void ShaderProgram::setViewMat(const GLfloat viewMat[])
@@ -196,3 +194,4 @@ void ShaderProgram::setUniformNamesAndIds(std::vector<std::string> aTextureUnifo
         textureUniformId.push_back(glGetUniformLocation(programId(), aTextureUniformName[i].c_str()));
     }
 }
+

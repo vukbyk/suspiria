@@ -98,23 +98,25 @@ void GLWindow::initializeGL()
 
     glGenFramebuffers(1, &depthMapFBO);
     // create depth texture
-    glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glGenTextures(1, &depthMapTexture);
+    glBindTexture(GL_TEXTURE_2D, depthMapTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
-                 shMapW, shMapH, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+                 widthShadow, heightShadow, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // attach depth texture as FBO's depth buffer
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+//    attach depth texture as FBO's depth buffer
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTexture, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     //Shadow shader configuration
-    shaderShadow = new ShaderProgram("shadowmap.vs");
+    shaderShadow = new ShaderProgram("shadowmap");
 
     shaderDebugQuad = new ShaderProgram("debugquad");
     shaderDebugQuad->setUniformNamesAndIds({"depthMap"});
@@ -232,7 +234,8 @@ void GLWindow::initializeGL()
 
     //Todo: SkyMap connect to shader also
     const auto textureList = std::vector<std::string>(
-                {"albedoMap", "normalMap", "metallicMap", "roughnessMap", "aoMap", "skyCube"});
+                {"albedoMap", "normalMap", "metallicMap", "roughnessMap",
+                 "aoMap", "shadowMap","skyCube"});
     shaderProgramMain = new ShaderProgram("pbr");
     shaderProgramMain->setUniformNamesAndIds(textureList);
 
@@ -252,11 +255,34 @@ void GLWindow::initializeGL()
 //    skyCube.addTextureBoxComp("skyCubeTex");
 
     light = world->CreateEntity();
-    light.addTransformComponent(0.0f, 3.0f, -6.0f);
+    //Vuk: I do not like this have to be changed
+    //Vuk: unrelated problems with -90 pitch)
+    btVector3 lightEulerRotation(0, btRadians(-90.0f), 0);
+//    btVector3 lightEulerRotation(0, btRadians(-45.0f), 0);
+    light.addComponent<FPSEulerComponent>(lightEulerRotation);
+
+
+
+    Transform lightInitTransform(btVector3(0.0f, 10.0f, 0.0f));
+    btQuaternion lightQuatRot(lightEulerRotation.x(), lightEulerRotation.y(), 0);
+    lightInitTransform.setRotation(lightQuatRot);
+    TransformComp lightTrans(lightInitTransform);
+    light.addTransformComponent(lightTrans);
+
+//    controlledEntity = &light;
+//    eulerYP = &world->reg()->get<FPSEulerComponent>(light);
+//    //  eulerYP->euler += btVector3(rotator.y,rotator.x,0);
+//    eulerYP->euler = lightEulerRotation;//btVector3(rotator.y,rotator.x,0);
+//    btQuaternion q(eulerYP->euler .x(), eulerYP->euler.y(), 0);
+//    controlledTransform = &world->reg()->get<TransformComp>(*controlledEntity);
+//    controlledTransform->transform.setRotation(q);
+
 //    light.addSimpleRenderComp("cubeinvertmini.obj", "white.png", "normal1x1.png");
     light.addMeshComponent("cubeinvertmini.obj");
     light.addTexturePBRComp("white.png", "normal1x1.png", "white.png", "white.png", "white.png");
     light.addTextureBoxComp(/*"reflectCube"*/"skyCubeTex");
+
+
     GLint lightID = shaderProgramMain->getUniform("light");
     light.addComponent(LightComp(lightID));
 //    light.addFixSphereBVComp();
@@ -267,10 +293,10 @@ void GLWindow::initializeGL()
 //    glEnable(GL_DEPTH_TEST);
 
     // Enable back face culling
-//    glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
 ////    glCullFace(GL_BACK);
 ////    glFrontFace(GL_CW);
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+//    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     //collor gamma
     glEnable(GL_FRAMEBUFFER_SRGB_EXT);
 
@@ -292,6 +318,10 @@ void GLWindow::resizeGL(int w, int h)
     shaderIrradiance->bindShader();
     shaderIrradiance->setProjectionMat(&projectionMat[0][0]);
 
+    shaderShadow->bindShader();
+//    shaderShadow->setProjectionMat(&projectionMat[0][0]);
+    orthoLightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 50.0f);
+    shaderShadow->setProjectionMat(&orthoLightProjection[0][0]);
 
     glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width(), height(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
@@ -306,25 +336,65 @@ void GLWindow::resizeGL(int w, int h)
         return;
     }
 
-
-
 }
 
 void GLWindow::paintGL()
 {
     TransformComp &cameraTransformComp = world->reg()->get<TransformComp>(camera);
-    glm::mat4 invertMat = cameraTransformComp.transform.getCameraTransformMatrix();
+    glm::mat4 invertMat = cameraTransformComp.transform.getInverseTransformMatrix();
     auto *viewMat = glm::value_ptr(invertMat);
+    btScalar tm[16];
+
+    /////////////////////////
+    /// \brief ShadowDepthMapGenerate
+    ///
+    glViewport(0, 0, widthShadow, heightShadow);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTexture, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Enable depth buffer
+    glEnable(GL_DEPTH_TEST);
+    glCullFace(GL_FRONT);
+
+    shaderShadow->bindShader();
+    TransformComp &lightTransformComp = world->reg()->get<TransformComp>(light);
+
+    auto *lightViewMat = glm::value_ptr(lightTransformComp.transform.getInverseTransformMatrix());
+
+    shaderShadow->setViewMat(lightViewMat);//set lightMap in future
+
+    shaderShadow->setTextureUniforms();
+
+    GLint modelSH = shaderShadow->getUniform("model");
+    auto groupSH = world->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();//, FixSphereBVComp>();//, cMesh>();
+    GLuint lastMeshVAOLight;
+    groupSH.each([this, &modelSH, &tm, &cameraTransformComp, &lastMeshVAOLight]
+               (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform)//,FixSphereBVComp)// &boundingVol)
+    {
+        transform.transform.getOpenGLMatrix(tm);
+        glUniformMatrix4fv(modelSH, 1, GL_FALSE, tm);
+        if(lastMeshVAOLight != mesh.VAO)
+        {
+            lastMeshVAOLight = mesh.VAO;
+            glBindVertexArray(mesh.VAO);
+        }
+        glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
+    });
+
+    ////END ShadowDepthMapGenerate
 
     glViewport(0, 0, width(), height());
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
+    glCullFace(GL_BACK);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // Enable depth buffer
     glEnable(GL_DEPTH_TEST);
 
     // Enable back face culling
-    glEnable(GL_CULL_FACE);
+//    glEnable(GL_CULL_FACE);
 //    glCullFace(GL_BACK);
 //    glFrontFace(GL_CCW);
 
@@ -345,14 +415,14 @@ void GLWindow::paintGL()
     GLint camPos = glGetUniformLocation(shaderProgramMain->programId(), "camPos");
     glUniform3fv(camPos, 1, &cam[0]);
     GLint model = shaderProgramMain->getUniform("model");
-
-    btScalar tm[16];
-
     auto group = world->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();//, FixSphereBVComp>();//, cMesh>();
     //world.view<cRender>().each([this](auto &render) //as alternative
 
-
-    shaderProgramFBScr->setTextureUniforms();
+    GLint lightSpaceMatrixShP = shaderProgramMain->getUniform("lightSpaceMatrix");
+    glm::mat4 lightSpaceMatrix = orthoLightProjection * lightTransformComp.transform.getInverseTransformMatrix();
+    glUniformMatrix4fv(lightSpaceMatrixShP, 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+    glActiveTexture(GL_TEXTURE0 + 5);//0-5???
+    glBindTexture(GL_TEXTURE_2D, depthMapTexture);
 
     GLuint lastAlbedoId;
     GLuint lastNormalId;
@@ -361,11 +431,9 @@ void GLWindow::paintGL()
     GLuint lastAoId;
     GLuint lastMeshVAO;
     GLuint lastCubeMapId= world->reg()->get<cubeMapComp>(light).cubeTextureId;
-    glActiveTexture(GL_TEXTURE0 + 0 );//0-5???
-//        glActiveTexture(GL_TEXTURE2);
-//        glUniform1i(glGetUniformLocation(shaderProgramFBScr->programId(), "skyCubeTex"), 2);
-//        shaderProgramFBScr->setTextureUniforms();
+    glActiveTexture(GL_TEXTURE0 + 6 );//0-5???
     glBindTexture(GL_TEXTURE_CUBE_MAP, lastCubeMapId);
+
     group.each([this, &model, &tm, &cameraTransformComp,
                &lastAlbedoId, &lastNormalId, &lastMetalId, &lastRoughId, &lastAoId, &lastMeshVAO]//,&lastCubeMapId]
                (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform)//,FixSphereBVComp)// &boundingVol)
@@ -434,18 +502,40 @@ void GLWindow::paintGL()
 
 //    glViewport(0, 0, width()/2, height()/2);
     // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
+//    glViewport(0, height()/2, width(), height());
+    glViewport(0, 0, width(), height());
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
 //    // clear all relevant buffers
     glClearColor(0.0f, 0.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
     glClear(GL_COLOR_BUFFER_BIT);
 
-
     shaderProgramFBScr->bind();
     glBindVertexArray(quadVAO);
     shaderProgramFBScr->setTextureUniforms();
     glActiveTexture(GL_TEXTURE0 + 0 );
     glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// use the color attachment texture as the texture of the quad plane
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+//    glViewport(0, 0, width()/2, height()/2);
+    glViewport(0, 0, widthShadow/4, heightShadow/4);
+//    glViewport(width()/2, height()/2, width(), height());//1024,1024);
+    // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
+//    // clear all relevant buffers
+//    glClearColor(1.0f, 0.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
+//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+//    shaderProgramFBScr->bind();
+    shaderDebugQuad->bind();
+    glBindVertexArray(quadVAO);
+//    shaderProgramFBScr->setTextureUniforms();
+    shaderDebugQuad->setTextureUniforms();
+    glActiveTexture(GL_TEXTURE0 + 0 );
+    glBindTexture(GL_TEXTURE_2D, /*textureColorbuffer*/ depthMapTexture);	// use the color attachment texture as the texture of the quad plane
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -495,6 +585,15 @@ void GLWindow::timerEvent(QTimerEvent *)
 {
     if(!controlledEntity)
         return;
+    if(controlledEntity == nullptr)
+    {
+        update();
+        return;
+    }
+    else
+    {
+        controlledTransform = &world->reg()->get<TransformComp>(*controlledEntity);
+    }
 //    auto &m = world->reg()->get<TransformComponent>(light);
 //    if(keys[Qt::Key_T])
 //    {
@@ -531,15 +630,7 @@ void GLWindow::timerEvent(QTimerEvent *)
         controlledEntity = &light;
         eulerYP = &world->reg()->get<FPSEulerComponent>(light);
     }
-    if(controlledEntity == nullptr)
-    {
-        update();
-        return;
-    }
-    else
-    {
-        controlledTransform = &world->reg()->get<TransformComp>(*controlledEntity);
-    }
+
 
     if(keys[Qt::Key_W])
     {
@@ -687,7 +778,7 @@ void GLWindow::mouseReleaseEvent(QMouseEvent *e)
 //    // Rotation axis is perpendicular to the mouse position difference
 //    // vector
 //    glm::vec3 n = glm::normalize( glm::vec3(gdiff.y, gdiff.x, 0.0));
-//    // Accelerate angular speed relative to the length of the mouse sweep
+//    // Accelerate angular speed relative ttextureUniformNameo the length of the mouse sweep
 ////    qreal acc = diff.length() / 100.0;
 //    GLfloat acc = glm::length(gdiff)/100.0f;
 //    // Calculate new rotation axis as weighted sum
@@ -842,9 +933,12 @@ void GLWindow::prepareAssets()
         e.addTransformComponent( -3.0, 2.0f, -7.0f);
 
         e=world->CreateEntity();
-        e.addTextureAlbedoNormalComp("white.png", "bricks2_normal.jpg");//"brickwall_normal.jpg");
+        e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");
+        e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
         e.addTextureBoxComp("reflectCube");
         e.addMeshComponent("cubemaya.obj");
-        e.addTransformComponent( 3.0, 2.0f, -7.0f);
+        e.addTransformComponent( 3.0, 1.0f, -7.0f);
+
+
 }
 

@@ -59,7 +59,7 @@ glm::mat4 Transform::getTransformMatrix(void) const
     return bulletToGlm(transform);
 }
 
-glm::mat4 Transform::getCameraTransformMatrix(void) const
+glm::mat4 Transform::getInverseTransformMatrix(void) const
 {
 //    return bulletToGlm(transform);
 //    return glm::toMat4(rotation) * glm::translate(position);
