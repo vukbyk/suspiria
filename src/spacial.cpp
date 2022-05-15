@@ -75,11 +75,11 @@ void Spacial::setParentSpacial(Spacial *value)
 
 void Spacial::createEntity(Scene &scene)
 {
-    entity = scene.world.create();
-    scene.world.emplace<TransformComp>(entity, getTransform());
-    //ruzno za ent
-    Scene *s = &scene;
-    parentSpacial = s;
+//    entity = scene.world.create();
+//    scene.world.emplace<TransformComp>(entity, getTransform());
+//    //ruzno za ent
+//    Scene *s = &scene;
+//    parentSpacial = s;
 }
 
 //const GLfloat *Spacial::getValuePtr()

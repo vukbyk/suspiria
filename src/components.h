@@ -2,9 +2,12 @@
 #define ECSCOMPONENTS_H
 
 #include "transform.h"
+#include "camera.h"
 #include "glmtransform.h"
+#include "shaderprogram.h"
 #include <QOpenGLExtraFunctions>
 #include <string>
+
 
 //struct SimpleRenderComponent
 //{
@@ -34,13 +37,47 @@
 //    operator const GLfloat&() const {return zoom;}
 //};
 
+struct CameraComp
+{
+    Camera camera;
+
+    CameraComp(const Camera val): camera(val){};
+    CameraComp(const GLfloat aNear=0.3f, const GLfloat aFar=1000.0f,
+               const GLfloat aFov=45.0f, const GLfloat aAspect=0.66f):
+               camera(aNear, aFar, aFov, aAspect){};
+    operator Camera&() {return camera;};
+    operator const Camera&() const {return camera;}
+};
+
+
+//struct PerspectiveComp
+//{
+//    GLfloat fov    ;//= 45.0f;
+//    GLfloat zNear  ;//= 0.3f;
+//    GLfloat zFar   ;//= 100.0f;
+//    GLfloat aspect ;//= 0.66;
+
+//    PerspectiveComp(const GLfloat aNear=0.3f, const GLfloat aFar=1000.0f,
+//                    const GLfloat aFov=45.0f, const GLfloat aAspect=0.66f):
+//                    zNear(aNear), zFar(aFar), fov(aFov), aspect(aAspect){};
+//};
+
+struct ShaderComp
+{
+    ShaderProgram *shaderProgram;
+    ShaderComp(ShaderProgram *val)
+    {shaderProgram = val;};
+    operator ShaderProgram&() {return *shaderProgram;};
+    operator const ShaderProgram&() const {return *shaderProgram;}
+};
+
 struct LightComp
 {
-    GLint lightID;
-    LightComp(const GLint aLightID):lightID(aLightID){};
+    GLuint lightID;
+    LightComp(const GLuint aLightID):lightID(aLightID){};
 
-    operator GLint&() {return lightID;};
-    operator const GLint&() const {return lightID;}
+    operator GLuint&() {return lightID;};
+    operator const GLuint&() const {return lightID;}
 };
 
 struct MeshComp
@@ -55,14 +92,14 @@ struct MeshComp
             indicesSize(aIndicesSize)//, verticesSize(aVerticesSize)
     {};
 
-    operator GLuint&() {return VAO;};
-    operator const GLuint&() const {return VAO;}
+//    operator GLuint&() {return VAO;};
+//    operator const GLuint&() const {return VAO;}
 };
 
 struct TransformComp
 {
     Transform transform;
-    TransformComp(const Transform val):transform(val){};
+    TransformComp(const Transform val): transform(val){}
 
     operator Transform&() {return transform;};
     operator const Transform&() const {return transform;}
@@ -81,17 +118,52 @@ struct TransformComp
 //    operator GLMTransform&() {return transform;};
 //    operator const GLMTransform&() const {return transform;}
 //};
+//struct ShaderComp
+//{
+//    ShaderProgram shaderProgram;
 
+//    ShaderComp(ShaderProgram &val):
+//        shaderProgram(val){};
+
+//    ShaderComp(const std::string &val):
+//        shaderProgram(val){};
+//    ShaderComp(const std::string &vsName, const std::string &fsName)
+//        :shaderProgram(vsName, fsName){};
+
+//    operator ShaderProgram&() { return shaderProgram; }
+//    operator const ShaderProgram&() const {return shaderProgram;}
+//};
+
+//struct UniformPBRComp
+//{
+
+//    GLuint model;
+//    GLuint view;
+//    GLuint projection;
+//    GLuint lightSpaceMatrix;
+//    UniformPBRComp( GLuint aCamPosUniform, GLuint aLightSpaceMatrix,
+//                    GLuint aProjection, GLuint aView, GLuint aVodelUniform):
+//                    model(aCamPosUniform), view(aLightSpaceMatrix),
+//                    projection(aProjection), lightSpaceMatrix(aView) {}
+//};
+
+//struct ShaderPBRComp:public ShaderComp
+//{
+//    ShaderPBRComp(const std::string &val)
+//        :ShaderComp(val){};
+//    GLint camPosUniform;
+//    GLint modelUniform;
+//    GLint lightSpaceMatrixUniform;
+//    GLint viewUniform;
+//};
 
 struct MaterialPBRComp
-
 {
     GLuint albedoId;
     GLuint normalId;
     GLuint metallicId;
     GLuint roughnessId;
     GLuint aoId;
-    //GLuint metalId;
     MaterialPBRComp(const GLuint aAlbedoId,
                     const GLuint aNormalID,
                     const GLuint aMetallicId,
@@ -100,6 +172,30 @@ struct MaterialPBRComp
         :albedoId(aAlbedoId), normalId(aNormalID), metallicId(aMetallicId), roughnessId(aRoughnessId), aoId(aAoId)
     {};
 };
+
+struct mvpComp
+{
+public:
+
+    GLuint model;
+    GLuint view;
+    GLuint projection;
+
+    mvpComp(ShaderProgram &shaderProgram)// const std::string &shaderName): ShaderProgram(shaderName)
+    { initUniforms(shaderProgram); };
+
+    mvpComp(ShaderProgram *shaderProgram)// const std::string &shaderName): ShaderProgram(shaderName)
+    { initUniforms(*shaderProgram); };
+
+    void initUniforms(ShaderProgram &shaderProgram)
+    {
+        model=shaderProgram.getUniform("model");
+        view=shaderProgram.getUniform("view");
+        projection=shaderProgram.getUniform("projection");
+
+    };
+};
+
 
 struct MaterialAlbedoNormalComp
 
@@ -111,11 +207,14 @@ struct MaterialAlbedoNormalComp
         :albedoId(aAlbedoId), normalId(aNormalID){};
 };
 
-struct cubeMapComp
+struct CubeMapComp
 {
     GLuint cubeTextureId;
-    cubeMapComp(const GLuint aBoxTextureId)
+    CubeMapComp(const GLuint aBoxTextureId)
         :cubeTextureId(aBoxTextureId){};
+
+    operator GLuint&() {return cubeTextureId;};
+    operator const GLuint&() const {return cubeTextureId;}
 };
 
 struct AlbedoTextureComponent

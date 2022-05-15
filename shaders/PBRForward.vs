@@ -14,7 +14,9 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 light;
-uniform vec3 camPos;
+//!!!!!!!!!!!!!!!!CheckChange!!!!!!!!!!!!!!
+//uniform vec3 camPos;
+vec3 camPos=projection[3].xyz;
 
 //uniform mat4 transforms[3];
 //uniform uint index;

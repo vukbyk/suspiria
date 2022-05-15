@@ -5,6 +5,7 @@
 //#include <entt/entity/registry.hpp>
 #include <entt/entt.hpp>
 #include "world.h"
+//#include "camera.h"
 //#include "components.h"
 
 class Entity
@@ -37,13 +38,22 @@ public:
 
     Entity *addTextureAlbedoNormalComp(const char *albedo, const char *normal);
 
-    Entity *addTextureBoxComp(const char *albedo);
+    Entity *addCubeMapComp(const char *albedo);
 
     Entity *addTransformComponent(const GLfloat x, const GLfloat y, const GLfloat z);
     Entity *addTransformComponent(TransformComp &transComp);
 
     Entity *addFixSphereBVComp(const float inRadius=2.5f);
 
+    Entity *addCameraComp(CameraComp &camera);
+    Entity *addCameraComp(const GLfloat aFar=0.3f, const GLfloat aNear=1000.0f,
+                          const GLfloat aFov=45.0f, const GLfloat aAspect=0.66f);
+
+//    Entity *addShaderComp(const std::string &val);
+
+//    Entity *addPerspectiveComp(PerspectiveComp &perspective);
+//    Entity *addPerspectiveComp( const GLfloat aFar=0.3f, const GLfloat aNear=1000.0f,
+//                                const GLfloat aFov=45.0f, const GLfloat aAspect=0.66f);
 
 //    Entity *addSimpleRenderComp(const char* mesh, const char* albedo, const char* normal);
 //    Entity *addTransformComponent();

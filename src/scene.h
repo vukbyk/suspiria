@@ -1,34 +1,54 @@
 #pragma once
 
 #include <QOpenGLExtraFunctions>
-#include "spacial.h"
-#include <entt/entity/registry.hpp>
 
-class Scene: /*protected*/public Spacial
+//#define GLM_SWIZZLE
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include "entity.h"
+
+class Scene: protected QOpenGLExtraFunctions, public World
 {
 protected:
-    btScalar tm[16];
-    Spacial *parentSpacial;
-//    std::vector<Spacial *> children;
-    std::vector<class Spacial *> children;
-//    class ShaderProgram *shaderProgram;
-public:
-    GLint model;
+//    class World *world;//for multy scene
+    Entity camera;
+    Entity skyCube;
+
 
 public:
-    entt::registry world;
-//    Scene(const std::string &tag);
+
+    class Mesh *renderQuad;
+
+    class ShaderPBR *shaderMain;
+    class ShaderVP *shaderIrradiance;
+    class ShaderMVP *shaderShadow;
+    class ShaderVP *shaderSky;
+    class ShaderProgram *shaderProgramFBScr;
+    class ShaderProgram *shaderDebugQuad;
+    class ShaderProgram *shaderBrdf;
+
     Scene();
+//    Scene(class World *val);
     virtual ~Scene();
 
-    void addChild(class Spacial *child);
+    void initEntities();
+    void initShaders();
 
-    std::vector<class Spacial *> getChildren(void);
+    const Entity getCamera();
+    const Entity getSkyCube();
 
-//    virtual void updateAll(Input *input);
-    virtual void renderAll() override;
+    void importTextures();
+    void importMeshes();
 
-    GLint getModel() const;
-    void setModel(const GLint &value);
-    virtual void createEntity(Scene &scene)override{};
+    void prepareAssetsManyCubes();
+    void prepareAssetsPlane();
+
+////// For tuples use world->reg()->get<T>
+////// So maybe better to use regular
+//    template<typename T>//,  typename... Args>
+//    T& get(Entity component)
+//    {
+//        return reg()->get<T>(component);
+//    }
+
 };

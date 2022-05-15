@@ -12,7 +12,7 @@ layout (location = 4) in vec3 bit;
 
 uniform mat4 model;
 uniform mat4 projection;
-uniform mat4 light;
+//uniform mat4 light;
 uniform mat4 view;//lightSpaceMatrix;??
 
 

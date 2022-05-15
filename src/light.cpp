@@ -17,10 +17,10 @@ void Light::renderAll()
 //    Transform t = transform;
 //    glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(t.getTransformMatrix()) );//&mtm[0][0]);
 
-    auto s = dynamic_cast<Scene*>(parentSpacial);
-    if(s)
-    {
-        auto &m = s->world.get<TransformComp>(entity);
-        glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(m.transform.getTransformMatrix()) );//&mtm[0][0]);
-    }
+//    auto s = dynamic_cast<Scene*>(parentSpacial);
+//    if(s)
+//    {
+//        auto &m = s->world.get<TransformComp>(entity);
+//        glUniformMatrix4fv(lightID, 1, GL_FALSE, glm::value_ptr(m.transform.getTransformMatrix()) );//&mtm[0][0]);
+//    }
 }

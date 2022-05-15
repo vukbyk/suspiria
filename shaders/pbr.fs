@@ -18,7 +18,8 @@ uniform sampler2D roughnessMap;
 uniform sampler2D aoMap;
 uniform sampler2D shadowMap;
 
-uniform vec3 camPos;
+//uniform vec3 camPos;
+uniform mat4 projection;
 // IBL
 uniform samplerCube skyCube;//irradianceMap;
 //uniform samplerCube prefilterMap;
@@ -34,7 +35,7 @@ uniform mat4 light;
 in vec3 FragPos;
 
 vec3 lightPosition=light[3].xyz;
-
+vec3 camPos=projection[3].xyz;
 //float near = 0.1;
 //float far = 100.0;
 //float LinearizeDepth(float depth)
@@ -86,13 +87,16 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 lightDir)
 //    float bias = 0.005;
     //TODO unite calculation for light Direction
 //    vec3 L = normalize(lightPosition/*s[i]*/ - WorldPos);
-    float bias = max(0.0005 * (1.0 - dot(Normal, lightDir)), 0.0001);
-//    float bias = 0.002;
+    float bias = max(0.0005 * (1.0 - dot(Normal, lightDir)), 0.0002);// for glCullFace(GL_FRONT);
+//      float bias = max(0.005 * (1.0 - dot(Normal, lightDir)), 0.002);// for glCullFace(GL_BACK);
+//    float bias = 0.0005;
 //    float shadow = (currentDepth /*- bias*/ > closestDepth + bias)  ? 1.0 : 0.0;
 
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-////////////////
+//////////////
+
+//    shadow /= 25.0;//9.0 // for -1 to +1;
 //    for(int x = -3; x <= 3; ++x)
 //    {
 //        for(int y = -3; y <= 3; ++y)
@@ -101,18 +105,22 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 lightDir)
 //            shadow += currentDepth /*- bias*/ > pcfDepth + bias ? 1.0 : 0.0;
 //        }
 //    }
-//    shadow /= 49.0;//25.0;//9.0 // for -1 to +1;
+//    shadow /= 49.0;//81.0;//49.0;//25.0;//9.0 // for -1 to +1;
 //    if(projCoords.z > 1.0)
 //    {
 //        shadow = 0.0;
 //    }
-//    return shadow;
+//    return 1-shadow;
 ////////////////
 //    float SampleShadowMapPCF(sampler2D shadowMap, vec2 coords, float compare, vec2 texelSize)
 //    {
     const float NUM_SAMPLES = 3.0f;
     const float SAMPLES_START = (NUM_SAMPLES-1.0f)/2.0f;
     const float NUM_SAMPLES_SQUARED = NUM_SAMPLES*NUM_SAMPLES;
+    if(projCoords.y >= 1.0)
+    {
+        shadow = 0.0;
+    }
     for(float y = -SAMPLES_START; y <= SAMPLES_START; y += 1.0f)
     {
         for(float x = -SAMPLES_START; x <= SAMPLES_START; x += 1.0f)
@@ -121,8 +129,10 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 lightDir)
                 shadow += SampleShadowMapLinear(shadowMap, projCoords.xy + coordsOffset, currentDepth - bias, texelSize);
         }
     }
-    return 1-shadow/NUM_SAMPLES_SQUARED;
-//    }
+//    return currentDepth;
+
+    return shadow/NUM_SAMPLES_SQUARED;
+////    }
 
 }
 
@@ -280,18 +290,19 @@ void main()
 //    vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
     vec3 ambient = (kD * diffuse /*+ specular*/) * ao * 0.001;
-    vec3 color =  ambient + Lo * (1-shadow);
+    vec3 color =  ambient + Lo * (/*1-*/shadow);
 
     // HDR tonemapping
     color = color / (color + vec3(1.0));
     // gamma correct
     color = pow(color, vec3(1.0/2.2));
     FragColor = vec4(color, 1.0);
+//    FragColor = vec4( ambient + Lo , 1.0);
 
 //    FragColor = vec4(irradiance , 1.0);
 //    float depth = LinearizeDepth(gl_FragCoord.z) / far; // divide by far to get depth in range [0,1] for visualization purposes
 //    FragColor = vec4(vec3(depth), 1.0);
-//    FragColor = vec4(1-shadow, 1-shadow, 1-shadow, 1.0);
+//    FragColor = vec4(shadow, shadow, shadow, 1.0);
 
 
 }

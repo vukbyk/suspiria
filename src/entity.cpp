@@ -33,9 +33,9 @@ Entity *Entity::addTextureAlbedoNormalComp(const char *albedo, const char *norma
 }
 
 
-Entity *Entity::addTextureBoxComp(const char *albedo)
+Entity *Entity::addCubeMapComp(const char *albedo)
 {
-    addComponent(cubeMapComp(world->getTextureManager()->getId(albedo)));
+    addComponent(CubeMapComp(world->getTextureManager()->getId(albedo)));
     return this;
 }
 
@@ -56,6 +56,37 @@ Entity *Entity::addFixSphereBVComp(const float inRadius)
     addComponent(FixSphereBVComp());
     return this;
 }
+
+Entity *Entity::addCameraComp(CameraComp &aCamera)
+{
+    addComponent(CameraComp(CameraComp(aCamera)));
+    return this;
+}
+
+Entity *Entity::addCameraComp(const GLfloat aNear, const GLfloat aFar, const GLfloat aFov, const GLfloat aAspect)
+{
+    addComponent(CameraComp(aNear, aFar, aFov, aAspect));
+    return this;
+}
+
+//Entity *Entity::addShaderComp(const std::string &val)
+//{
+//    addComponent(ShaderComp( val ));
+//    return this;
+//}
+
+//Entity *Entity::addPerspectiveComp(PerspectiveComp &perspective)
+//{
+//    addComponent(PerspectiveComp(perspective));
+//    return this;
+//}
+//Entity *Entity::addPerspectiveComp(const GLfloat aNear, const GLfloat aFar, const GLfloat aFov, const GLfloat aAspect)
+//{
+//    addComponent(PerspectiveComp(aNear, aFar, aFov, aAspect));
+//    return this;
+//}
+
+
 
 
 //Entity *Entity::addSimpleRenderComp(const char *mesh, const char *albedo, const char *normal)

@@ -8,19 +8,17 @@
 
 class World
 {   
-//    template<typename T>
-//    void OnComponentAdded(Entity entity, T& component);
+protected:
     entt::registry registry;
-
-public:
-    World();
-    ~World();
 
     MeshManager *meshManager;
     TextureManager *textureManager;
 
-    class Entity CreateEntity();
+public:
+    World();
+    virtual ~World();
 
+    class Entity CreateEntity();
 //    void DestroyEntity(Entity entity);
 
     operator entt::registry&() { return registry;};

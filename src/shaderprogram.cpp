@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <entity.h>
 
 ShaderProgram::ShaderProgram(const std::string &shaderGroupName)
 {
@@ -15,6 +16,11 @@ ShaderProgram::ShaderProgram(const std::string &shaderGroupName)
 ShaderProgram::ShaderProgram(const std::string &vsShaderGroupName, const std::string &fsShaderGroupName)
 {
     initShaders(vsShaderGroupName, fsShaderGroupName);
+}
+
+ShaderProgram::~ShaderProgram()
+{
+    delete uniform;
 }
 
 //ShaderProgram::ShaderProgram(const std::string &shaderGroupName,
@@ -89,8 +95,8 @@ void ShaderProgram::initShaders(const std::string &shaderGroupName)
         qDebug() << "Error: Shader program link!";
 //        close();
     }
-    projection = glGetUniformLocation(programId(), "projection");
-    view = glGetUniformLocation(programId(),"view");
+//    projection = glGetUniformLocation(programId(), "projection");
+//    view = glGetUniformLocation(programId(),"view");
 }
 
 void ShaderProgram::initShaders(const std::string &vsShaderGroupName, const std::string &fsShaderGroupName)
@@ -142,8 +148,8 @@ void ShaderProgram::initShaders(const std::string &vsShaderGroupName, const std:
         qDebug() << "Error: Shader program link!";
 //        close();
     }
-    projection = glGetUniformLocation(programId(), "projection");
-    view = glGetUniformLocation(programId(),"view");
+//    projection = glGetUniformLocation(programId(), "projection");
+//    view = glGetUniformLocation(programId(),"view");
 }
 
 void ShaderProgram::bindShader()
@@ -163,28 +169,16 @@ void ShaderProgram::setTextureUniforms()
     }
 }
 
-void ShaderProgram::setProjectionMat(GLfloat fov, GLfloat aspect, GLfloat zNear, GLfloat zFar)
-{
-    glm::mat4 calcProj = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
-    glUniformMatrix4fv(projection, 1, GL_FALSE, &calcProj[0][0]);
-}
+//void ShaderProgram::setProjectionMat(const GLfloat *projectionMat)
+//{
+//    glUniformMatrix4fv(projection, 1, GL_FALSE, projectionMat);
+//}
 
-void ShaderProgram::setProjectionMat(const GLfloat *projectionMat)
-{
-    glUniformMatrix4fv(projection, 1, GL_FALSE, projectionMat);
-}
+//void ShaderProgram::setViewMat(const GLfloat *viewMat)
+//{
+//    glUniformMatrix4fv(view, 1, GL_FALSE, viewMat);//&mtm[0][0]);
+//}
 
-void ShaderProgram::setViewMat(const GLfloat viewMat[])
-{
-    glUniformMatrix4fv(view, 1, GL_FALSE, viewMat);//&mtm[0][0]);
-}
-
-void ShaderProgram::bindSetPVMat(const GLfloat *projectionMat,  GLfloat viewMat[])
-{
-    bindShader();
-    setProjectionMat(projectionMat);
-    setViewMat(viewMat);
-}
 
 void ShaderProgram::setUniformNamesAndIds(std::vector<std::string> aTextureUniformName)
 {
@@ -194,4 +188,18 @@ void ShaderProgram::setUniformNamesAndIds(std::vector<std::string> aTextureUnifo
         textureUniformId.push_back(glGetUniformLocation(programId(), aTextureUniformName[i].c_str()));
     }
 }
+
+//void ShaderProgram::bindSetPVMat(const GLfloat *projectionMat,  GLfloat viewMat[])
+//{
+//    bindShader();
+//    setProjectionMat(projectionMat);
+//    setViewMat(viewMat);
+//}
+
+//void ShaderProgram::setProjectionMat(GLfloat fov, GLfloat aspect, GLfloat zNear, GLfloat zFar)
+//{
+//    glm::mat4 calcProj = glm::perspective(glm::radians(fov), aspect, zNear, zFar);
+//    glUniformMatrix4fv(projection, 1, GL_FALSE, &calcProj[0][0]);
+//}
+
 

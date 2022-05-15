@@ -66,9 +66,10 @@ glm::mat4 Transform::getInverseTransformMatrix(void) const
 //    glm::mat4 rot = glm::toMat4( bulletToGlm( btQuaternion(transform.getRotation()) ));
 //    return rot * glm::translate(bulletToGlm(transform.getOrigin() * -1.0f) );
     glm::mat4 rot = glm::toMat4( bulletToGlm( btQuaternion(transform.getRotation()) ));
-    rot = glm::inverse(rot);
-    glm::mat4 pos = glm::translate(bulletToGlm(transform.getOrigin() * -1.0f) );
-    return rot * pos;
+//    rot = glm::inverse(rot);
+    glm::mat4 pos = glm::translate(bulletToGlm(transform.getOrigin() ) );//* -1.0f) );
+//    return rot*pos; //Reverse if only one inverse
+    return glm::inverse(pos * rot);
 }
 
 btVector3 Transform::getPosition() const

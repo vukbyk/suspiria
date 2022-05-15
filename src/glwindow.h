@@ -15,17 +15,8 @@
 
 class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 {
-    Q_OBJECT
-
-    class World *world;
-    class ShaderProgram *shaderProgramMain;
-    class ShaderProgram *shaderProgramPBR;
-    class ShaderProgram *shaderProgramSky;
-    class ShaderProgram *shaderProgramFBScr;
-    class ShaderProgram *shaderShadow;
-    class ShaderProgram *shaderDebugQuad;
-    class ShaderProgram *shaderIrradiance;
-    class ShaderProgram *shaderBrdf;
+    Q_OBJECT    
+    class Scene *world;
 
     GLuint framebuffer;
     GLuint textureColorbuffer;
@@ -43,12 +34,11 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 //    glm::mat4 lightView;
 //    glm::mat4 lightSpaceMatrix;
 
-    GLuint quadVAO, quadVBO;
+    GLuint quadVAO, quadVBO;//needs to connect to shader?
 
-//    class Camera *camera;
-    Entity light;
     Entity camera;
-    Entity skyCube;
+    Entity light;
+//    Entity skyCube;
     Entity *controlledEntity=nullptr;
     TransformComp *controlledTransform=nullptr;
     glm::mat4 projectionMat;
@@ -58,11 +48,11 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     glm::vec2 mousePressPosition;
     class FPSEulerComponent *eulerYP;
 
-    GLfloat zNear = 0.3f;
-    GLfloat zFar = 100.0f;
-    GLfloat fov = 45.0f;
-    GLfloat aspectFowMultiplayer = 1;
-    GLfloat aspect;
+//    GLfloat zNear = 0.3f;
+//    GLfloat zFar = 100.0f;
+//    GLfloat fov = 45.0f;
+//    GLfloat aspect;
+    GLfloat aspectFowMult = 1;
 
     const float moveSpeed = 2.0;
     const float rotSpeed = .2;
@@ -79,9 +69,6 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     glm::ivec2 mouseDelta = glm::ivec2(-1,-1);
     glm::ivec2 lastMousePosition = glm::ivec2(-1,-1);
     glm::ivec2 mouseWheel = glm::ivec2(-1,-1);
-
-
-
 
 protected:
     void timerEvent(QTimerEvent *e) override;
@@ -104,12 +91,8 @@ public:
     GLWindow();
     ~GLWindow();
 
-    void setAspectFowMultiplayer();
+    void setAspectFowMult();
 
-    void importTextures();
-    void importMeshes();
-    void prepareAssets();
     void initQuadForFB();
-
 };
 

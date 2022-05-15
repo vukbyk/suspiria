@@ -18,7 +18,11 @@ public:
 
     void load(const std::string fileName, bool gammaCorrection=false, bool flip=false);
     void loadBoxTexture(const std::string boxTextureName,
-                        const std::vector<std::string> faces,
+                        std::vector<std::string> face,
+                        bool flip=true,
+                        bool gammaCorrection=false);
+    void loadBoxTexture(const std::string boxTextureName,
+                        std::string *face,
                         bool flip=true,
                         bool gammaCorrection=false);
     Texture* get(const std::string fileName);
