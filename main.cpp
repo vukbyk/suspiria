@@ -95,8 +95,15 @@ int main(int argc, char *argv[])
 //    QLoggingCategory::setFilterRules("*.debug=false");
 
 //    bulletTestCopyFromMain();
+
+//    qputenv("dpiawareness", "0");
+//    qputenv("windows:dpiawareness", "0");
+//    qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
+
     QGuiApplication app(argc, argv);
     app.setApplicationName("Suspiria");
+
+//    app.setAttribute(Qt::AA_DisableHighDpiScaling); // Disable DPI scaling
 //    app.setApplicationVersion("0.1");
 
     QSurfaceFormat format;
@@ -126,8 +133,8 @@ int main(int argc, char *argv[])
 
 //    Suspiria engine;
     GLWindow glWindow;
-    glWindow.setWidth(1024);
-    glWindow.setHeight(768);
+    glWindow.setWidth(1200);
+    glWindow.setHeight(800);
     glWindow.show();//Maximized();
     glWindow.update();
 

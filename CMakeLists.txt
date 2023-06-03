@@ -57,7 +57,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #       message(STATUS "SLEIDEBUG:${COLYOO_QT_RESOURCES}")
 
 if(EMSCRIPTEN)
-    set(Qt6_DIR "/home/vuk/Qt/6.2.2/wasm_32/lib/cmake/Qt6")
+    set(Qt6_DIR "/home/vuk/Qt/6.5.1/wasm_32/lib/cmake/Qt6")
 endif()
 #if(EMSCRIPTEN)
 #    set(Qt5_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5")
@@ -77,6 +77,25 @@ endif()
 ##    set(Qt5WebSockets_DIR "/home/vuk/Qt/5.15.0/wasm_32/lib/cmake/Qt5WebSockets")
 ##    set(CMAKE_TOOLCHAIN_FILE="/home/vuk/Desktop/Install/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
 #endif()
+#if(EMSCRIPTEN)
+#    set(Qt5_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5")
+#    set(Qt5Widgets_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5Widgets")
+#    set(Qt5Gui_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5Gui")
+#    set(Qt5Core_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5Core")
+#    set(Qt5Svg_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5Svg")
+#    set(Qt5Zlib_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5Zlib")
+#    set(Qt5Network_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5Network")
+#    set(Qt5EventDispatcherSupport_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5EventDispatcherSupport")
+#    set(Qt5FontDatabaseSupport_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5FontDatabaseSupport")
+#    set(Qt5EglSupport_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5EglSupport")
+#    set(Qt5ThemeSupport_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5ThemeSupport")
+#    set(Qt5Quick_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5Quick")
+#    set(Qt5QmlModels_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5QmlModels")
+#    set(Qt5Qml_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5Qml")
+#    set(Qt5WebSockets_DIR "/home/vuk/Qt/5.15.2/wasm_32/lib/cmake/Qt5WebSockets")
+#    set(CMAKE_TOOLCHAIN_FILE="/home/vuk/Desktop/Install/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
+#endif()
+
 
 
 #   # add the GUI WIN32 executable
@@ -268,6 +287,12 @@ add_subdirectory(dep/entt)
 
 if(EMSCRIPTEN)
   message("EMSCRIPTEN build")
+
+  set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
+  # Set the initial memory size flag
+  set(WASM_LINK_FLAGS "-Wl,--initial-memory=100000000")
+
+
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
   qt_add_executable(suspiria
     main.cpp
@@ -312,14 +337,19 @@ if(ANDROID)
 endif()
 
 if(EMSCRIPTEN)
-#  link_qt_static(suspiria)
-#    set_target_properties(suspiria PROPERTIES LINK_FLAGS "-s TOTAL_MEMORY=4GB")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s INITIAL_MEMORY=134217728")
+    #  link_qt_static(suspiria)
+    #    set_target_properties(suspiria PROPERTIES LINK_FLAGS "-s TOTAL_MEMORY=4GB")
+    #    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s INITIAL_MEMORY=134217728")
+    #    target_link_options(suspiria PRIVATE "--linker-option=-s" "--linker-option=MAXIMUM_MEMORY=4gb")
+    #    set_target_properties(suspiria PROPERTIES LINK_FLAGS "-s MAXIMUM_MEMORY=4gb")
+    #  target_link_options(suspiria PRIVATE "--memory-init-size=4294967296")
 endif()
 
 #target_link_libraries(suspiria PRIVATE Qt5::Widgets EnTT twbullet assimp)# LinearMath BulletCollision BulletDynamics )
 #target_link_libraries(suspiria PRIVATE Qt6::Widgets EnTT twbullet assimp)# LinearMath BulletCollision BulletDynamics )
 target_link_libraries(suspiria PUBLIC
+# Add the linker flag to the target for max size
+    #${WASM_LINK_FLAGS}
     Qt::Core
     Qt::Gui
     Qt::OpenGL

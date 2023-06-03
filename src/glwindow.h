@@ -22,6 +22,9 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     GLuint textureColorbuffer;
     GLuint rbo;
 
+    GLfloat DPIScaleFactor=1;
+    GLfloat const UPScale=1.0f;
+
 
     GLuint captureFBO;
     GLuint captureRBO;

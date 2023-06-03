@@ -70,12 +70,6 @@ void Scene::initShaders()
     shaderIrradiance->bind();
     shaderIrradiance->setTextureUniforms();
 
-    // shaderProgramFBScr
-    shaderProgramFBScr = new ShaderProgram("fbscreen");
-    shaderProgramFBScr->setUniformNamesAndIds({"screenTexture"});
-    shaderProgramFBScr->bind();
-    shaderProgramFBScr->setTextureUniforms();
-
     // shaderShadow
     shaderShadow = new ShaderMVP("shadowmap");
     shaderShadow->bind();
