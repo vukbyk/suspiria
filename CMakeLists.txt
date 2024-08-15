@@ -1,18 +1,15 @@
-#For try to make wasm file smmaller change to 3.9
-cmake_minimum_required(VERSION 3.9)
+# Copyright (C) 2024 For Vuks use only
+
 #cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.9)
 #cmake_minimum_required(VERSION 3.24)
 
 project(suspiria LANGUAGES CXX)
 
-if(EMSCRIPTEN)
-#    set(CMAKE_TOOLCHAIN_FILE="/home/vuk/Desktop/Install/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
-    include(wasm.cmake)
-    ##wsam file size include
-    #include(CheckIPOSupported)
-    #check_ipo_supported(RESULT supported OUTPUT error)
-    #wsam file size include
-endif()
+##set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_C_STANDARD 99)
 
 INCLUDE_DIRECTORIES(
     src/
@@ -26,27 +23,18 @@ file(
 )
 
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL OpenGLWidgets Widgets)
+qt_standard_project_setup()
 
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-##set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#set(CMAKE_C_STANDARD 99)
-
 #set(CMAKE_CXX_FLAGS "-O0")
 #set(CMAKE_C_FLAGS "-O0")
 
-
-## search all source and header files deluje kao da mogu iskoristiti
-#   file(GLOB source_files *.c *.cpp *.qrc)
-#   file(GLOB header_files *.h *.hpp *.txt)
-
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL OpenGLWidgets Widgets)
-#set(TS_FILES suspiria_en_US.ts)
 
 INCLUDE_DIRECTORIES(
         dep/bullet/src/
@@ -144,36 +132,11 @@ set(ASSIMP_BUILD_XGL_IMPORTER OFF)
 set(ASSIMP_BUILD_FBX_IMPORTER ON)    # Enable FBX Importer
 
 add_subdirectory(dep/assimp)
-
 add_subdirectory(dep/entt)
 
+message("DEFAULT build")
 
-if(EMSCRIPTEN)
-  message("EMSCRIPTEN build")
-
-  set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
-  # Set the initial memory size flag
-  # Set(WASM_LINK_FLAGS "-Wl,--initial-memory=100000000")
-
-
-  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-  qt_add_executable(suspiria
-    main.cpp
-    ${SUSPIRIA_SRCGLOB}
-    ${BULLET_SRCGLOB}
-    dep/assimp
-    resource.qrc
-    shaders.qrc
-  #    glwindow.h
-  #    glwindow.cpp
-  #    logo.h
-  #    logo.cpp
-  #    ${TS_FILES}
-  )
-else()
-  message("DEFAULT build")
-  qt_add_executable(suspiria
-    main.cpp
+qt_add_executable(suspiria
     ${SUSPIRIA_SRCGLOB}
     ${BULLET_SRCGLOB}
     dep/assimp
@@ -184,38 +147,17 @@ else()
 #    logo.h
 #    logo.cpp
 #    ${TS_FILES}
-  )
-#    #wsam file size
-#    if( supported )
-#        message(STATUS "IPO / LTO enabled")
-#        set_property(TARGET suspiria PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-#    else()
-#        message(STATUS "IPO / LTO not supported: <${error}>")
-#    endif()
-    #wsam file size
-endif()
+)
+
+set_target_properties(suspiria PROPERTIES
+    WIN32_EXECUTABLE TRUE
+    MACOSX_BUNDLE TRUE
+)
 
 #if(ANDROID)
 #    find_package(OpenGLES 3.0 REQUIRED)
 #    target_link_libraries(suspiria PRIVATE GLESv3)
 #endif()
-
-if(EMSCRIPTEN)
-#      link_qt_static(suspiria)
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG")
-#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s INITIAL_MEMORY=268435456 -s MAXIMUM_MEMORY=268435456 -s ALLOW_MEMORY_GROWTH=1")
-# Set linker flags for initial memory and memory growth
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s INITIAL_MEMORY=268435456")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s ALLOW_MEMORY_GROWTH=1")
-
-#    # Linking flags
-#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s INITIAL_MEMORY=128MB -s ALLOW_MEMORY_GROWTH=1")
-#        set_target_properties(suspiria PROPERTIES LINK_FLAGS "-s TOTAL_MEMORY=4GB")
-#        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s INITIAL_MEMORY=134217728")
-#        target_link_options(suspiria PRIVATE "--linker-option=-s" "--linker-option=MAXIMUM_MEMORY=4gb")
-#        set_target_properties(suspiria PROPERTIES LINK_FLAGS "-s MAXIMUM_MEMORY=4gb")
-#      target_link_options(suspiria PRIVATE "--memory-init-size=4294967296")
-endif()
 
 #target_link_libraries(suspiria PRIVATE Qt6::Widgets EnTT twbullet assimp)# LinearMath BulletCollision BulletDynamics )
 target_link_libraries(suspiria PUBLIC
@@ -229,3 +171,23 @@ target_link_libraries(suspiria PUBLIC
     assimp
     ${XKBCOMMON_LIBRARIES}
 )
+
+qt_add_resources(suspiria "suspiria"
+    PREFIX
+        "/"
+    FILES
+        ${suspiria_resource_files}
+)
+
+install(TARGETS suspiria
+    BUNDLE  DESTINATION .
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+qt_generate_deploy_app_script(
+    TARGET suspiria
+    OUTPUT_SCRIPT deploy_script
+    NO_UNSUPPORTED_PLATFORM_ERROR
+)
+install(SCRIPT ${deploy_script})
