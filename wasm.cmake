@@ -25,7 +25,7 @@ add_link_options("SHELL:-s DEMANGLE_SUPPORT=1")
 
 # Run static dtors at teardown
 # https://emscripten.org/docs/getting_started/FAQ.html#what-does-exiting-the-runtime-mean-why-don-t-atexit-s-run
-add_link_options("SHELL:-s EXIT_RUNTIME=1")
+#add_link_options("SHELL:-s EXIT_RUNTIME=1")
 
 # Allows amount of memory used to change
 # https://emscripten.org/docs/optimizing/Optimizing-Code.html#memory-growth
@@ -40,7 +40,7 @@ add_link_options("SHELL:-s DISABLE_EXCEPTION_CATCHING=0")
 
 # Export UTF16ToString,stringToUTF16
 # Required by https://codereview.qt-project.org/c/qt/qtbase/+/286997 (since Qt 5.14)
-add_link_options("SHELL:-s EXTRA_EXPORTED_RUNTIME_METHODS=[UTF16ToString,stringToUTF16]")
+add_link_options("SHELL:-s EXPORTED_RUNTIME_METHODS=['UTF16ToString','stringToUTF16']")
 
 # Enable Fetch API
 # https://emscripten.org/docs/api_reference/fetch.html

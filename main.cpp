@@ -120,6 +120,7 @@ int main(int argc, char *argv[])
     {
         qDebug("Requesting 3.0 context");
         format.setVersion(3, 0);
+        format.setRenderableType(QSurfaceFormat::OpenGLES);
     }
 
 //    setSurfaceType(QWindow::OpenGLSurface);

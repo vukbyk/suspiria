@@ -56,7 +56,8 @@ void Scene::initShaders()
     const auto textureList = std::vector<std::string>(
                 {"albedoMap", "normalMap", "metallicMap", "roughnessMap",
                  "aoMap", "shadowMap","skyCube"});
-    shaderMain = new ShaderPBR("pbr");
+    shaderMain = new ShaderPBR("PBRForward");
+//    shaderMain = new ShaderPBR("pbr");
     shaderMain->setUniformNamesAndIds(textureList);
     shaderMain->bind();
     shaderMain->setTextureUniforms();
@@ -203,12 +204,13 @@ void Scene::prepareAssetsPlane()
     Entity e;
     e=CreateEntity();
 //    e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");
-    e.addTexturePBRComp("defaultComplex.png","normal1x1.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+//    e.addTexturePBRComp("defaultComplex.png","normal1x1.png", "defaultComplex.png", "white.png", "rustediron/ao.png");
+    e.addTexturePBRComp("defaultComplex.png","normal1x1.png", "rustediron/metallic.png", "white.png", "rustediron/ao.png");
     e.addMeshComponent("plane10x10.obj");
     e.addTransformComponent( 0.0f, 0.5f, 0.0f);
 
     e=CreateEntity();
-    e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+    e.addTexturePBRComp("cyborg_diffuse.png",/*"normal1x1.png"*/ "cyborg_normal.png", "rustediron/metallic.png", "defaultComplex.png", "rustediron/ao.png");
     e.addMeshComponent("cyborg.obj");
     e.addTransformComponent( 0.0f, 2.0f, -7.0f);
 
@@ -223,13 +225,13 @@ void Scene::prepareAssetsPlane()
     e.addTransformComponent( 0.0, 1.0f, -7.0f);
 
     e=CreateEntity();
-    e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+    e.addTexturePBRComp("white.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
     e.addMeshComponent("sphare.obj");
     e.addTransformComponent( -3.0, 2.0f, -7.0f);
 
     e=CreateEntity();
 
-    e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+    e.addTexturePBRComp("white.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
     e.addMeshComponent("cubemaya.obj");
     e.addTransformComponent( 3.0, 1.0f, -7.0f);
 //    e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");

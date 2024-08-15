@@ -28,6 +28,7 @@
 
 #ifdef GL_ES_VERSION_2_0
     #include <qopengles2ext.h>
+    #include <qopenglfunctions_es2.h>
 #endif
 
 GLWindow::GLWindow()
@@ -45,27 +46,69 @@ GLWindow::~GLWindow()
 {
     // Make sure the context is current when deleting the texture
     // and the buffers.
-//    makeCurrent();
-//    doneCurrent();
-//    delete skyScene;
-//    delete scene;
+
     glDeleteFramebuffers(1, &framebuffer);
-    delete world;
+    glDeleteRenderbuffers(1, &rbo);
+    glDeleteTextures(1, &textureColorbuffer);
+    delete sceneWorld;
+}
+
+void GLWindow::initAndResizeBuffer()
+{
+    if(framebuffer)
+        glDeleteFramebuffers(1, &framebuffer);
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    // create a color attachment texture
+    glGenTextures(1, &textureColorbuffer);
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width()*DPIScaleFactor, height()*DPIScaleFactor, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //Attach color texture as color attachment 0 (max 8 different 0-7)
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);//GL_READ_FRAMEBUFFER_EXT GL_DRAW_FRAMEBUFFER_EXT
+
+
+    if(rbo)
+        glDeleteRenderbuffers(1, &rbo);
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    // use a single renderbuffer object for both a depth AND stencil buffer.
+    glRenderbufferStorage(GL_RENDERBUFFER, /*GL_DEPTH_COMPONENT32F*/GL_DEPTH24_STENCIL8, width()*DPIScaleFactor*UPScale, height()*DPIScaleFactor*UPScale);
+    // now actually attach it
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, /*GL_DEPTH_ATTACHMENT*/GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);//can be only one FBTex2D ^
+    // now that we actually created the framebuffer and added all
+    // attachments we want to check if it is actually complete now
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        qDebug() << "!!! ERROR !!! ::FRAMEBUFFER:: Framebuffer is not complete!";
+        return;
+    }
+
+
+    // Bind default framebuffer
+//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void GLWindow::initializeGL()
 {
     initializeOpenGLFunctions();
+
+    const GLubyte* version = glGetString(GL_VERSION);
+    if (version) {
+        qDebug() << "OpenGL ES Version!!!!!!!!!!!!!!!!!!: " << version;
+    } else {
+        qDebug() << "Failed to retrieve OpenGL ES version.!!!!!!!!!!!!!!";
+    }
+
     DPIScaleFactor = devicePixelRatio();
     qDebug()<<"Display scale factor: " << DPIScaleFactor;
 
-    world = new Scene();
+    sceneWorld = new Scene();
 
-    camera = world->getCamera();
-    eulerYP = &world->reg()->get<FPSEulerComponent>(camera);
+    camera = sceneWorld->getCamera();
+    eulerYP = &sceneWorld->reg()->get<FPSEulerComponent>(camera);
     controlledEntity = &camera;
-
-//    initQuadForFB();
 
     glGenFramebuffers(1, &depthMapFBO);
     // create depth texture
@@ -75,14 +118,37 @@ void GLWindow::initializeGL()
                  widthShadow, heightShadow, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+#ifndef GL_ES_VERSION_2_0
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR/*_EXT*/, borderColor);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER/*_EXT*/);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER/*_EXT*/);
-    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR/*_EXT*/, borderColor);
+#else
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR_EXT, borderColor);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER_EXT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER_EXT);
+#endif
+
+
+
 //    attach depth texture as FBO's depth buffer
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTexture, 0);
+
+#ifndef GL_ES_VERSION_2_0
     glDrawBuffer(GL_NONE);
+#else
+    // Disable all color writes
+    glColorMask(false, false, false, false);
+#endif
+
+
+#ifdef GL_ES_VERSION_2_0
+    // Re-enable color writes
+    glColorMask(true, true, true, true);
+#endif
+
+
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     // now that we actually created the framebuffer and added all
@@ -93,111 +159,14 @@ void GLWindow::initializeGL()
         return;
     }
 
+    initAndResizeBuffer();
 
-//    // framebuffer configuration
-//    // -------------------------
-//    shaderProgramFBScr = new ShaderProgram("fbscreen");
-//    shaderProgramFBScr->setUniformNamesAndIds({"screenTexture"});
-//    shaderProgramFBScr->bind();
-//    shaderProgramFBScr->setTextureUniforms();
-
-    glGenFramebuffers(1, &framebuffer);
-//    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-//    // create a color attachment texture
-//    glGenTextures(1, &textureColorbuffer);
-//    //Must be same as Resize
-//    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width()*DPIScaleFactor, height()*DPIScaleFactor, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-//    //
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//    //Attach color texture as color attachment 0 (max 8 different 0-7)
-//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);//GL_READ_FRAMEBUFFER_EXT GL_DRAW_FRAMEBUFFER_EXT
-
-    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
-    glGenRenderbuffers(1, &rbo);
-//    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-//    // use a single renderbuffer object for both a depth AND stencil buffer.
-//    glRenderbufferStorage(GL_RENDERBUFFER, /*GL_DEPTH_COMPONENT32F*/GL_DEPTH24_STENCIL8, width(), height());
-//    // now actually attach it
-//    glFramebufferRenderbuffer(GL_FRAMEBUFFER, /*GL_DEPTH_ATTACHMENT*/GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);//can be only one FBTex2D ^
-//    // now that we actually created the framebuffer and added all
-//    // attachments we want to check if it is actually complete now
-//    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-//    {
-//        qDebug() << "!!! ERROR !! ::FRAMEBUFFER:: Framebuffer is not complete!";
-//        return;
-//    }
-
-//    // Bind default framebuffer
-//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    //Shadow shader configuration
-
-//    // pbr: create an irradiance cubemap, and re-scale capture FBO to irradiance scale.
-//    // --------------------------------------------------------------------------------
-////    //unsigned int irradianceMap;
-//    glGenTextures(1, &irradianceMap);
-//    glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
-//    for (unsigned int i = 0; i < 6; ++i)
-//    {
-//        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 32, 32, 0, GL_RGB, GL_FLOAT, nullptr);
-//    }
-//    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-//    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-//    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-//    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-//    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-//    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-//    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
-
-
-    // pbr: solve diffuse integral by convolution to create an irradiance (cube)map.
-    // -----------------------------------------------------------------------------
-
-//    shaderIrradiance = new ShaderVP("cubemap.vs", "irradiance_convolution.fs");
-////    shaderIrradiance->setUniformNamesAndIds({"skyCube"});
-//    shaderIrradiance->setUniformNamesAndIds({"screenTexture"});
-//    shaderIrradiance->bind();
-//    shaderIrradiance->setTextureUniforms();
-
-
-//    shaderBrdf = new ShaderProgram("brdf");
-
-//    //Todo: SkyMap connect to shader also
-//    const auto textureList = std::vector<std::string>(
-//                {"albedoMap", "normalMap", "metallicMap", "roughnessMap",
-//                 "aoMap", "shadowMap","skyCube"});
-//    shaderMain = new ShaderPBR("pbr");
-//    shaderMain->setUniformNamesAndIds(textureList);
-////    shaderProgramMain->uniformLocation( {view = shaderProgramSky->getUniform("view")})
-
-//    shaderMain->bind();
-//    shaderMain->setTextureUniforms();
-
-//    shaderMain->uniform = new Entity(world->CreateEntity());
-//    shaderMain->uniform->addComponent(mvpComp(world->shaderMain));
-
-//    shaderProgramSky = new ShaderVP("sky.vs", "sky.fs");
-////    shaderProgramSky->setUniformNamesAndIds({"reflectCube"});
-//    shaderProgramSky->setUniformNamesAndIds({"skyCubeTex"});
-
-//    skyCube = world->CreateEntity();
-//    skyCube.addComponent(TransformComp(Transform()));
-//    skyCube.addMeshComponent("sky/skycubeinv.obj");
-//    skyCube.addComponent(CubeMapComp(world->getTextureManager()->getId("reflectCube")));
-////    skyCube.addCubeMapComp("skyCubeTex");
-
-    light = world->CreateEntity();
+    light = sceneWorld->CreateEntity();
     //Vuk: I do not like this have to be changed
     //Vuk: unrelated problems with -90 pitch)
     btVector3 lightEulerRotation(0, btRadians(-90.0f), 0);
 //    btVector3 lightEulerRotation(0, btRadians(-45.0f), 0);
     light.addComponent<FPSEulerComponent>(lightEulerRotation);
-
-
 
     Transform lightInitTransform(btVector3(0.0f, 10.0f, 0.0f));
     btQuaternion lightQuatRot(lightEulerRotation.x(), lightEulerRotation.y(), 0);
@@ -219,9 +188,10 @@ void GLWindow::initializeGL()
     light.addMeshComponent("cubeinvertmini.obj");
     light.addTexturePBRComp("white.png", "normal1x1.png", "white.png", "white.png", "white.png");
 //    light.addTextureBoxComp(/*"reflectCube"*/"skyCubeTex");
-    CubeMapComp cubeMap((world->getTextureManager()->getId("reflectCube")));
+    CubeMapComp cubeMap((sceneWorld->getTextureManager()->getId("reflectCube")));
     light.addComponent(cubeMap);
 
+//    sceneWorld->reg()->destroy(light);
 
 //    GLint lightID = shaderProgramMain->getUniform("light");
 //    light.addComponent(LightComp(lightID));
@@ -235,10 +205,14 @@ void GLWindow::initializeGL()
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 //    glFrontFace(GL_CW);
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
     //collor gamma
-//    glEnable(GL_FRAMEBUFFER_SRGB_EXT);
+#ifndef GL_ES_VERSION_2_0
     glEnable(GL_FRAMEBUFFER_SRGB);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+#else
+    glEnable(GL_FRAMEBUFFER_SRGB_EXT);
+#endif
 
     deltaTimer.start();
 }
@@ -246,56 +220,26 @@ void GLWindow::initializeGL()
 void GLWindow::resizeGL(int w, int h)
 {
 //    auto camPersp = world->reg()->get<CameraComp>(camera);
-    Camera &camPersp = world->reg()->get<CameraComp>(camera);
+    Camera &camPersp = sceneWorld->reg()->get<CameraComp>(camera);
     camPersp.aspect = GLfloat(w) / GLfloat(h ? h : 1);
+
     setAspectFowMult();
 
     projectionMat = glm::perspective(glm::radians(camPersp.fov), camPersp.aspect,
                                      camPersp.zNear, camPersp.zFar);
-    world->shaderMain->bindShader();
-    glUniformMatrix4fv(world->shaderMain->projection, 1, GL_FALSE, &projectionMat[0][0]);
+    sceneWorld->shaderMain->bindShader();
+    glUniformMatrix4fv(sceneWorld->shaderMain->projection, 1, GL_FALSE, &projectionMat[0][0]);
 //    shaderProgramMain->setProjectionMat(&projectionMat[0][0]);
 
-    world->shaderSky->bindShader();
-    glUniformMatrix4fv(world->shaderSky->projection, 1, GL_FALSE, &projectionMat[0][0]);
+    sceneWorld->shaderSky->bindShader();
+    glUniformMatrix4fv(sceneWorld->shaderSky->projection, 1, GL_FALSE, &projectionMat[0][0]);
 //    world->shaderProgramSky->setProjectionMat(&projectionMat[0][0]);
 
-//    world->shaderIrradiance->bindShader();
-//    glUniformMatrix4fv(world->shaderIrradiance->projection, 1, GL_FALSE, &projectionMat[0][0]);
+//    sceneWorld->shaderIrradiance->bindShader();
+//    glUniformMatrix4fv(sceneWorld->shaderIrradiance->projection, 1, GL_FALSE, &projectionMat[0][0]);
 
+    initAndResizeBuffer();
 
-    glDeleteFramebuffers(1, &framebuffer);
-    glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    // create a color attachment texture
-    glGenTextures(1, &textureColorbuffer);
-    //Must be same as Resize
-    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width()*DPIScaleFactor, height()*DPIScaleFactor, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    //
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //Attach color texture as color attachment 0 (max 8 different 0-7)
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);//GL_READ_FRAMEBUFFER_EXT GL_DRAW_FRAMEBUFFER_EXT
-
-    glDeleteRenderbuffers(1, &rbo);
-    glGenRenderbuffers(1, &rbo);
-    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-
-    // use a single renderbuffer object for both a depth AND stencil buffer.
-    glRenderbufferStorage(GL_RENDERBUFFER, /*GL_DEPTH_COMPONENT32F*/GL_DEPTH24_STENCIL8, width()*DPIScaleFactor*UPScale, height()*DPIScaleFactor*UPScale);
-    // now actually attach it
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, /*GL_DEPTH_ATTACHMENT*/GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);//can be only one FBTex2D ^
-    // now that we actually created the framebuffer and added all
-    // attachments we want to check if it is actually complete now
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-    {
-        qDebug() << "!!! ERROR !!! ::FRAMEBUFFER:: Framebuffer is not complete!";
-        return;
-    }
-
-    // Bind default framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void GLWindow::paintGL()
@@ -308,29 +252,29 @@ void GLWindow::paintGL()
     glViewport(0, 0, widthShadow, heightShadow);
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTexture, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
+//    glDrawBuffer(GL_NONE);
+//    glReadBuffer(GL_NONE);
 
 
-    world->shaderShadow->bindShader();
+    sceneWorld->shaderShadow->bindShader();
     orthoLightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 51.0f);
-    glUniformMatrix4fv(world->shaderShadow->projection, 1, GL_FALSE, &orthoLightProjection[0][0]);
+    glUniformMatrix4fv(sceneWorld->shaderShadow->projection, 1, GL_FALSE, &orthoLightProjection[0][0]);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // Enable depth buffer
     glEnable(GL_DEPTH_TEST);
     glCullFace(GL_FRONT);
 
-    world->shaderShadow->bindShader();
-    TransformComp &lightTransformComp = world->reg()->get<TransformComp>(light);
+    sceneWorld->shaderShadow->bindShader();
+    TransformComp &lightTransformComp = sceneWorld->reg()->get<TransformComp>(light);
     glm::mat4 lightViewMat = lightTransformComp.transform.getInverseTransformMatrix();
-    GLint viewUniform = world->shaderShadow->view;// getUniform("view");
+    GLint viewUniform = sceneWorld->shaderShadow->view;// getUniform("view");
     glUniformMatrix4fv(viewUniform, 1, GL_FALSE, &lightViewMat[0][0]);
 
-    world->shaderShadow->setTextureUniforms();
+    sceneWorld->shaderShadow->setTextureUniforms();
 
-    GLint modelSH = world->shaderShadow->model;//getUniform("model");
-    auto groupSH = world->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();//, FixSphereBVComp>();//, cMesh>();
+    GLint modelSH = sceneWorld->shaderShadow->model;//getUniform("model");
+    auto groupSH = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();//, FixSphereBVComp>();//, cMesh>();
     GLuint lastMeshVAOLight;
     groupSH.each([this, &modelSH, &tm, &lastMeshVAOLight]
                (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform)//,FixSphereBVComp)// &boundingVol)
@@ -366,33 +310,33 @@ void GLWindow::paintGL()
 
     //Separated to change of size for Perspective when window is resized,
     //but also should have for zoom in future or jsut for evry case
-//  //shaderProgram->bindSetPVMat(pPointerPM, cameraMat);
+  //shaderProgram->bindSetPVMat(pPointerPM, cameraMat);
 
-    world->shaderMain->bindShader();
-    world->shaderMain->setTextureUniforms();
+    sceneWorld->shaderMain->bindShader();
+    sceneWorld->shaderMain->setTextureUniforms();
 
 
-    Transform &cameraTransformComp = world->reg()->get<TransformComp>(camera);
+    Transform &cameraTransformComp = sceneWorld->reg()->get<TransformComp>(camera);
 //    btVector3 cam = cameraTransformComp.getPosition();
     glm::mat4 viewMat = cameraTransformComp.getInverseTransformMatrix();
 
 //    auto *viewMatRawPointer = glm::value_ptr(invertMat); //instead &nameMAT[0][0]
 //    shaderProgramMain->setViewMat(&viewMat[0][0]);
-    glUniformMatrix4fv(world->shaderMain->view, 1, GL_FALSE, &viewMat[0][0]);
+    glUniformMatrix4fv(sceneWorld->shaderMain->view, 1, GL_FALSE, &viewMat[0][0]);
 
 //    Alternative with entity in ShadeProgram
 //    mvpComp UniformMPV =  world->reg()->get<mvpComp>(*world->shaderMain->uniform);
 //    glUniformMatrix4fv(UniformMPV.view, 1, GL_FALSE, &viewMat[0][0]);
 
-    Transform &lightTransform = world->reg()->get<TransformComp>(light);
-    glUniformMatrix4fv(world->shaderMain->light, 1, GL_FALSE, glm::value_ptr(lightTransform.getTransformMatrix()) );//&mtm[0][0]);
+    Transform &lightTransform = sceneWorld->reg()->get<TransformComp>(light);
+    glUniformMatrix4fv(sceneWorld->shaderMain->light, 1, GL_FALSE, glm::value_ptr(lightTransform.getTransformMatrix()) );//&mtm[0][0]);
 //    GLuint &lightCompID = world->reg()->get<LightComp>(light);
 //    glUniformMatrix4fv(lightCompID, 1, GL_FALSE, glm::value_ptr(lightTransform.getTransformMatrix()) );//&mtm[0][0]);
 
 //    glUniform3fv(camPosUniform, 1, &cam[0]);
 
     glm::mat4 lightSpaceMat = orthoLightProjection * lightTransformComp.transform.getInverseTransformMatrix();
-    glUniformMatrix4fv(world->shaderMain->lightSpaceMat, 1, GL_FALSE, glm::value_ptr(lightSpaceMat));
+    glUniformMatrix4fv(sceneWorld->shaderMain->lightSpaceMat, 1, GL_FALSE, glm::value_ptr(lightSpaceMat));
     glActiveTexture(GL_TEXTURE0 + 5);//0-5???
     glBindTexture(GL_TEXTURE_2D, depthMapTexture);
 
@@ -402,12 +346,12 @@ void GLWindow::paintGL()
     GLuint lastRoughId;
     GLuint lastAoId;
     GLuint lastMeshVAO;
-    GLuint lastCubeMapId= world->reg()->get<CubeMapComp>(light).cubeTextureId;
+    GLuint lastCubeMapId= sceneWorld->reg()->get<CubeMapComp>(light).cubeTextureId;
     glActiveTexture(GL_TEXTURE0 + 6 );//0-5???
     glBindTexture(GL_TEXTURE_CUBE_MAP, lastCubeMapId);
 
     //world.view<cRender>().each([this](auto &render) //as alternative
-    auto group = world->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();//, FixSphereBVComp>();//, cMesh>();
+    auto group = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();//, FixSphereBVComp>();//, cMesh>();
     group.each([this, &tm, &cameraTransformComp,
                &lastAlbedoId, &lastNormalId, &lastMetalId, &lastRoughId, &lastAoId, &lastMeshVAO]//,&lastCubeMapId]
                (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform)//,FixSphereBVComp)// &boundingVol)
@@ -417,7 +361,7 @@ void GLWindow::paintGL()
 //        if(!boundingVol.isOnFrustum(cam, frustum))
 //            return ;
         transform.transform.getOpenGLMatrix(tm);
-        glUniformMatrix4fv(world->shaderMain->model, 1, GL_FALSE, tm);
+        glUniformMatrix4fv(sceneWorld->shaderMain->model, 1, GL_FALSE, tm);
 
 //ToDo: Material and Material instance based on textures and other param
 
@@ -466,11 +410,11 @@ void GLWindow::paintGL()
 
     /////////////////////////////////////////////
     glDepthFunc(GL_LEQUAL);
-    world->shaderSky->bindShader();
-    GLint SkyViewUniform = world->shaderSky->view;//getUniform("view");
+    sceneWorld->shaderSky->bindShader();
+    GLint SkyViewUniform = sceneWorld->shaderSky->view;//getUniform("view");
 //    shaderProgramMain->setViewMat(&viewMat[0][0]);
     glUniformMatrix4fv(SkyViewUniform, 1, GL_FALSE, &viewMat[0][0]);
-    auto [cubeMapId, mesh] = world->reg()->get<CubeMapComp, MeshComp>(world->getSkyCube()); {}//<-for formating {}
+    auto [cubeMapId, mesh] = sceneWorld->reg()->get<CubeMapComp, MeshComp>(sceneWorld->getSkyCube()); {}//<-for formating {}
 
     glActiveTexture(GL_TEXTURE0);//!!!!!!!!!!
     glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapId);
@@ -490,20 +434,21 @@ void GLWindow::paintGL()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
 //    // clear all relevant buffers
-    glClearColor(1.0f, 0.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
+    //set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
+//    glClearColor(1.0f, 0.0f, 1.0f, 1.0f); // good for debuging screen size
     glClear(GL_COLOR_BUFFER_BIT);
 
 
     ///////////////////////////////////////////////////
-    world->shaderProgramFBScr->bind();
-    world->shaderProgramFBScr->setTextureUniforms();
+    sceneWorld->shaderProgramFBScr->bind();
+    sceneWorld->shaderProgramFBScr->setTextureUniforms();
 
     glBindVertexArray(quadVAO);
-    glBindVertexArray(world->renderQuad->VAO);
+    glBindVertexArray(sceneWorld->renderQuad->VAO);
     glActiveTexture(GL_TEXTURE0 + 0 );
     glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// use the color attachment texture as the texture of the quad plane
 //    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glDrawElements(GL_TRIANGLES, world->renderQuad->getIndicesSize(), GL_UNSIGNED_INT,/*(void*)*/0);
+    glDrawElements(GL_TRIANGLES, sceneWorld->renderQuad->getIndicesSize(), GL_UNSIGNED_INT,/*(void*)*/0);
 
 
     //////////////////////////////////////////////////////////////
@@ -517,14 +462,14 @@ void GLWindow::paintGL()
     // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
     glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
 
-    world->shaderDebugQuad->bind();
-    world->shaderDebugQuad->setTextureUniforms();
+    // sceneWorld->shaderDebugQuad->bind();
+    // sceneWorld->shaderDebugQuad->setTextureUniforms();
 
     glBindVertexArray(quadVAO);
-    glBindVertexArray(world->renderQuad->VAO);
+    glBindVertexArray(sceneWorld->renderQuad->VAO);
     glActiveTexture(GL_TEXTURE0 + 0 );
     glBindTexture(GL_TEXTURE_2D, depthMapTexture);	// use the color attachment texture as the texture of the quad plane
-    glDrawElements(GL_TRIANGLES, world->renderQuad->getIndicesSize(), GL_UNSIGNED_INT,/*(void*)*/0);
+    glDrawElements(GL_TRIANGLES, sceneWorld->renderQuad->getIndicesSize(), GL_UNSIGNED_INT,/*(void*)*/0);
 //    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     //////// END shaderDebugQuad /////////
@@ -559,7 +504,7 @@ bool GLWindow::isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, 
 //    btScalar nearPlaneDist=forward.dot( relativPos );
 //    if(nearPlaneDist > 0 )//|| relativPos.length2()>200*200 )
 //        return false;
-    Camera &camPersp = world->reg()->get<CameraComp>(camera);
+    Camera &camPersp = sceneWorld->reg()->get<CameraComp>(camera);
     if( //relativPos.length2()>200*200   ||
         relativPos.angle(-forward) > qDegreesToRadians(camPersp.fov * aspectFowMult))
         return false;
@@ -568,7 +513,7 @@ bool GLWindow::isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, 
 
 void GLWindow::setAspectFowMult()
 {
-    Camera &camPersp = world->reg()->get<CameraComp>(camera);
+    Camera &camPersp = sceneWorld->reg()->get<CameraComp>(camera);
     aspectFowMult = GLfloat(width() > GLfloat(height())? camPersp.aspect: 1);
 }
 
@@ -583,7 +528,7 @@ void GLWindow::timerEvent(QTimerEvent *)
     }
     else
     {
-        controlledTransform = &world->reg()->get<TransformComp>(*controlledEntity);
+        controlledTransform = &sceneWorld->reg()->get<TransformComp>(*controlledEntity);
     }
 //    auto &m = world->reg()->get<TransformComponent>(light);
 //    if(keys[Qt::Key_T])
@@ -614,12 +559,12 @@ void GLWindow::timerEvent(QTimerEvent *)
     if(keys[Qt::Key_1])
     {
         controlledEntity= &camera;
-        eulerYP = &world->reg()->get<FPSEulerComponent>(camera);
+        eulerYP = &sceneWorld->reg()->get<FPSEulerComponent>(camera);
     }
     if(keys[Qt::Key_2])
     {
         controlledEntity = &light;
-        eulerYP = &world->reg()->get<FPSEulerComponent>(light);
+        eulerYP = &sceneWorld->reg()->get<FPSEulerComponent>(light);
     }
 
 
@@ -786,7 +731,7 @@ void GLWindow::mouseReleaseEvent(QMouseEvent *e)
 Frustum GLWindow::createFrustumFromCamera(const Transform& cam, float nearOffset, float farOffset)
 {
     Frustum frustum;
-    Camera &camPersp = world->reg()->get<CameraComp>(camera);
+    Camera &camPersp = sceneWorld->reg()->get<CameraComp>(camera);
     const float halfVSide = camPersp.zFar * tanf(camPersp.fov * .5f);
     const float halfHSide = halfVSide * camPersp.aspect;
     const btVector3 frontMultFar = camPersp.zFar * cam.forward();
@@ -805,26 +750,26 @@ Frustum GLWindow::createFrustumFromCamera(const Transform& cam, float nearOffset
     return frustum;
 }
 
-void GLWindow::initQuadForFB()
-{
-    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
-    // positions   // texCoords
-    -1.0f,  1.0f,   0.0f, 1.0f,
-    -1.0f, -1.0f,   0.0f, 0.0f,
-     1.0f, -1.0f,   1.0f, 0.0f,
+//void GLWindow::initQuadForFB()
+//{
+//    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+//    // positions   // texCoords
+//    -1.0f,  1.0f,   0.0f, 1.0f,
+//    -1.0f, -1.0f,   0.0f, 0.0f,
+//     1.0f, -1.0f,   1.0f, 0.0f,
 
-    -1.0f,  1.0f,   0.0f, 1.0f,
-     1.0f, -1.0f,   1.0f, 0.0f,
-     1.0f,  1.0f,   1.0f, 1.0f
-    };
+//    -1.0f,  1.0f,   0.0f, 1.0f,
+//     1.0f, -1.0f,   1.0f, 0.0f,
+//     1.0f,  1.0f,   1.0f, 1.0f
+//    };
 
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-}
+//    glGenVertexArrays(1, &quadVAO);
+//    glGenBuffers(1, &quadVBO);
+//    glBindVertexArray(quadVAO);
+//    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+//    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+//    glEnableVertexAttribArray(0);
+//    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+//    glEnableVertexAttribArray(1);
+//    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+//}
