@@ -76,11 +76,11 @@ public:
 class ShaderPBR: public ShaderProgram
 {
 public:
-    GLuint model;
-    GLuint view;
-    GLuint projection;
-    GLuint light;
-    GLuint lightSpaceMat;
+    GLuint model;         // Return getuniform("sting")
+    GLuint view;          // Return getuniform("sting")
+    GLuint projection;    // Return getuniform("sting")
+    GLuint light;         // Return getuniform("sting")
+    GLuint lightSpaceMat; // Return getuniform("sting")
 
     ShaderPBR( const std::string &shaderName): ShaderProgram(shaderName)
     { initUniforms(); };

@@ -1,13 +1,12 @@
 #include "model.h"
 #include "texture.h"
 #include "mesh.h"
-#include "assimpload.h"
 #include "material.h"
 
 //for ETC
 #include <entt/entity/fwd.hpp>
 #include "scene.h"
-#include "components.h"
+
 
 
 Model::Model(): Spacial()

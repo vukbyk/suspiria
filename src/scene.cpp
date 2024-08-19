@@ -115,7 +115,7 @@ const Entity Scene::getSkyCube()
 void Scene::importTextures()
 {
 
-    getTextureManager()->load("defaultComplex.png", true);
+    getTextureManager()->load("defaultr.png", true);
     getTextureManager()->load("normal1x1.png", false);
     getTextureManager()->load("white.png",     false);
 
@@ -204,13 +204,13 @@ void Scene::prepareAssetsPlane()
     Entity e;
     e=CreateEntity();
 //    e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");
-//    e.addTexturePBRComp("defaultComplex.png","normal1x1.png", "defaultComplex.png", "white.png", "rustediron/ao.png");
-    e.addTexturePBRComp("defaultComplex.png","normal1x1.png", "rustediron/metallic.png", "white.png", "rustediron/ao.png");
+//    e.addTexturePBRComp("defaultrgba.png","normal1x1.png", "defaultrgba.png", "white.png", "rustediron/ao.png");
+    e.addTexturePBRComp("defaultrgba.png","normal1x1.png", "rustediron/metallic.png", "white.png", "rustediron/ao.png");
     e.addMeshComponent("plane10x10.obj");
     e.addTransformComponent( 0.0f, 0.5f, 0.0f);
 
     e=CreateEntity();
-    e.addTexturePBRComp("cyborg_diffuse.png",/*"normal1x1.png"*/ "cyborg_normal.png", "rustediron/metallic.png", "defaultComplex.png", "rustediron/ao.png");
+    e.addTexturePBRComp("cyborg_diffuse.png",/*"normal1x1.png"*/ "cyborg_normal.png", "rustediron/metallic.png", "defaultrgba.png", "rustediron/ao.png");
     e.addMeshComponent("cyborg.obj");
     e.addTransformComponent( 0.0f, 2.0f, -7.0f);
 

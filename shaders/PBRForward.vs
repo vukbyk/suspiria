@@ -4,11 +4,17 @@ precision highp int;
 precision highp float;
 #endif
 
-layout (location = 0) in vec3 pos;
-layout (location = 1) in vec2 uv;
-layout (location = 2) in vec3 nor;
-layout (location = 3) in vec3 tng;
-layout (location = 4) in vec3 bit;
+//layout (location = 0) in vec3 pos;
+//layout (location = 1) in vec2 uv;
+//layout (location = 2) in vec3 nor;
+//layout (location = 3) in vec3 tng;
+//layout (location = 4) in vec3 bit;
+in vec3 pos;
+in vec2 uv;
+in vec3 nor;
+in vec3 tng;
+in vec3 bit;
+
 
 uniform mat4 model;
 uniform mat4 view;
@@ -16,7 +22,7 @@ uniform mat4 projection;
 uniform mat4 light;
 //!!!!!!!!!!!!!!!!CheckChange!!!!!!!!!!!!!!
 //uniform vec3 camPos;
-vec3 camPos=projection[3].xyz;
+
 
 //uniform mat4 transforms[3];
 //uniform uint index;
@@ -52,6 +58,7 @@ out mat4 lightMat;
 
 void main()
 {
+    vec3 camPos=projection[3].xyz;
     uvFrag=uv;
     lightMat = light;
     lightPosition = light[3].xyz;
@@ -59,7 +66,6 @@ void main()
 //    viewPosition = vec3(view[3].xyz);//??? maybe have to send real data????
     //Probabli can be used directlycamPos
 //    vec3 viewPosition = camPos;
-
 //    FragPos = vec3(model * vec4(pos, 1.0));
     vec3 FragPos= vec3(model * vec4(pos, 1.0));
 

@@ -4,7 +4,7 @@
 
 #include <QFile>
 
-#ifdef GL_ES_VERSION_2_0
+#ifdef GLESVuk
     #include <qopengles2ext.h>
     #define GL_RED					0x1903
     #define GL_RGB8					0x8051
@@ -35,6 +35,13 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection, const 
         qDebug("Unable to load texture: %s", fileName.c_str());
         return;
     }
+    else
+    {
+        qDebug("Image: *%s*loaded successfully!", fileName.c_str());
+        qDebug("Width: %i", width );
+        qDebug("Height: %i",height);
+        qDebug("Channels: %i", nChannels);
+    }
 
     GLenum internalFormat=0;
     GLenum dataFormat = GL_RGB;
@@ -44,7 +51,12 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection, const 
     }
     else if (nChannels == 3)
     {
+
+// #ifdef GLESVuk
+        // internalFormat = gammaCorrection ? GL_SRGB8_NV : GL_RGB8_OES;
+// #else
         internalFormat = gammaCorrection ? GL_SRGB8 : GL_RGB8;
+// #endif
         dataFormat = GL_RGB;
     }
     else if (nChannels == 4)
@@ -160,7 +172,11 @@ Texture::Texture(std::vector<std::string> faces, const bool flip, const bool gam
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+#ifdef GLESVuk
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R_OES, GL_CLAMP_TO_EDGE);
+#else
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+#endif
 }
 
 Texture::~Texture()

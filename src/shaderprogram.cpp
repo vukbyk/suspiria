@@ -1,7 +1,7 @@
 #include <QFile>
 
 #include "shaderprogram.h"
-#include "camera.h"
+// #include "camera.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -45,58 +45,12 @@ QString versionedShaderCode(const QString &src)
     else
        return versionedSrc.append("#version 430\n" + src);
 }
-
 void ShaderProgram::initShaders(const std::string &shaderGroupName)
 {
-    initializeOpenGLFunctions();
+    std::string shaderNameVS = shaderGroupName;
+    std::string shaderNameFS = shaderGroupName;
 
-    // Compile vertex shader
-
-//    stream.setCodec("UTF-8");
-//    QFile filevertexShaderSource(std::string(":/shaders/vshader.glsl").c_str());
-    QFile filevertexShaderSource(std::string(":/shaders/").append(shaderGroupName).append(".vs").c_str());
-    if (!filevertexShaderSource.open(QIODevice::ReadOnly|QFile::Text))
-    {
-        qDebug() << "Can not open file ";
-//        close();
-    }
-    QTextStream invs(&filevertexShaderSource);
-    QString vsSource = invs.readAll();
-//    /*qDebug() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n" << */versionedShaderCode(vsSource);
-
-    filevertexShaderSource.close();
-
-    if (!addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vsSource)))
-    {
-        qDebug() << "Error: Vertex shader, versionedShaderCode(vsSource)";
-//        close();
-    }
-//    QFile fragmentShaderSource(std::string(":/shaders/fshader.glsl").c_str());
-    QFile fragmentShaderSource(std::string(":/shaders/").append(shaderGroupName).append(".fs").c_str());
-    if (!fragmentShaderSource.open(QIODevice::ReadOnly|QFile::Text))
-    {
-        qDebug() << "Can not open file ";
-//        close();
-    }
-    QTextStream infs(&fragmentShaderSource);
-    QString fsSource = infs.readAll();
-    /*qDebug() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n" << */versionedShaderCode(fsSource);
-    fragmentShaderSource.close();
-
-    // Compile fragment shader
-    if (!addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(fsSource)))
-    {
-        qDebug() << "Error: Fragment shader, versionedShaderCode(fsSource)! ";
-//        close();
-    }
-    // Link shader pipeline
-    if (!link())
-    {
-        qDebug() << "Error: Shader program link!";
-//        close();
-    }
-//    projection = glGetUniformLocation(programId(), "projection");
-//    view = glGetUniformLocation(programId(),"view");
+    initShaders(shaderNameVS.append(".vs"), shaderNameFS.append(".fs"));
 }
 
 void ShaderProgram::initShaders(const std::string &vsShaderGroupName, const std::string &fsShaderGroupName)

@@ -56,7 +56,6 @@ void main()
 
 //    result = diffT * colorT * lightColor;
 //    FragColor = vec4(texture(normalTexture, uvFrag).rgb, 1);//vec4(result, 1);
-//    //TEST
 
     float dist = length(TangentFragPos - TangentLightPos);
     float attenuation = 1.0 / ( dist * dist );
