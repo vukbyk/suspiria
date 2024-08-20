@@ -20,7 +20,7 @@ ShaderProgram::ShaderProgram(const std::string &vsShaderGroupName, const std::st
 
 ShaderProgram::~ShaderProgram()
 {
-    delete uniform;
+    // delete uniform;
 }
 
 //ShaderProgram::ShaderProgram(const std::string &shaderGroupName,

@@ -19,7 +19,7 @@ Scene::~Scene()
     delete shaderMain;
     delete shaderIrradiance;
     delete shaderShadow;
-    delete shaderSky;
+
     delete shaderProgramFBScr;
     delete shaderDebugQuad;
     delete shaderBrdf;

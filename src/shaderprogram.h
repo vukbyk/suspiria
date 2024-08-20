@@ -55,9 +55,10 @@ public:
 class ShaderMVP: public ShaderProgram
 {
 public:
-    GLuint model;
-    GLuint view;
-    GLuint projection;
+    GLuint model;       // Return getuniform("sting")
+    GLuint view;        // Return getuniform("sting")
+    GLuint projection;  // Return getuniform("sting")
+
 
     ShaderMVP( const std::string &shaderName): ShaderProgram(shaderName)
     { initUniforms(); };
@@ -70,6 +71,7 @@ public:
         model=getUniform("model");
         view=getUniform("view");
         projection=getUniform("projection");
+
     };
 };
 
@@ -79,8 +81,10 @@ public:
     GLuint model;         // Return getuniform("sting")
     GLuint view;          // Return getuniform("sting")
     GLuint projection;    // Return getuniform("sting")
+    GLuint camPosition;   // Return getuniform("sting")
     GLuint light;         // Return getuniform("sting")
     GLuint lightSpaceMat; // Return getuniform("sting")
+
 
     ShaderPBR( const std::string &shaderName): ShaderProgram(shaderName)
     { initUniforms(); };
@@ -90,11 +94,16 @@ public:
 
     void initUniforms()
     {
+        // initializeOpenGLFunctions();
+        // GLuint progID=0;
+        // glUseProgram(progID);
         model=getUniform("model");
         view=getUniform("view");
         projection=getUniform("projection");
+
         light=getUniform("light");
         lightSpaceMat=getUniform("lightSpaceMat");
+        camPosition=getUniform("camPosition");
     };
 };
 

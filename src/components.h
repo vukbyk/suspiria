@@ -173,28 +173,28 @@ struct MaterialPBRComp
     {};
 };
 
-struct mvpComp
-{
-public:
+// struct mvpComp
+// {
+// public:
 
-    GLuint model;
-    GLuint view;
-    GLuint projection;
+//     GLuint model;
+//     GLuint view;
+//     GLuint projection;
 
-    mvpComp(ShaderProgram &shaderProgram)// const std::string &shaderName): ShaderProgram(shaderName)
-    { initUniforms(shaderProgram); };
+//     mvpComp(ShaderProgram &shaderProgram)// const std::string &shaderName): ShaderProgram(shaderName)
+//     { initUniforms(shaderProgram); };
 
-    mvpComp(ShaderProgram *shaderProgram)// const std::string &shaderName): ShaderProgram(shaderName)
-    { initUniforms(*shaderProgram); };
+//     mvpComp(ShaderProgram *shaderProgram)// const std::string &shaderName): ShaderProgram(shaderName)
+//     { initUniforms(*shaderProgram); };
 
-    void initUniforms(ShaderProgram &shaderProgram)
-    {
-        model=shaderProgram.getUniform("model");
-        view=shaderProgram.getUniform("view");
-        projection=shaderProgram.getUniform("projection");
+//     void initUniforms(ShaderProgram &shaderProgram)
+//     {
+//         model=shaderProgram.getUniform("model");
+//         view=shaderProgram.getUniform("view");
+//         projection=shaderProgram.getUniform("projection");
 
-    };
-};
+//     };
+// };
 
 
 struct MaterialAlbedoNormalComp

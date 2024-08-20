@@ -5,7 +5,7 @@
 #include <QSurfaceFormat>
 #include <QOpenGLContext>
 
-// #include "glwindow.h"
+#include "glwindow.h"
 #include "suspiriawindow.h"
 
 // #include "suspiria.h"
