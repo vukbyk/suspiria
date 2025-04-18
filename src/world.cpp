@@ -13,9 +13,13 @@ World::World()
 
 World::~World()
 {
-    registry.clear();
-    delete meshManager;
-    delete textureManager;
+    for (auto entity : registry.view<entt::entity>()) {
+        registry.destroy(entity);
+    }
+
+    // registry.clear();
+    // delete meshManager;
+    // delete textureManager;
 }
 
 Entity World::CreateEntity()

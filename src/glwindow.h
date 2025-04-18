@@ -16,11 +16,12 @@
 class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 {
     Q_OBJECT    
-    class Scene *world;
+    class Scene *sceneWorld;
 
     GLuint framebuffer;
     GLuint textureColorbuffer;
     GLuint rbo;
+
 
     GLfloat DPIScaleFactor=1;
     GLfloat const UPScale=1.0f;
@@ -73,6 +74,8 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     glm::ivec2 lastMousePosition = glm::ivec2(-1,-1);
     glm::ivec2 mouseWheel = glm::ivec2(-1,-1);
 
+    void initAndResizeBuffer();
+
 protected:
     void timerEvent(QTimerEvent *e) override;
     void mousePressEvent(QMouseEvent *e) override;
@@ -96,6 +99,6 @@ public:
 
     void setAspectFowMult();
 
-    void initQuadForFB();
+//    void initQuadForFB();
 };
 

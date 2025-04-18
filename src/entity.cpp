@@ -57,18 +57,27 @@ Entity *Entity::addFixSphereBVComp(const float inRadius)
     return this;
 }
 
-Entity *Entity::addCameraComp(CameraComp &aCamera)
-{
-    addComponent(CameraComp(CameraComp(aCamera)));
-    return this;
-}
+// Entity *Entity::addCameraComp(CameraComp &aCamera)
+// {
+//     addComponent(CameraComp(CameraComp(aCamera)));
+//     return this;
+// }
+
+// Entity *Entity::addCameraComp(const GLfloat aNear, const GLfloat aFar, const GLfloat aFov, const GLfloat aAspect)
+// {
+//     addComponent(CameraComp(aNear, aFar, aFov, aAspect));
+//     return this;
+// }
+
 
 Entity *Entity::addCameraComp(const GLfloat aNear, const GLfloat aFar, const GLfloat aFov, const GLfloat aAspect)
 {
+    if (world->registry.any_of<CameraComp>(handle))
+        world->registry.remove<CameraComp>(handle);
+
     addComponent(CameraComp(aNear, aFar, aFov, aAspect));
     return this;
 }
-
 //Entity *Entity::addShaderComp(const std::string &val)
 //{
 //    addComponent(ShaderComp( val ));

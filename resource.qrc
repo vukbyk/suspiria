@@ -64,5 +64,7 @@
         <file>assets/rustediron/roughness.png</file>
         <file>assets/plane10x10.obj</file>
         <file>assets/renderquad.obj</file>
+        <file>assets/rustediron/black1x1metallic.png</file>
+        <file>assets/rustediron/white1x1metallic.png</file>
     </qresource>
 </RCC>

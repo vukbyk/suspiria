@@ -12,7 +12,7 @@ protected:
     std::vector<std::string> textureUniformName;
     std::vector<GLuint> textureUniformId;
 public:
-    class Entity *uniform;
+    // class Entity *uniform;
 
     ShaderProgram(const std::string &shaderName);
     ShaderProgram(const std::string &vsShaderName, const std::string &fsShaderName);

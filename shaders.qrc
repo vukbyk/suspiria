@@ -31,5 +31,7 @@
         <file>shaders/shadowmap.vs</file>
         <file>shaders/debugquad.fs</file>
         <file>shaders/debugquad.vs</file>
+        <file>shaders/gp.fs</file>
+        <file>shaders/gp.vs</file>
     </qresource>
 </RCC>

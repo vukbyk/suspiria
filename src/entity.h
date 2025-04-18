@@ -45,7 +45,6 @@ public:
 
     Entity *addFixSphereBVComp(const float inRadius=2.5f);
 
-    Entity *addCameraComp(CameraComp &camera);
     Entity *addCameraComp(const GLfloat aFar=0.3f, const GLfloat aNear=1000.0f,
                           const GLfloat aFov=45.0f, const GLfloat aAspect=0.66f);
 

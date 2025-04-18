@@ -50,6 +50,9 @@ out mat4 lightMat;
 //out vec3 NormalTutorial;
 //out vec3 Position;
 
+out mat3 TBN;
+
+
 void main()
 {
     uvFrag=uv;
@@ -75,6 +78,8 @@ void main()
     mat3 TBN = mat3(T, B, N);
     inverseTBN = transpose(TBN); //in special cases you can use transponse
                                       //to inverse (cheaper option)
+
+    TBN = mat3(T, B, N);
 
     TangentLightPos = inverseTBN * lightPosition;
     TangentViewPos  = inverseTBN * camPos;

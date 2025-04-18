@@ -12,5 +12,7 @@ uniform samplerCube skyCube;
 
 void main()
 {
-    FragColor = texture(skyCube, TexCoords);
+    float gamma = 2.2;
+    // vec3 diffuseColor = pow(texture(diffuse, texCoords).rgb, vec3(gamma));
+    FragColor = pow(texture(skyCube, TexCoords), vec4(gamma));
 }

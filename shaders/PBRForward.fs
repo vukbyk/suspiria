@@ -12,7 +12,7 @@ in vec3 TangentLightPos;
 in vec3 TangentViewPos;
 in vec3 TangentFragPos;
 
-//in mat3 TBN;
+in mat3 TBN;
 in mat3 inverseTBN;
 
 uniform sampler2D albedoMap;
@@ -195,7 +195,9 @@ void main()
    //to TBN
    vec3 I = normalize(TangentFragPos - TangentViewPos );
    vec3 R  = reflect( I, N);//normal);
+   vec3 R_world = TBN * R;
    vec3 irradiance  = vec3(texture(skyCube, R*inverseTBN));
+
    vec3 diffuse      = irradiance * albedo ;
 
    // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.

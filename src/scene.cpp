@@ -56,7 +56,8 @@ void Scene::initShaders()
     const auto textureList = std::vector<std::string>(
                 {"albedoMap", "normalMap", "metallicMap", "roughnessMap",
                  "aoMap", "shadowMap","skyCube"});
-    shaderMain = new ShaderPBR("pbr");
+    shaderMain = new ShaderPBR("gp");
+//    shaderMain = new ShaderPBR("pbr");
     shaderMain->setUniformNamesAndIds(textureList);
     shaderMain->bind();
     shaderMain->setTextureUniforms();
@@ -114,12 +115,16 @@ const Entity Scene::getSkyCube()
 void Scene::importTextures()
 {
 
-    getTextureManager()->load("defaultComplex.png", true);
+    getTextureManager()->load("defaultComplex.png", true, false);
+    getTextureManager()->load("rustediron/black1x1metallic.png", false);
+    getTextureManager()->load("rustediron/white1x1metallic.png", false);
+
+    getTextureManager()->load("defaultXY.png", true, true);
     getTextureManager()->load("normal1x1.png", false);
     getTextureManager()->load("white.png",     false);
 
     getTextureManager()->load("cyborg_normal.png", true, true);
-    getTextureManager()->load("cyborg_diffuse.png", true, true);
+    getTextureManager()->load("cyborg_diffuse.png", false, true);
     getTextureManager()->load("bricks2_normal.jpg", false, true );
     getTextureManager()->load("brickwall_normal.jpg", false, true );
     getTextureManager()->load("brickwall.jpg", false, true);
@@ -127,7 +132,7 @@ void Scene::importTextures()
 //    getTextureManager()->load("exoskelet_Exoskelet_Normal.png", false,false);
 //    getTextureManager()->load("exoalbedo.jpg", true);
     getTextureManager()->load("vulture.png",false, true);
-    getTextureManager()->load("Vulture_Diffuse.alpha_normal.jpg",false , true);
+    getTextureManager()->load("Vulture_Diffuse.alpha_normal.jpg",true , true);
 //    getTextureManager()->load("Vulture_Diffuse.alpha.png",false, true);
 
 
@@ -151,7 +156,7 @@ void Scene::importTextures()
     //        "sky/stormydays_ft.tga",
     //        "sky/stormydays_bk.tga",
     //        "sky/stormydays_up.tga",
-    ////        "sky/stormydays_dn.tga",
+    //        "sky/stormydays_dn.tga",
     //        "brickwall.jpg",
     //        "sky/stormydays_rt.tga",
     //        "sky/stormydays_lf.tga"
@@ -203,12 +208,13 @@ void Scene::prepareAssetsPlane()
     Entity e;
     e=CreateEntity();
 //    e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");
-    e.addTexturePBRComp("defaultComplex.png","normal1x1.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+    e.addTexturePBRComp("defaultComplex.png","normal1x1.png", "rustediron/black1x1metallic.png", "white.png", "rustediron/ao.png");
     e.addMeshComponent("plane10x10.obj");
+    // e.addMeshComponent("sphare.obj");
     e.addTransformComponent( 0.0f, 0.5f, 0.0f);
 
     e=CreateEntity();
-    e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+    e.addTexturePBRComp("cyborg_diffuse.png",/*"normal1x1.png"*/ "cyborg_normal.png", "rustediron/white1x1metallic.png", "rustediron/black1x1metallic.png", "rustediron/ao.png");
     e.addMeshComponent("cyborg.obj");
     e.addTransformComponent( 0.0f, 2.0f, -7.0f);
 
@@ -223,13 +229,13 @@ void Scene::prepareAssetsPlane()
     e.addTransformComponent( 0.0, 1.0f, -7.0f);
 
     e=CreateEntity();
-    e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+    e.addTexturePBRComp("white.png","normal1x1.png" /*"rustediron/normal.png"*/, "rustediron/black1x1metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
     e.addMeshComponent("sphare.obj");
     e.addTransformComponent( -3.0, 2.0f, -7.0f);
 
     e=CreateEntity();
 
-    e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+    e.addTexturePBRComp("white.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
     e.addMeshComponent("cubemaya.obj");
     e.addTransformComponent( 3.0, 1.0f, -7.0f);
 //    e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");

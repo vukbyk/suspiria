@@ -1,7 +1,6 @@
 #include <QFile>
 
 #include "shaderprogram.h"
-#include "camera.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -20,7 +19,7 @@ ShaderProgram::ShaderProgram(const std::string &vsShaderGroupName, const std::st
 
 ShaderProgram::~ShaderProgram()
 {
-    delete uniform;
+    // delete uniform;
 }
 
 //ShaderProgram::ShaderProgram(const std::string &shaderGroupName,
