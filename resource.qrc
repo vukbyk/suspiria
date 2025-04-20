@@ -66,5 +66,17 @@
         <file>assets/renderquad.obj</file>
         <file>assets/rustediron/black1x1metallic.png</file>
         <file>assets/rustediron/white1x1metallic.png</file>
+        <file>assets/sky/sunsetcity/nx.png</file>
+        <file>assets/sky/sunsetcity/ny.png</file>
+        <file>assets/sky/sunsetcity/nz.png</file>
+        <file>assets/sky/sunsetcity/px.png</file>
+        <file>assets/sky/sunsetcity/py.png</file>
+        <file>assets/sky/sunsetcity/pz.png</file>
+        <file>assets/sky/sunsetport/nx.png</file>
+        <file>assets/sky/sunsetport/ny.png</file>
+        <file>assets/sky/sunsetport/nz.png</file>
+        <file>assets/sky/sunsetport/px.png</file>
+        <file>assets/sky/sunsetport/py.png</file>
+        <file>assets/sky/sunsetport/pz.png</file>
     </qresource>
 </RCC>

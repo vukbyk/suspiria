@@ -86,9 +86,9 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
 void main()
 {
     float gamma = 2.2;
-    float ambientStrength=0.1;
+    float ambientStrength=0.5;
     // Sample material textures
-    vec3 albedo     = texture(albedoMap, uvFrag).rgb; // linearize
+    vec3 albedo     = pow(texture(albedoMap, uvFrag).rgb, vec3(gamma) ); // linearize
     float metallic  = texture(metallicMap, uvFrag).r;
     float roughness = texture(roughnessMap, uvFrag).r;
     float ao        = texture(aoMap, uvFrag).r;
@@ -154,19 +154,21 @@ void main()
 
     // V = normalize(CamWorldPos - FragPos);
     vec3 R = reflect(-V, N);
-    vec3 irradiance = pow(texture(skyCube, R).rgb, vec3(gamma));
 
+    // vec3 irradiance = pow(texture(skyCube, R).rgb, vec3(gamma));
+    vec3 irradiance = pow(textureLod(skyCube, R, roughness * 8.0).rgb, vec3(gamma));
     vec3 diffuse = irradiance * albedo;
 
     // === Optional Specular IBL (Split-Sum Approximation) ===
 
-    const float MAX_REFLECTION_LOD = 4.0;
+    // const float MAX_REFLECTION_LOD = 4.0;
     // vec3 prefilteredColor = textureLod(/*prefilterMap*/skyCube, R, roughness * MAX_REFLECTION_LOD).rgb;
     // vec2 brdf = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
     // vec3 specular = prefilteredColor * (Frgh * 1.0); // simplified; normally * (brdf.x + brdf.y)
 
     // Final ambient contribution (diffuse only for now)
     // vec3 ambient = (kD * diffuse + specular) * ao;
+
     vec3 ambient = (kD * diffuse) * ao;
 
     // Combine all

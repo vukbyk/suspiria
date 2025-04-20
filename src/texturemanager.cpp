@@ -29,7 +29,7 @@ void TextureManager::loadBoxTexture(const std::string boxTextureName,
 //            qDebug("Texture \"%s\" already loaded", boxTextureName.c_str());
 //            return;
 //    }
-    texture[boxTextureName] = new Texture(faces, gammaCorrection);
+    texture[boxTextureName] = new Texture(faces, false, gammaCorrection);
 }
 
 void TextureManager::loadBoxTexture(const std::string boxTextureName,
@@ -42,7 +42,7 @@ void TextureManager::loadBoxTexture(const std::string boxTextureName,
 //            qDebug("Texture \"%s\" already loaded", boxTextureName.c_str());
 //            return;
 //    }
-    texture[boxTextureName] = new Texture(faces[0], gammaCorrection);
+    texture[boxTextureName] = new Texture(faces[0], false,gammaCorrection);
 }
 
 Texture *TextureManager::get(const std::string fileName)

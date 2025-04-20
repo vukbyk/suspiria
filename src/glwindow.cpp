@@ -13,18 +13,14 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "scene.h"
-#include "model.h"
 #include "camera.h"
-#include "light.h"
-#include "material.h"
 
 #include "world.h"
 #include "scene.h"
 #include "components.h"
 //#include "entity.h"
 
-#include "texture.h"
-#include "mesh.h"
+//#include "mesh.h"
 
 #ifdef GL_ES_VERSION_2_0
 #include <qopengles2ext.h>
@@ -229,7 +225,6 @@ void GLWindow::paintGL()
     glEnable(GL_DEPTH_TEST);
     glCullFace(GL_FRONT);
 
-    sceneWorld->shaderShadow->bindShader();
     TransformComp &lightTransformComp = sceneWorld->reg()->get<TransformComp>(light);
     glm::mat4 lightViewMat = lightTransformComp.transform.getInverseTransformMatrix();
     GLint viewUniform = sceneWorld->shaderShadow->view;// getUniform("view");
@@ -279,10 +274,24 @@ void GLWindow::paintGL()
     sceneWorld->shaderMain->bindShader();
     sceneWorld->shaderMain->setTextureUniforms();
 
+    // Get default camera transform
+    Transform* cameraTransformComp = &sceneWorld->reg()->get<TransformComp>(camera).transform;
 
-    Transform &cameraTransformComp = sceneWorld->reg()->get<TransformComp>(camera);
-    //    btVector3 cam = cameraTransformComp.getPosition();
-    glm::mat4 viewMat = cameraTransformComp.getInverseTransformMatrix();
+    // If camera has a parent, use parent's transform instead
+    if (sceneWorld->reg()->all_of<ParentComponent>(camera)) {
+        const auto& parent = sceneWorld->reg()->get<ParentComponent>(camera);
+        if (parent.parentTransform) {
+            cameraTransformComp = parent.parentTransform;
+        }
+    }
+
+    // Compute view matrix and send it to the shader
+    glm::mat4 viewMat = cameraTransformComp->getInverseTransformMatrix();
+    glUniformMatrix4fv(sceneWorld->shaderMain->view, 1, GL_FALSE, &viewMat[0][0]);
+
+    // Transform &cameraTransformComp = sceneWorld->reg()->get<TransformComp>(camera);
+    // //    btVector3 cam = cameraTransformComp.getPosition();
+    // glm::mat4 viewMat = cameraTransformComp.getInverseTransformMatrix();
 
     //    auto *viewMatRawPointer = glm::value_ptr(invertMat); //instead &nameMAT[0][0]
     //    shaderProgramMain->setViewMat(&viewMat[0][0]);
@@ -528,9 +537,16 @@ void GLWindow::timerEvent(QTimerEvent *)
     {
         controlledEntity= &camera;
         eulerYP = &sceneWorld->reg()->get<FPSEulerComponent>(camera);
+        sceneWorld->DetachFromParent(camera);
     }
     if(keys[Qt::Key_2])
     {
+        //print log in console sceneWorld->reg()->get<TransformComp>(camera)
+        Transform t = sceneWorld->reg()->get<TransformComp>(camera).transform.getPosition();
+
+        // Re-parent the camera to the light
+       sceneWorld->AttachToParent(camera, light);
+
         controlledEntity = &light;
         eulerYP = &sceneWorld->reg()->get<FPSEulerComponent>(light);
     }

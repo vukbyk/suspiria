@@ -14,8 +14,6 @@
 #include <QFileInfo>
 //#include <QMessageBox>
 
-#include <iostream>
-#include <fstream>
 #include "mesh.h"
 
 #include <world.h>

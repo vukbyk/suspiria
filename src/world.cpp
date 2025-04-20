@@ -43,6 +43,19 @@ entt::registry *World::reg()
     return &registry;
 }
 
+void World::AttachToParent(entt::entity child, entt::entity parent) {
+    if (!registry.valid(child) || !registry.valid(parent)) return;
+    if (!registry.all_of<TransformComp>(parent)) return;
+
+    Transform* parentTransform = &registry.get<TransformComp>(parent).transform;
+    registry.emplace_or_replace<ParentComponent>(child, ParentComponent{ parent, parentTransform });
+}
+
+void World::DetachFromParent(entt::entity child) {
+    if (registry.all_of<ParentComponent>(child)) {
+        registry.remove<ParentComponent>(child);
+    }
+}
 //void World::DestroyEntity(Entity entity)
 //{
 //    registry.destroy(entity);

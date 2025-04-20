@@ -244,8 +244,6 @@ GLMTransform &GLMTransform::addYawPitch(const glm::vec3 aRot)
     glm::mat4 mat(bulletToGlm(btQuat));
     transform *= mat;
     return *this;
-
-    return *this;
 }
 
 glm::vec3 GLMTransform::getDirectionGLM(void) const

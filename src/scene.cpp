@@ -1,7 +1,6 @@
 #include "scene.h"
 
 #include "components.h"
-#include "model.h"
 #include "world.h"
 
 Scene::Scene()//World *val)
@@ -169,7 +168,7 @@ void Scene::importTextures()
     //        "sky/arrakisday_lf.tga"
     };
     //    std::vector<std::string> reflectCube
-    std::vector<std::string> reflectCube
+    std::vector<std::string> arrakis
     {
         "sky/arrakisday_ft.tga",
         "sky/arrakisday_bk.tga",
@@ -178,15 +177,48 @@ void Scene::importTextures()
         "sky/arrakisday_rt.tga",
         "sky/arrakisday_lf.tga"
     };
-    getTextureManager()->loadBoxTexture("skyCubeTex", faces);
-//    getTextureManager()->loadBoxTexture("reflectCube", reflectCube, false);
-    getTextureManager()->loadBoxTexture("reflectCube",
-                                       {"sky/arrakisday_ft.tga",
-                                        "sky/arrakisday_bk.tga",
-                                        "sky/arrakisday_up.tga",
-                                        "sky/arrakisday_dn.tga",
-                                        "sky/arrakisday_rt.tga",
-                                        "sky/arrakisday_lf.tga"}, false);
+
+    std::vector<std::string> sunsetcity
+    {
+        "sky/sunsetcity/px.png",
+        "sky/sunsetcity/nx.png",
+        "sky/sunsetcity/py.png",
+        "sky/sunsetcity/ny.png",
+        "sky/sunsetcity/pz.png",
+        "sky/sunsetcity/nz.png",
+    };
+
+    std::vector<std::string> sunsetport
+    {
+        "sky/sunsetport/px.png",
+        "sky/sunsetport/nx.png",
+        "sky/sunsetport/py.png",
+        "sky/sunsetport/ny.png",
+        "sky/sunsetport/pz.png",
+        "sky/sunsetport/nz.png",
+    };
+    //        "sky/stormydays_ft.tga",
+    //        "sky/stormydays_bk.tga",
+    //        "sky/stormydays_up.tga",
+    //        "sky/stormydays_dn.tga",
+    //        "sky/stormydays_rt.tga",
+    //        "sky/stormydays_lf.tga"
+
+    //        "sky/arrakisday_ft.tga",
+    //        "sky/arrakisday_bk.tga",
+    //        "sky/arrakisday_up.tga",
+    //        "sky/arrakisday_dn.tga",
+    //        "sky/arrakisday_rt.tga",
+    //        "sky/arrakisday_lf.tga"
+    // getTextureManager()->loadBoxTexture("skyCubeTex", faces);
+   getTextureManager()->loadBoxTexture("reflectCube", sunsetport, false);
+    // getTextureManager()->loadBoxTexture("reflectCube",
+    //                                    {"sky/arrakisday_ft.tga",
+    //                                     "sky/arrakisday_bk.tga",
+    //                                     "sky/arrakisday_up.tga",
+    //                                     "sky/arrakisday_dn.tga",
+    //                                     "sky/arrakisday_rt.tga",
+    //                                     "sky/arrakisday_lf.tga"}, false);
 }
 
 void Scene::importMeshes()

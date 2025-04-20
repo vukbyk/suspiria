@@ -29,6 +29,10 @@ public:
     MeshManager *getMeshManager() const;
     TextureManager *getTextureManager() const;
     entt::registry *reg();
+
+    void AttachToParent(entt::entity child, entt::entity parent);
+    void DetachFromParent(entt::entity child);
+
 };
 
 #endif // WORLD_H

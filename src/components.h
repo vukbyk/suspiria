@@ -3,11 +3,12 @@
 
 #include "transform.h"
 #include "camera.h"
-#include "glmtransform.h"
+// #include "glmtransform.h"
 #include "shaderprogram.h"
 #include <QOpenGLExtraFunctions>
-#include <string>
-
+// #include <string>
+#include <entt/entt.hpp>
+#include <vector>
 
 //struct SimpleRenderComponent
 //{
@@ -104,6 +105,46 @@ struct TransformComp
     operator Transform&() {return transform;};
     operator const Transform&() const {return transform;}
 };
+
+struct ParentComponent
+{
+    entt::entity parent = entt::null;
+    Transform* parentTransform = nullptr;
+};
+
+struct ChildrenComponent
+{
+    std::vector<entt::entity> children;
+};
+
+inline bool AttachParent(entt::registry& registry, entt::entity child, entt::entity parent) {
+    if (!registry.valid(child) || !registry.valid(parent)) return false;
+    if (!registry.all_of<TransformComp>(parent)) return false;
+
+    auto& parentTransform = registry.get<TransformComp>(parent).transform;
+
+    registry.emplace_or_replace<ParentComponent>(child, parent, &parentTransform);
+
+    auto& children = registry.get_or_emplace<ChildrenComponent>(parent).children;
+    children.push_back(child);
+
+    return true;
+}
+
+inline void DetachParent(entt::registry& registry, entt::entity child) {
+    if (!registry.all_of<ParentComponent>(child)) return;
+
+    auto& parentComp = registry.get<ParentComponent>(child);
+    if (registry.valid(parentComp.parent) && registry.all_of<ChildrenComponent>(parentComp.parent)) {
+        auto& children = registry.get<ChildrenComponent>(parentComp.parent).children;
+        children.erase(std::remove(children.begin(), children.end(), child), children.end());
+    }
+
+    registry.remove<ParentComponent>(child);
+}
+
+
+
 
 //struct TransformComponent
 //{

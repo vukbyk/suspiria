@@ -1,0 +1,5174 @@
+==== FILE: ./glwindow.cpp ====
+﻿#include "glwindow.h"
+
+
+
+
+#include <QOpenGLExtraFunctions>
+
+#include <QMouseEvent>
+
+#include <qlogging.h>
+#include <qtimer.h>
+
+#include <glm/gtc/type_ptr.hpp>
+
+#include "scene.h"
+#include "model.h"
+#include "camera.h"
+#include "light.h"
+#include "material.h"
+
+#include "world.h"
+#include "scene.h"
+#include "components.h"
+
+
+#include "texture.h"
+#include "mesh.h"
+
+#ifdef GL_ES_VERSION_2_0
+#include <qopengles2ext.h>
+#endif
+
+GLWindow::GLWindow()
+{
+
+
+
+
+    timer.start(1, this);
+    mousePressPosition=glm::vec2(0);
+    m_t1 = QTime::currentTime();
+}
+
+GLWindow::~GLWindow()
+{
+
+
+
+    glDeleteFramebuffers(1, &framebuffer);
+    glDeleteRenderbuffers(1, &rbo);
+    glDeleteTextures(1, &textureColorbuffer);
+    delete sceneWorld;
+}
+
+void GLWindow::initAndResizeBuffer()
+{
+    if(framebuffer)
+        glDeleteFramebuffers(1, &framebuffer);
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+    glGenTextures(1, &textureColorbuffer);
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width()*DPIScaleFactor, height()*DPIScaleFactor, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+
+
+    if(rbo)
+        glDeleteRenderbuffers(1, &rbo);
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        qDebug() << "!!! ERROR !!! ::FRAMEBUFFER:: Framebuffer is not complete!";
+        return;
+    }
+
+
+
+
+}
+
+void GLWindow::initializeGL()
+{
+    initializeOpenGLFunctions();
+    DPIScaleFactor = devicePixelRatio();
+    qDebug()<<"Display scale factor: " << DPIScaleFactor;
+
+    sceneWorld = new Scene();
+
+    camera = sceneWorld->getCamera();
+    eulerYP = &sceneWorld->reg()->get<FPSEulerComponent>(camera);
+    controlledEntity = &camera;
+
+    glGenFramebuffers(1, &depthMapFBO);
+
+    glGenTextures(1, &depthMapTexture);
+    glBindTexture(GL_TEXTURE_2D, depthMapTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+                 widthShadow, heightShadow, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTexture, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        qDebug() << "!!! ERROR !! ::FRAMEBUFFER:: Framebuffer is not complete!";
+        return;
+    }
+
+    initAndResizeBuffer();
+
+    light = sceneWorld->CreateEntity();
+
+
+    btVector3 lightEulerRotation(0, btRadians(-90.0f), 0);
+
+    light.addComponent<FPSEulerComponent>(lightEulerRotation);
+
+    Transform lightInitTransform(btVector3(0.0f, 10.0f, 0.0f));
+    btQuaternion lightQuatRot(lightEulerRotation.x(), lightEulerRotation.y(), 0);
+    lightInitTransform.setRotation(lightQuatRot);
+    light.addComponent(TransformComp(lightInitTransform));
+
+
+
+
+
+
+
+
+
+
+
+
+
+    light.addMeshComponent("cubeinvertmini.obj");
+    light.addTexturePBRComp("white.png", "normal1x1.png", "white.png", "white.png", "white.png");
+    light.addComponent(cubeMap);
+
+
+
+
+
+
+
+
+
+
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+
+    glEnable(GL_FRAMEBUFFER_SRGB);
+
+    deltaTimer.start();
+}
+
+void GLWindow::resizeGL(int w, int h)
+{
+
+    Camera &camPersp = sceneWorld->reg()->get<CameraComp>(camera);
+    camPersp.aspect = GLfloat(w) / GLfloat(h ? h : 1);
+
+    setAspectFowMult();
+
+    projectionMat = glm::perspective(glm::radians(camPersp.fov), camPersp.aspect,
+                                     camPersp.zNear, camPersp.zFar);
+    sceneWorld->shaderMain->bindShader();
+    glUniformMatrix4fv(sceneWorld->shaderMain->projection, 1, GL_FALSE, &projectionMat[0][0]);
+
+
+    sceneWorld->shaderSky->bindShader();
+    glUniformMatrix4fv(sceneWorld->shaderSky->projection, 1, GL_FALSE, &projectionMat[0][0]);
+
+
+
+
+
+    initAndResizeBuffer();
+
+}
+
+void GLWindow::paintGL()
+{
+    btScalar tm[16];
+
+
+
+
+    glViewport(0, 0, widthShadow, heightShadow);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTexture, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
+
+    sceneWorld->shaderShadow->bindShader();
+    orthoLightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 51.0f);
+    glUniformMatrix4fv(sceneWorld->shaderShadow->projection, 1, GL_FALSE, &orthoLightProjection[0][0]);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_DEPTH_TEST);
+    glCullFace(GL_FRONT);
+
+    sceneWorld->shaderShadow->bindShader();
+    TransformComp &lightTransformComp = sceneWorld->reg()->get<TransformComp>(light);
+    glm::mat4 lightViewMat = lightTransformComp.transform.getInverseTransformMatrix();
+    GLint viewUniform = sceneWorld->shaderShadow->view;
+    glUniformMatrix4fv(viewUniform, 1, GL_FALSE, &lightViewMat[0][0]);
+
+    sceneWorld->shaderShadow->setTextureUniforms();
+
+    GLint modelSH = sceneWorld->shaderShadow->model;
+    auto groupSH = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();
+    GLuint lastMeshVAOLight;
+    groupSH.each([this, &modelSH, &tm, &lastMeshVAOLight]
+                 (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform)
+                 {
+                     transform.transform.getOpenGLMatrix(tm);
+                     glUniformMatrix4fv(modelSH, 1, GL_FALSE, tm);
+                     if(lastMeshVAOLight != mesh.VAO)
+                     {
+                         lastMeshVAOLight = mesh.VAO;
+                         glBindVertexArray(mesh.VAO);
+                     }
+
+
+
+
+
+
+
+
+    glViewport(0, 0, width()*DPIScaleFactor*UPScale, height()*DPIScaleFactor*UPScale);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glCullFace(GL_BACK);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_DEPTH_TEST);
+
+
+
+
+
+
+
+
+
+
+    sceneWorld->shaderMain->bindShader();
+    sceneWorld->shaderMain->setTextureUniforms();
+
+
+    Transform &cameraTransformComp = sceneWorld->reg()->get<TransformComp>(camera);
+
+    glm::mat4 viewMat = cameraTransformComp.getInverseTransformMatrix();
+
+
+
+    glUniformMatrix4fv(sceneWorld->shaderMain->view, 1, GL_FALSE, &viewMat[0][0]);
+
+
+
+
+
+    Transform &lightTransform = sceneWorld->reg()->get<TransformComp>(light);
+    glUniformMatrix4fv(sceneWorld->shaderMain->light, 1, GL_FALSE, glm::value_ptr(lightTransform.getTransformMatrix()) );
+
+
+
+
+
+    glm::mat4 lightSpaceMat = orthoLightProjection * lightTransformComp.transform.getInverseTransformMatrix();
+    glUniformMatrix4fv(sceneWorld->shaderMain->lightSpaceMat, 1, GL_FALSE, glm::value_ptr(lightSpaceMat));
+    glActiveTexture(GL_TEXTURE0 + 5);
+    glBindTexture(GL_TEXTURE_2D, depthMapTexture);
+
+
+
+
+
+    GLuint lastAlbedoId;
+    GLuint lastNormalId;
+    GLuint lastMetalId;
+    GLuint lastRoughId;
+    GLuint lastAoId;
+    GLuint lastMeshVAO;
+    GLuint lastCubeMapId= sceneWorld->reg()->get<CubeMapComp>(light).cubeTextureId;
+    glActiveTexture(GL_TEXTURE0 + 6 );
+    glBindTexture(GL_TEXTURE_CUBE_MAP, lastCubeMapId);
+
+
+    auto group = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();
+    group.each([this, &tm, &cameraTransformComp,
+                &lastAlbedoId, &lastNormalId, &lastMetalId, &lastRoughId, &lastAoId, &lastMeshVAO]
+               (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform)
+               {
+
+
+
+
+                   transform.transform.getOpenGLMatrix(tm);
+                   glUniformMatrix4fv(sceneWorld->shaderMain->model, 1, GL_FALSE, tm);
+
+
+
+                   if(lastMeshVAO != mesh.VAO)
+                   {
+                       lastMeshVAO = mesh.VAO;
+                       glBindVertexArray(mesh.VAO);
+                   }
+                   if(lastAlbedoId != texture.albedoId)
+                   {
+                       lastAlbedoId = texture.albedoId;
+                       glActiveTexture(GL_TEXTURE0 + 0);
+                       glBindTexture(GL_TEXTURE_2D, texture.albedoId);
+                   }
+                   if(lastNormalId != texture.normalId)
+                   {
+                       lastNormalId = texture.normalId;
+                       glActiveTexture(GL_TEXTURE0 + 1);
+                       glBindTexture(GL_TEXTURE_2D, texture.normalId);
+                   }
+                   if(lastMetalId != texture.metallicId)
+                   {
+                       lastMetalId = texture.metallicId;
+                       glActiveTexture(GL_TEXTURE0 + 2);
+                       glBindTexture(GL_TEXTURE_2D, texture.metallicId);
+                   }
+                   if(lastRoughId != texture.roughnessId)
+                   {
+                       lastRoughId = texture.roughnessId;
+                       glActiveTexture(GL_TEXTURE0 + 3);
+                       glBindTexture(GL_TEXTURE_2D, texture.roughnessId);
+                   }
+                   if(lastAoId != texture.aoId)
+                   {
+                       lastAoId = texture.aoId;
+                       glActiveTexture(GL_TEXTURE0 + 4);
+                       glBindTexture(GL_TEXTURE_2D, texture.aoId);
+                   }
+               });
+
+
+
+
+
+
+    glDepthFunc(GL_LEQUAL);
+    sceneWorld->shaderSky->bindShader();
+    GLint SkyViewUniform = sceneWorld->shaderSky->view;
+
+    glUniformMatrix4fv(SkyViewUniform, 1, GL_FALSE, &viewMat[0][0]);
+    auto [cubeMapId, mesh] = sceneWorld->reg()->get<CubeMapComp, MeshComp>(sceneWorld->getSkyCube()); {}
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapId);
+
+    glBindVertexArray(mesh.VAO);
+    glDepthFunc(GL_LESS);
+
+
+
+
+
+
+
+    glViewport(0, 0, width()*DPIScaleFactor, height()*DPIScaleFactor);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDisable(GL_DEPTH_TEST);
+
+
+
+    glClear(GL_COLOR_BUFFER_BIT);
+
+
+
+    sceneWorld->shaderProgramFBScr->bind();
+    sceneWorld->shaderProgramFBScr->setTextureUniforms();
+
+    glBindVertexArray(quadVAO);
+    glBindVertexArray(sceneWorld->renderQuad->VAO);
+    glActiveTexture(GL_TEXTURE0 + 0 );
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+
+
+
+
+
+    glViewport(0, 0, widthShadow/4, heightShadow/4);
+
+
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glDisable(GL_DEPTH_TEST);
+
+    sceneWorld->shaderDebugQuad->bind();
+    sceneWorld->shaderDebugQuad->setTextureUniforms();
+
+    glBindVertexArray(quadVAO);
+    glBindVertexArray(sceneWorld->renderQuad->VAO);
+    glActiveTexture(GL_TEXTURE0 + 0 );
+    glBindTexture(GL_TEXTURE_2D, depthMapTexture);
+
+
+
+    count ++;
+    nanoSec += deltaTimer.nsecsElapsed();
+    if (count >= 100)
+    {
+        qDebug()<< "timing:" << ( (double)nanoSec) / (count*1000000000) << "ns (ms*100)";
+        qDebug()<< "timing:" << ( (double)count*1000000000) /nanoSec  << "FPS";
+        count=0;
+        nanoSec=0;
+    }
+
+
+    deltaTime = (double)deltaTimer.nsecsElapsed()/1000000000;
+
+
+
+
+
+    deltaTimer.restart();
+}
+
+
+bool GLWindow::isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, TransformComp &actor)
+{
+    btVector3 forward = cameraTransformComp.transform.forward();
+    btVector3 offsetPos = cameraTransformComp.transform.getPosition() + (-forward * -1.0f);
+    btVector3 relativPos=actor.transform.getPosition() - offsetPos;
+
+
+
+
+    Camera &camPersp = sceneWorld->reg()->get<CameraComp>(camera);
+    if(
+        relativPos.angle(-forward) > qDegreesToRadians(camPersp.fov * aspectFowMult))
+        return false;
+    return true;
+}
+
+void GLWindow::setAspectFowMult()
+{
+    Camera &camPersp = sceneWorld->reg()->get<CameraComp>(camera);
+    aspectFowMult = GLfloat(width() > GLfloat(height())? camPersp.aspect: 1);
+}
+
+void GLWindow::timerEvent(QTimerEvent *)
+{
+    if(!controlledEntity)
+        return;
+    if(controlledEntity == nullptr)
+    {
+        update();
+        return;
+    }
+    else
+    {
+        controlledTransform = &sceneWorld->reg()->get<TransformComp>(*controlledEntity);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if(keys[Qt::Key_1])
+    {
+        controlledEntity= &camera;
+        eulerYP = &sceneWorld->reg()->get<FPSEulerComponent>(camera);
+    }
+    if(keys[Qt::Key_2])
+    {
+        controlledEntity = &light;
+        eulerYP = &sceneWorld->reg()->get<FPSEulerComponent>(light);
+    }
+
+
+    if(keys[Qt::Key_W])
+    {
+        controlledTransform->transform.moveForwardGLM(-moveSpeed * deltaTime);
+    }
+    if(keys[Qt::Key_S])
+    {
+        controlledTransform->transform.moveForwardGLM(moveSpeed * deltaTime);
+    }
+    if(keys[Qt::Key_D])
+    {
+        controlledTransform->transform.moveRightGLM(moveSpeed * deltaTime);
+    }
+    if(keys[Qt::Key_A])
+    {
+        controlledTransform->transform.moveRightGLM(-moveSpeed * deltaTime);
+    }
+    if(keys[Qt::Key_E])
+    {
+        controlledTransform->transform.moveUpGLM(moveSpeed * deltaTime);
+    }
+    if(keys[Qt::Key_Q])
+    {
+        controlledTransform->transform.moveUpGLM(-moveSpeed * deltaTime);
+    }
+
+
+
+
+
+
+
+
+
+
+    if(keys[Qt::Key_Up])
+    {
+        glm::vec2 rotator( 3.0f * glm::radians(0.1f), 0.0f);
+        if(controlledEntity!=nullptr)
+        {
+            eulerYP->euler += btVector3(rotator.y,rotator.x,0);
+            btQuaternion q(eulerYP->euler .x(), eulerYP->euler.y(), 0);
+            controlledTransform->transform.setRotation(q);
+        }
+    }
+    if(keys[Qt::Key_Down])
+    {
+        glm::vec2 rotator( -3.0f * glm::radians(0.1f), 0.0f);
+        if(controlledEntity!=nullptr)
+        {
+            eulerYP->euler  += btVector3(rotator.y,rotator.x,0);
+            btQuaternion q(eulerYP->euler.x(), eulerYP->euler.y(), 0);
+            controlledTransform->transform.setRotation(q);
+        }
+    }
+    if(keys[Qt::Key_Left])
+    {
+        glm::vec2 rotator( 0.0f, 3.0f * glm::radians(0.1f));
+        if(controlledEntity!=nullptr)
+        {
+            eulerYP->euler += btVector3(rotator.y,rotator.x,0);
+            btQuaternion q(eulerYP->euler.x(), eulerYP->euler.y(), 0);
+            controlledTransform->transform.setRotation(q);
+        }
+    }
+    if(keys[Qt::Key_Right])
+    {
+        glm::vec2 rotator( 0.0f, -3.0f * glm::radians(0.1f));
+        if(controlledEntity!=nullptr)
+        {
+            eulerYP->euler += btVector3(rotator.y,rotator.x,0);
+            btQuaternion q(eulerYP->euler.x(), eulerYP->euler.y(), 0);
+            controlledTransform->transform.setRotation(q);
+        }
+    }
+    update();
+}
+
+void GLWindow::mouseMoveEvent(QMouseEvent *mouseEvent)
+{
+    if( lastMousePosition == glm::ivec2(-1,-1) )
+    {
+        lastMousePosition =  glm::ivec2(mouseEvent->position().x(), mouseEvent->position().y());
+        return;
+    }
+
+    mouseDelta = glm::ivec2(mouseEvent->position().x(), mouseEvent->position().y())  - lastMousePosition;
+    glm::vec2 rotator(mouseDelta.y * glm::radians(0.2f), -mouseDelta.x * glm::radians(0.2f));
+    if(controlledEntity!=nullptr)
+    {
+        eulerYP->euler += btVector3(rotator.y,rotator.x,0);
+        btQuaternion q(eulerYP->euler.x(), eulerYP->euler.y(), 0);
+        controlledTransform->transform.setRotation(q);
+    }
+
+    lastMousePosition = glm::ivec2(mouseEvent->position().x(), mouseEvent->position().y());
+
+
+
+}
+
+bool GLWindow::event(QEvent *event)
+{
+    switch (event->type())
+    {
+    case QEvent::Enter:
+        lastMousePosition = glm::ivec2(-1,-1);
+        return true; break;
+    default:
+        return QOpenGLWindow::event(event);
+    }
+}
+
+void GLWindow::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Escape)
+        this->close();
+
+    keys[event->key()] = true;
+
+    if (event->isAutoRepeat())
+        return;
+}
+
+void GLWindow::keyReleaseEvent(QKeyEvent *event)
+{
+    if (event->isAutoRepeat())
+        return;
+    keys[event->key()] = false;
+}
+
+void GLWindow::mousePressEvent(QMouseEvent *e)
+{
+
+    mousePressPosition = glm::vec2(e->position().x(), e->position().y());
+}
+
+void GLWindow::mouseReleaseEvent(QMouseEvent *e)
+{
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
+
+Frustum GLWindow::createFrustumFromCamera(const Transform& cam, float nearOffset, float farOffset)
+{
+    Frustum frustum;
+    Camera &camPersp = sceneWorld->reg()->get<CameraComp>(camera);
+    const float halfVSide = camPersp.zFar * tanf(camPersp.fov * .5f);
+    const float halfHSide = halfVSide * camPersp.aspect;
+    const btVector3 frontMultFar = camPersp.zFar * cam.forward();
+
+    frustum.nearFace = { cam.getPosition() + camPersp.zNear * cam.forward(), cam.forward() };
+    frustum.farFace = { cam.getPosition() + frontMultFar, -cam.forward() };
+    frustum.rightFace = { cam.getPosition(),
+                         btCross(cam.up(),frontMultFar + cam.right() * halfHSide) };
+    frustum.leftFace = { cam.getPosition(),
+                        btCross(frontMultFar - cam.right() * halfHSide, cam.up()) };
+    frustum.topFace = { cam.getPosition(),
+                       btCross(cam.right(), frontMultFar - cam.up() * halfVSide) };
+    frustum.bottomFace =
+        { cam.getPosition(), btCross(frontMultFar + cam.up() * halfVSide, cam.right()) };
+
+    return frustum;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== FILE: ./light.cpp ====
+#include "light.h"
+
+#include <glm/gtc/type_ptr.hpp>
+#include "components.h"
+#include "scene.h"
+
+Light::Light(ShaderProgram *aShaderProgram)
+{
+    shaderProgram = aShaderProgram;
+    lightID = shaderProgram->getUniform( "light");
+}
+
+void Light::renderAll()
+{
+    initializeOpenGLFunctions();
+
+
+
+
+
+
+
+
+
+
+}
+
+
+
+==== FILE: ./spacial.cpp ====
+#include "spacial.h"
+#include "spacial.h"
+
+#include <algorithm>
+#include <model.h>
+
+#include <scene.h>
+#include <components.h>
+
+Spacial::Spacial():
+    transform()
+{
+
+    parentSpacial = nullptr;
+
+}
+
+Spacial::~Spacial()
+{
+
+}
+
+btVector3 Spacial::getPosition(void) const
+{
+    return transform.getPosition();
+}
+
+glm::vec3 Spacial::getGLMPosition(void) const
+{
+    return transform.getGLMPosition();
+}
+
+Transform &Spacial::getTransform(void)
+{
+    return transform;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Spacial *Spacial::getParentSpacial() const
+{
+    return parentSpacial;
+}
+
+
+
+void Spacial::setParentSpacial(Spacial *value)
+{
+    parentSpacial = value;
+}
+
+void Spacial::createEntity(Scene &scene)
+{
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== FILE: ./camera.h ====
+#pragma once
+
+#include <QOpenGLExtraFunctions>
+
+#include <glm/glm.hpp>
+
+
+
+class Camera
+{
+public:
+    GLfloat fov    ;
+    GLfloat zNear  ;
+    GLfloat zFar   ;
+    GLfloat aspect ;
+public:
+    Camera(const GLfloat aNear, const GLfloat aFar, const GLfloat aFov, const GLfloat aAspect);
+    virtual ~Camera() {}
+
+
+
+
+
+
+};
+
+
+
+==== FILE: ./texturemanager.h ====
+#pragma once
+
+#include "texture.h"
+
+#include <string>
+#include <map>
+#include <vector>
+
+
+
+class TextureManager
+{
+
+    std::map<std::string, class Texture*> texture;
+public:
+    TextureManager() = default;
+    ~TextureManager();
+
+    void load(const std::string fileName, bool gammaCorrection=false, bool flip=false);
+    void loadBoxTexture(const std::string boxTextureName,
+                        std::vector<std::string> face,
+                        bool flip=true,
+                        bool gammaCorrection=false);
+    void loadBoxTexture(const std::string boxTextureName,
+                        std::string *face,
+                        bool flip=true,
+                        bool gammaCorrection=false);
+    Texture* get(const std::string fileName);
+    GLuint getId(const std::string fileName);
+
+
+};
+
+
+
+==== FILE: ./glmtransform.h ====
+#pragma once
+
+#define GLM_FORCE_SWIZZLE
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <LinearMath/btTransform.h>
+#include <LinearMath/btQuaternion.h>
+
+
+class GLMTransform
+{
+protected:
+
+
+
+    glm::mat4 transform;
+
+    glm::vec3 position;
+    glm::quat rotation;
+    glm::vec3 scale;
+
+
+public:
+    GLMTransform(const GLMTransform &val);
+    GLMTransform(const btTransform &val);
+    GLMTransform(const btVector3 &aPosition = btVector3(0,0,0)
+             ,const btQuaternion &aRotation = btQuaternion(0.0, 0.0, 0.0) );
+
+    GLMTransform(const glm::vec3 &position
+             ,const glm::quat &rotation
+             ,const glm::vec3 &scale = glm::vec3(1.0f));
+    ~GLMTransform();
+
+    glm::mat4 getTransform() const;
+    void setTransform(const glm::mat4 &value);
+    void getOpenGLMatrix(btScalar *tm);
+
+    btScalar *getOpenGLMatrix();
+    glm::mat4 getTransformMatrix() const;
+    glm::mat4 getCameraTransformMatrix() const;
+
+
+    btVector3 getPosition() const;
+    glm::vec3 getGLMPosition() const;
+    GLMTransform &setPosition(const btVector3 &position);
+    GLMTransform &setOrigin(const btVector3 &position);
+    GLMTransform &translate(const btVector3 &position);
+    GLMTransform &setPosition(const glm::vec3 &position);
+    GLMTransform &translate(const glm::vec3 &position);
+
+    btQuaternion getRotation() const;
+    glm::quat getGLMRotation() const;
+
+    GLMTransform &setRotation(const btQuaternion &rotation);
+    GLMTransform &setRotation(const btVector3 &aAxis, float aAngle);
+
+    GLMTransform &setRotation(const glm::quat &rotation);
+    GLMTransform &setRotation(const glm::vec3 &aAxis, float aAngle);
+
+    GLMTransform &rotate(const float aAngle, const btVector3 &aAxis);
+    GLMTransform &rotate(const btQuaternion aRot);
+    GLMTransform &rotate(const btVector3 aRot);
+    GLMTransform &addYawPitch(const btVector3 aRot);
+
+    GLMTransform &rotate(const float aAngle, const glm::vec3 &aAxis);
+    GLMTransform &rotate(const glm::quat aRot);
+    GLMTransform &rotate(const glm::vec3 euler);
+    GLMTransform &addYawPitch(const glm::vec3 aRot);
+
+    glm::vec3 getDirectionGLM() const;
+    btVector3 forward() const;
+    btVector3 right() const;
+    btVector3 up() const;
+
+    glm::vec3 forwardGLM() const;
+    glm::vec3 rightGLM() const;
+    glm::vec3 upGLM() const;
+
+    GLMTransform &moveForward(const float f);
+    GLMTransform &moveRight(const float f);
+    GLMTransform &moveUp(const float f);
+
+    GLMTransform &moveForwardGLM(const float f);
+    GLMTransform &moveRightGLM(const float f);
+    GLMTransform &moveUpGLM(const float f);
+
+    glm::vec3 bulletToGlm(const btVector3 &v)const;
+    btVector3 glmToBullet(const glm::vec3 &v)const;
+    glm::quat bulletToGlm(const btQuaternion &q) const;
+    btQuaternion glmToBullet(const glm::quat &q)const;
+    btMatrix3x3 glmToBullet(const glm::mat3 &m)const;
+    btTransform glmToBullet(const glm::mat4 &m)const;
+    glm::mat4 bulletToGlm(const btTransform &t)const;
+
+
+
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== FILE: ./entity.h ====
+#ifndef ENTITY_H
+#define ENTITY_H
+
+#include "qlogging.h"
+
+#include <entt/entt.hpp>
+#include "world.h"
+
+
+
+class Entity
+{
+    class World *world =nullptr;
+public:
+    entt::entity handle{ entt::null };
+
+public:
+    Entity() = default;
+    Entity(class World *aWorld, entt::entity aHandle);
+
+    operator entt::entity() const { return handle; }
+    Entity(const Entity& other) = default;
+
+    template<typename T>
+    Entity *addComponent(T component)
+    {
+        world->registry.emplace<T>(handle, component);
+        return this;
+    }
+
+    Entity *addMeshComponent(const char *mesh);
+
+    Entity *addTexturePBRComp(const char *albedo,
+                              const char *normal,
+                              const char *metallic,
+                              const char *roughness,
+                              const char *ao);
+
+    Entity *addTextureAlbedoNormalComp(const char *albedo, const char *normal);
+
+    Entity *addCubeMapComp(const char *albedo);
+
+    Entity *addTransformComponent(const GLfloat x, const GLfloat y, const GLfloat z);
+    Entity *addTransformComponent(TransformComp &transComp);
+
+    Entity *addFixSphereBVComp(const float inRadius=2.5f);
+
+    Entity *addCameraComp(const GLfloat aFar=0.3f, const GLfloat aNear=1000.0f,
+                          const GLfloat aFov=45.0f, const GLfloat aAspect=0.66f);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+};
+
+#endif
+
+
+
+==== FILE: ./suspiria.h ====
+#pragma once
+
+#include <QtOpenGL/QOpenGLWindow>
+#include <QOpenGLExtraFunctions>
+#include <glwindow.h>
+
+class Suspiria: protected QOpenGLExtraFunctions
+{
+
+    GLWindow glWindow;
+public:
+    Suspiria();
+};
+
+
+
+==== FILE: ./shaderprogram.cpp ====
+#include <QFile>
+
+#include "shaderprogram.h"
+
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <entity.h>
+
+ShaderProgram::ShaderProgram(const std::string &shaderGroupName)
+{
+    initShaders(shaderGroupName);
+}
+
+ShaderProgram::ShaderProgram(const std::string &vsShaderGroupName, const std::string &fsShaderGroupName)
+{
+    initShaders(vsShaderGroupName, fsShaderGroupName);
+}
+
+ShaderProgram::~ShaderProgram()
+{
+
+}
+
+
+
+
+
+
+
+
+GLuint ShaderProgram::getUniform(const char *name)
+{
+    return glGetUniformLocation(programId(), name);
+}
+
+
+QString versionedShaderCode(const QString &src)
+{
+    QString versionedSrc;
+
+    if (QOpenGLContext::currentContext()->isOpenGLES())
+       return versionedSrc.append("#version 300 es\n" + src);
+    else
+       return versionedSrc.append("#version 430\n" + src);
+}
+
+void ShaderProgram::initShaders(const std::string &shaderGroupName)
+{
+    initializeOpenGLFunctions();
+
+
+
+
+
+    QFile filevertexShaderSource(std::string(":/shaders/").append(shaderGroupName).append(".vs").c_str());
+    if (!filevertexShaderSource.open(QIODevice::ReadOnly|QFile::Text))
+    {
+        qDebug() << "Can not open file ";
+
+    }
+    QTextStream invs(&filevertexShaderSource);
+    QString vsSource = invs.readAll();
+    filevertexShaderSource.close();
+
+    if (!addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vsSource)))
+    {
+        qDebug() << "Error: Vertex shader, versionedShaderCode(vsSource)";
+
+    }
+
+    QFile fragmentShaderSource(std::string(":/shaders/").append(shaderGroupName).append(".fs").c_str());
+    if (!fragmentShaderSource.open(QIODevice::ReadOnly|QFile::Text))
+    {
+        qDebug() << "Can not open file ";
+
+    }
+    QTextStream infs(&fragmentShaderSource);
+    QString fsSource = infs.readAll();
+
+
+    if (!addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(fsSource)))
+    {
+        qDebug() << "Error: Fragment shader, versionedShaderCode(fsSource)! ";
+
+    }
+
+    if (!link())
+    {
+        qDebug() << "Error: Shader program link!";
+
+    }
+
+
+}
+
+void ShaderProgram::initShaders(const std::string &vsShaderGroupName, const std::string &fsShaderGroupName)
+{
+    initializeOpenGLFunctions();
+
+
+
+
+
+    QFile filevertexShaderSource(std::string(":/shaders/").append(vsShaderGroupName).c_str());
+    if (!filevertexShaderSource.open(QIODevice::ReadOnly|QFile::Text))
+    {
+        qDebug() << "Can not open file ";
+
+    }
+    QTextStream invs(&filevertexShaderSource);
+    QString vsSource = invs.readAll();
+    filevertexShaderSource.close();
+
+    if (!addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vsSource)))
+    {
+        qDebug() << "Error: Vertex shader, versionedShaderCode(vsSource)";
+
+    }
+
+    QFile fragmentShaderSource(std::string(":/shaders/").append(fsShaderGroupName).c_str());
+    if (!fragmentShaderSource.open(QIODevice::ReadOnly|QFile::Text))
+    {
+        qDebug() << "Can not open file ";
+
+    }
+    QTextStream infs(&fragmentShaderSource);
+    QString fsSource = infs.readAll();
+
+
+    if (!addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(fsSource)))
+    {
+        qDebug() << "Error: Fragment shader, versionedShaderCode(fsSource)! ";
+
+    }
+
+    if (!link())
+    {
+        qDebug() << "Error: Shader program link!";
+
+    }
+
+
+}
+
+void ShaderProgram::bindShader()
+{
+
+    if (!bind())
+        qDebug() << "Error: Shader program bind!";
+
+
+}
+
+void ShaderProgram::setTextureUniforms()
+{
+    for(GLuint i=0; i<textureUniformId.size(); i++)
+    {
+        glUniform1i(textureUniformId[i], i);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+void ShaderProgram::setUniformNamesAndIds(std::vector<std::string> aTextureUniformName)
+{
+    textureUniformName = aTextureUniformName;
+    for(GLuint i=0; i<textureUniformName.size(); i++)
+    {
+        textureUniformId.push_back(glGetUniformLocation(programId(), aTextureUniformName[i].c_str()));
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== FILE: ./world.h ====
+#ifndef WORLD_H
+#define WORLD_H
+
+#include <entt/entity/registry.hpp>
+#include "components.h"
+#include "meshmanager.h"
+#include "texturemanager.h"
+
+class World
+{
+protected:
+    entt::registry registry;
+
+    MeshManager *meshManager;
+    TextureManager *textureManager;
+
+public:
+    World();
+    virtual ~World();
+
+    class Entity CreateEntity();
+
+
+    operator entt::registry&() { return registry;};
+    operator const entt::registry&() const {return registry;}
+
+    friend class Entity;
+
+    MeshManager *getMeshManager() const;
+    TextureManager *getTextureManager() const;
+    entt::registry *reg();
+};
+
+#endif
+
+
+
+
+==== FILE: ./model.h ====
+#pragma once
+
+#include "spacial.h"
+class Model: public Spacial
+{
+public:
+    class Material *material;
+    class Mesh *mesh;
+
+public:
+    Model();
+
+
+    Model(const char *aMeshPath, const char *aAlbedoPath = "defaultComplex.png", const char *aNormalPath = "normal1x1.png");
+    Model(class Mesh *aMesh, class Material *material );
+    Model(class Mesh *aMesh, class Texture *albedo, class Texture *normal);
+
+    ~Model();
+
+    virtual void renderAll();
+    Mesh *getMesh() const;
+    void setMesh(class Mesh *value);
+    void setMaterial(class Material *value);
+    virtual void createEntity(class Scene &scene);
+};
+
+
+
+==== FILE: ./glmtransform.cpp ====
+#include "glmtransform.h"
+
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+
+
+
+
+GLMTransform::GLMTransform(const GLMTransform &val)
+{
+    transform = val.transform;
+}
+
+
+GLMTransform::GLMTransform(const btTransform &val)
+{
+    transform = bulletToGlm(val);
+}
+
+GLMTransform::GLMTransform(const btVector3 &aPosition, const btQuaternion &aRotation)
+    :transform(1)
+{
+    transform = glm::toMat4(bulletToGlm(aRotation));
+    transform[3][0] = aPosition.x();
+    transform[3][1] = aPosition.y();
+    transform[3][2] = aPosition.z();
+}
+
+GLMTransform::GLMTransform(const glm::vec3 &aPosition
+                    ,const glm::quat &aRotation
+                    ,const glm::vec3 &scale):transform(1)
+{
+    transform = glm::toMat4(aRotation);
+    transform[3][0] = aPosition.x;
+    transform[3][1] = aPosition.y;
+    transform[3][2] = aPosition.z;
+    glm::scale(transform, scale);
+}
+
+GLMTransform::~GLMTransform(void)
+{
+}
+
+glm::mat4 GLMTransform::getTransform() const
+{
+    return transform;
+}
+
+void GLMTransform::setTransform(const glm::mat4 &value)
+{
+    transform = value;
+}
+
+void GLMTransform::getOpenGLMatrix(btScalar *tm)
+{
+    tm = glm::value_ptr(transform);
+}
+
+btScalar *GLMTransform::getOpenGLMatrix()
+{
+    return glm::value_ptr(transform);
+}
+
+glm::mat4 GLMTransform::getTransformMatrix(void) const
+{
+    return transform;
+}
+
+glm::mat4 GLMTransform::getCameraTransformMatrix(void) const
+{
+    glm::mat4 viewMatrix(1);
+    viewMatrix = glm::mat3x3(transform);
+    viewMatrix = glm::inverse(viewMatrix);
+    glm::vec3 pos(transform[3]);
+    viewMatrix [3][0] = -1.0f * transform[3][0] ;
+    viewMatrix [3][1] = -1.0f * transform[3][1] ;
+    viewMatrix [3][2] = -1.0f * transform[3][2] ;
+
+
+    return viewMatrix;
+}
+
+btVector3 GLMTransform::getPosition() const
+{
+    glm::vec3 pos(transform[3]);
+    return glmToBullet(pos);
+}
+
+glm::vec3 GLMTransform::getGLMPosition(void) const
+{
+    return glm::vec3(transform[3]);
+}
+
+GLMTransform &GLMTransform::setPosition(const btVector3 &position)
+{
+    transform[0][0] = position.x();
+    transform[0][1] = position.y();
+    transform[0][2] = position.z();
+    return *this;
+}
+
+GLMTransform &GLMTransform::setOrigin(const btVector3 &position)
+{
+    transform[0][0] = position.x();
+    transform[0][1] = position.y();
+    transform[0][2] = position.z();
+    return *this;
+}
+
+GLMTransform &GLMTransform::translate(const btVector3 &position)
+{
+    glm::translate(transform, bulletToGlm(position));
+    return *this;
+}
+
+GLMTransform &GLMTransform::setPosition(const glm::vec3 &position)
+{
+    transform[0][0] = position.x;
+    transform[0][1] = position.y;
+    transform[0][2] = position.z;
+    return *this;
+}
+
+GLMTransform &GLMTransform::translate(const glm::vec3 &position)
+{
+
+
+
+    glm::translate(transform, position);
+    return *this;
+
+}
+
+btQuaternion GLMTransform::getRotation() const
+{
+    glm::quat glmRot(transform);
+    btQuaternion btRot = glmToBullet(glmRot);
+    return btRot;
+}
+
+glm::quat GLMTransform::getGLMRotation(void) const
+{
+    glm::quat rot(transform);
+    return rot;
+}
+
+GLMTransform &GLMTransform::setRotation(const btQuaternion &rotation)
+{
+    glm::quat glmRot = bulletToGlm(rotation);
+    glm::mat3 mat3(glmRot);
+    transform = mat3;
+    return *this;
+}
+
+GLMTransform &GLMTransform::setRotation(const btVector3 &aAxis, float aAngle)
+{
+    glm::quat rot(aAngle, bulletToGlm(aAxis));
+    glm::mat3 mat3(rot);
+    transform = mat3;
+    return *this;
+}
+
+
+
+GLMTransform &GLMTransform::setRotation(const glm::quat &rotation)
+{
+    glm::mat3 mat3(rotation);
+    transform = mat3;
+    return *this;
+}
+
+GLMTransform &GLMTransform::setRotation(const glm::vec3 &aAxis, float aAngle)
+{
+    glm::quat rot(aAngle, aAxis);
+    glm::mat3 mat3(rot);
+    transform = mat3;
+    return *this;
+}
+
+GLMTransform &GLMTransform::rotate(const float aAngle, const btVector3 &aAxis)
+{
+    glm::quat rot(aAngle, bulletToGlm(aAxis));
+    glm::mat3 mat3(rot);
+    transform = mat3;
+    return *this;
+}
+
+GLMTransform &GLMTransform::rotate(const btQuaternion aRot)
+{
+    glm::mat3 mat3(bulletToGlm( aRot) );
+    transform = mat3;
+    return *this;
+}
+
+GLMTransform &GLMTransform::rotate(const btVector3 euler)
+{
+    glm::quat rot(bulletToGlm(euler));
+    glm::mat3 mat3(rot);
+    transform = mat3;
+    return *this;
+}
+
+GLMTransform &GLMTransform::addYawPitch(const btVector3 aRot)
+{
+    btQuaternion qPitch(right(), aRot.x());
+    btQuaternion qYaw(btVector3(0, 1, 0), aRot.y());
+    btQuaternion btQuat = qPitch * qYaw ;
+    glm::mat4 mat(bulletToGlm(btQuat));
+    transform *= mat;
+    return *this;
+}
+
+GLMTransform &GLMTransform::rotate(const float aAngle, const glm::vec3 &aAxis)
+{
+    glm::quat rot(aAngle, aAxis);
+    glm::mat3 mat3(rot);
+    transform = mat3;
+    return *this;
+}
+
+GLMTransform &GLMTransform::rotate(const glm::quat aRot)
+{
+    glm::mat3 mat3(aRot);
+    transform = mat3;
+    return *this;
+}
+
+GLMTransform &GLMTransform::rotate(const glm::vec3 euler)
+{
+    glm::quat rot(euler);
+    glm::mat3 mat3(rot);
+    transform = mat3;
+    return *this;
+}
+
+GLMTransform &GLMTransform::addYawPitch(const glm::vec3 aRot)
+{
+    btQuaternion qPitch(right(), aRot.x);
+    btQuaternion qYaw(btVector3(0, 1, 0), aRot.y);
+    btQuaternion btQuat = qPitch * qYaw ;
+    glm::mat4 mat(bulletToGlm(btQuat));
+    transform *= mat;
+    return *this;
+
+    return *this;
+}
+
+glm::vec3 GLMTransform::getDirectionGLM(void) const
+{
+    glm::vec3 v(transform[2]);
+    return v;
+}
+
+btVector3 GLMTransform::forward() const
+{
+    glm::vec3 v(-transform[2]);
+    return glmToBullet(v);
+}
+
+btVector3 GLMTransform::right() const
+{
+    glm::vec3 v(transform[0]);
+    return glmToBullet(v);
+}
+
+btVector3 GLMTransform::up() const
+{
+    glm::vec3 v(transform[1]);
+    return glmToBullet(v);
+}
+
+glm::vec3 GLMTransform::forwardGLM() const
+{
+
+
+
+
+    glm::vec3 v(transform[2]);
+    return v;
+}
+
+glm::vec3 GLMTransform::rightGLM() const
+{
+    glm::vec3 v(transform[0]);
+    return v;
+
+}
+
+glm::vec3 GLMTransform::upGLM() const
+{
+    glm::vec3 v(transform[1]);
+    return v;
+}
+
+GLMTransform &GLMTransform::moveForward(const float f)
+{
+    return translate(forward() * f);
+}
+
+GLMTransform &GLMTransform::moveRight(const float f)
+{
+    return translate(right() * f );
+}
+
+GLMTransform &GLMTransform::moveUp(const float f)
+{
+    return translate(up() * f );
+}
+
+GLMTransform &GLMTransform::moveForwardGLM(const float f)
+{
+    return translate(forwardGLM() * f );
+}
+
+GLMTransform &GLMTransform::moveRightGLM(const float f)
+{
+    return translate(rightGLM() * f );
+}
+
+GLMTransform &GLMTransform::moveUpGLM(const float f)
+{
+    return translate(upGLM() * f );
+}
+
+glm::vec3 GLMTransform::bulletToGlm(const btVector3& v) const { return glm::vec3(v.getX(), v.getY(), v.getZ()); }
+
+btVector3 GLMTransform::glmToBullet(const glm::vec3& v) const { return btVector3(v.x, v.y, v.z); }
+
+glm::quat GLMTransform::bulletToGlm(const btQuaternion& q) const  { return glm::quat(q.getW(), q.getX(), q.getY(), q.getZ()); }
+
+btQuaternion GLMTransform::glmToBullet(const glm::quat& q) const { return btQuaternion(q.x, q.y, q.z, q.w); }
+
+btMatrix3x3 GLMTransform::glmToBullet(const glm::mat3& m) const { return btMatrix3x3(m[0][0], m[1][0], m[2][0], m[0][1], m[1][1], m[2][1], m[0][2], m[1][2], m[2][2]); }
+
+
+
+btTransform GLMTransform::glmToBullet(const glm::mat4& m) const
+{
+    glm::mat3 m3(m);
+    return btTransform(glmToBullet(m3), glmToBullet(glm::vec3(m[3][0], m[3][1], m[3][2])));
+}
+
+glm::mat4 GLMTransform::bulletToGlm(const btTransform& t) const
+{
+
+    glm::mat4 m(1);
+    const btMatrix3x3& basis = t.getBasis();
+
+    for (int r = 0; r < 3; r++)
+    {
+        for (int c = 0; c < 3; c++)
+        {
+            m[c][r] = basis[r][c];
+        }
+    }
+
+    btVector3 origin = t.getOrigin();
+    m[3][0] = origin.getX();
+    m[3][1] = origin.getY();
+    m[3][2] = origin.getZ();
+
+    m[0][3] = 0.0f;
+    m[1][3] = 0.0f;
+    m[2][3] = 0.0f;
+    m[3][3] = 1.0f;
+    return m;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//    return glm::translate(position) * glm::toMat4(rotation);//* glm::scale(scale);
+//}
+
+//glm::mat4 TransformGLM::getCameraTransformMatrix(void) const
+//{
+//    return glm::toMat4(rotation) * glm::translate(position);
+//}
+
+//glm::vec4 TransformGLM::getDirection(void) const
+//{
+//    return rotation * glm::vec4(0, 0, 1, 0);
+//}
+
+//glm::vec3 TransformGLM::forward() const
+//{
+//    glm::vec3 dir = glm::rotate(glm::inverse(rotation), glm::vec3(0.0, 0.0, -1.0));
+//    return dir;
+//}
+
+//glm::vec3 TransformGLM::right() const
+//{
+//    glm::vec3 dir = glm::rotate(glm::inverse(rotation), glm::vec3(1.0, 0.0, 0.0));
+//    return dir;
+//}
+
+//glm::vec3 TransformGLM::up() const
+//{
+//    glm::vec3 dir = glm::rotate(glm::inverse(rotation), glm::vec3(0.0, 1.0, 0.0));
+//    return dir;
+//}
+
+//Transform &TransformGLM::moveForward(const float f)
+//{
+//    return translate(forward() * f );
+//}
+
+//Transform &TransformGLM::moveRight(const float f)
+//{
+//    return translate(right() * f );
+//}
+
+//Transform &TransformGLM::moveUp(const float f)
+//{
+//    return translate(up() * f );
+//}
+
+////glm::vec3 TransformGLM::getScale(void) const
+////{
+////    return scale;
+////}
+////Transform &TransformGLM::setScale(const glm::vec3 &scale)
+////{
+////    this->scale = scale;
+////    return *this;
+////}
+////Transform &TransformGLM::mulScale(const float scale)
+////{
+////    return setScale(getScale() * scale);
+////}
+
+////Transform &TransformGLM::mulScale(const glm::vec3 &scale)
+////{
+////    return setScale(getScale() * scale);
+////}
+
+
+
+==== FILE: ./meshmanager.cpp ====
+
+#include "meshmanager.h"
+
+
+
+#include "qlogging.h"
+
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+
+
+#include <string>
+#include <QFile>
+#include <QFileInfo>
+
+
+#include <iostream>
+#include <fstream>
+#include "mesh.h"
+
+#include <world.h>
+
+
+MeshManager::~MeshManager()
+{
+    for ( const auto &m : mesh )
+    {
+        delete m.second;
+    }
+}
+
+void MeshManager::loadAssimp(const std::string fileName)
+{
+    if(mesh.count(fileName))
+    {
+            qDebug("Mesh \"%s\" already loaded", fileName.c_str());
+            return;
+    }
+
+    QFile FullFilePath( std::string(":/assets/").append(fileName).c_str() );
+
+
+
+    if(!FullFilePath.open(QIODevice::ReadOnly))
+        qDebug("!!! ERROR !!! Failed to load file \"%s\"", fileName.c_str());
+    else
+        qDebug("File \"%s\" is loaded into mesh", fileName.c_str());
+
+    QByteArray DataFile = FullFilePath.readAll();
+    Assimp::Importer importer;
+    const aiScene *scene = importer.ReadFileFromMemory( DataFile.data(), DataFile.size(),
+                                                        aiProcess_Triangulate |
+                                                        aiProcess_GenSmoothNormals |
+
+                                                        aiProcess_CalcTangentSpace);
+    if (!scene)
+    {
+        qDebug("!!! ERROR !!! Failed to load mesh: %s", FullFilePath.symLinkTarget().toStdString().c_str());
+        return;
+    }
+    else
+    {
+        qDebug("Success to load mesh: %s", FullFilePath.symLinkTarget().toStdString().c_str());
+        loadScene(scene, fileName);
+    }
+}
+
+void MeshManager::loadScene(const aiScene* scene, const std::string fileName)
+{
+    for (unsigned int i = 0; i < scene->mNumMeshes; i++)
+    {
+        const aiMesh* model = scene->mMeshes[i];
+
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+
+        const aiVector3D aiZeroVector(0.0f, 0.0f, 0.0f);
+        for(GLuint j = 0; j < model->mNumVertices; j++)
+        {
+            const aiVector3D* pos = &(model->mVertices[j]);
+            const aiVector3D* uv = model->HasTextureCoords(0) ? &(model->mTextureCoords[0][j]) : &aiZeroVector;
+            const aiVector3D* normal = &(model->mNormals[j]);
+            const aiVector3D* tng = model->HasTangentsAndBitangents() ? &(model->mTangents[j]) : &aiZeroVector;
+            const aiVector3D* bit = model->HasTangentsAndBitangents() ? &(model->mBitangents[j]) : &aiZeroVector;
+
+            Vertex vert(glm::vec3(pos->x, pos->y, pos->z),
+                        glm::vec2(uv->x, uv->y),
+                        glm::vec3(normal->x, normal->y, normal->z),
+                        glm::vec3(tng->x, tng->y, tng->z),
+                        glm::vec3(bit->x, bit->y, bit->z)
+                        );
+
+            vertices.push_back(vert);
+        }
+
+        for(GLuint j = 0; j < model->mNumFaces; j++)
+        {
+            const aiFace& face = model->mFaces[j];
+            indices.push_back(face.mIndices[0]);
+            indices.push_back(face.mIndices[1]);
+            indices.push_back(face.mIndices[2]);
+        }
+
+        mesh[fileName]=new Mesh(&vertices[0], vertices.size(), &indices[0], indices.size());;
+
+    }
+}
+
+Mesh* MeshManager::get(const std::string fileName)
+{
+    if(mesh.count(fileName))
+    {
+        return mesh[fileName];
+    }
+    else
+    {
+        qDebug("!!! ERROR !!! Mesh \"%s\" not loaded. Try to load...", fileName.c_str());
+        loadAssimp(fileName);
+
+        return mesh[fileName];
+    }
+}
+
+
+
+==== FILE: ./components.h ====
+#ifndef ECSCOMPONENTS_H
+#define ECSCOMPONENTS_H
+
+#include "transform.h"
+#include "camera.h"
+#include "glmtransform.h"
+#include "shaderprogram.h"
+#include <QOpenGLExtraFunctions>
+#include <string>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct CameraComp
+{
+    Camera camera;
+
+    CameraComp(const Camera val): camera(val){};
+    CameraComp(const GLfloat aNear=0.3f, const GLfloat aFar=1000.0f,
+               const GLfloat aFov=45.0f, const GLfloat aAspect=0.66f):
+               camera(aNear, aFar, aFov, aAspect){};
+    operator Camera&() {return camera;};
+    operator const Camera&() const {return camera;}
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct ShaderComp
+{
+    ShaderProgram *shaderProgram;
+    ShaderComp(ShaderProgram *val)
+    {shaderProgram = val;};
+    operator ShaderProgram&() {return *shaderProgram;};
+    operator const ShaderProgram&() const {return *shaderProgram;}
+};
+
+struct LightComp
+{
+    GLuint lightID;
+    LightComp(const GLuint aLightID):lightID(aLightID){};
+
+    operator GLuint&() {return lightID;};
+    operator const GLuint&() const {return lightID;}
+};
+
+struct MeshComp
+{
+    GLuint VAO;
+    GLuint indicesSize;
+
+
+    MeshComp(const GLuint aVAO,
+          const GLuint aIndicesSize):
+            VAO(aVAO),
+            indicesSize(aIndicesSize)
+    {};
+
+
+
+};
+
+struct TransformComp
+{
+    Transform transform;
+    TransformComp(const Transform val): transform(val){}
+
+    operator Transform&() {return transform;};
+    operator const Transform&() const {return transform;}
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct MaterialPBRComp
+{
+    GLuint albedoId;
+    GLuint normalId;
+    GLuint metallicId;
+    GLuint roughnessId;
+    GLuint aoId;
+    MaterialPBRComp(const GLuint aAlbedoId,
+                    const GLuint aNormalID,
+                    const GLuint aMetallicId,
+                    const GLuint aRoughnessId,
+                    const GLuint aAoId)
+        :albedoId(aAlbedoId), normalId(aNormalID), metallicId(aMetallicId), roughnessId(aRoughnessId), aoId(aAoId)
+    {};
+};
+
+struct mvpComp
+{
+public:
+
+    GLuint model;
+    GLuint view;
+    GLuint projection;
+
+    mvpComp(ShaderProgram &shaderProgram)
+    { initUniforms(shaderProgram); };
+
+    mvpComp(ShaderProgram *shaderProgram)
+    { initUniforms(*shaderProgram); };
+
+    void initUniforms(ShaderProgram &shaderProgram)
+    {
+        model=shaderProgram.getUniform("model");
+        view=shaderProgram.getUniform("view");
+        projection=shaderProgram.getUniform("projection");
+
+    };
+};
+
+
+struct MaterialAlbedoNormalComp
+
+{
+    GLuint albedoId;
+    GLuint normalId;
+
+    MaterialAlbedoNormalComp(const GLuint aAlbedoId, const GLuint aNormalID)
+        :albedoId(aAlbedoId), normalId(aNormalID){};
+};
+
+struct CubeMapComp
+{
+    GLuint cubeTextureId;
+    CubeMapComp(const GLuint aBoxTextureId)
+        :cubeTextureId(aBoxTextureId){};
+
+    operator GLuint&() {return cubeTextureId;};
+    operator const GLuint&() const {return cubeTextureId;}
+};
+
+struct AlbedoTextureComponent
+{
+    GLuint textureId;
+    AlbedoTextureComponent(const GLuint val):textureId(val){};
+
+    operator GLuint&() {return textureId;};
+    operator const GLuint&() const {return textureId;}
+};
+
+struct NormalTextureComponent
+{
+    GLuint textureId;
+    NormalTextureComponent(const GLuint val):textureId(val){};
+
+    operator GLuint&() {return textureId;};
+    operator const GLuint&() const {return textureId;}
+};
+
+struct Plan
+{
+    btVector3 normal = { 0.f, 1.f, 0.f };
+    float     distance = 0.f;
+
+    Plan() = default;
+
+    Plan(const btVector3& p1, const btVector3& norm)
+        : normal(norm.normalized()),
+        distance(normal.dot( p1))
+    {}
+
+    float getSignedDistanceToPlan(const btVector3& point) const
+    {
+        btScalar norm = normal.dot(point);
+        return norm - distance;
+    }
+};
+
+struct FPSEulerComponent
+{
+    btVector3 euler;
+    FPSEulerComponent(const btVector3 val):euler(val){};
+
+    operator btVector3&() {return euler;};
+    operator const btVector3&() const {return euler;}
+};
+
+
+
+
+struct Frustum
+{
+    Plan topFace;
+    Plan bottomFace;
+
+    Plan rightFace;
+    Plan leftFace;
+
+    Plan farFace;
+    Plan nearFace;
+};
+
+
+
+struct FixSphereBVComp
+{
+    float radius;
+
+    FixSphereBVComp(const float inRadius=2.5f)
+        :radius(inRadius)
+    {}
+
+    bool isOnOrForwardPlan(const btVector3 position, const Plan& plan) const
+    {
+        return plan.getSignedDistanceToPlan(position) > -radius;
+    }
+
+    bool isOnFrustum(const btVector3 position, const Frustum& camFrustum) const
+    {
+
+    };
+
+
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#endif
+
+
+
+
+
+==== FILE: ./vertex.h ====
+#pragma once
+
+#include <glm/glm.hpp>
+
+class Vertex
+{
+public:
+    glm::vec3 pos;
+    glm::vec2 uv;
+    glm::vec3 nrm;
+    glm::vec3 tng;
+    glm::vec3 bit;
+
+
+    Vertex(const glm::vec3& aPos,
+           const glm::vec2& aUv = glm::vec2(0, 0),
+           const glm::vec3& aNrm = glm::vec3(0, 0, 0),
+           const glm::vec3& aTng = glm::vec3(0, 0, 0),
+           const glm::vec3& aBit = glm::vec3(0, 0, 0)
+          )
+    {
+        pos = aPos;
+        uv  =  aUv;
+        nrm = aNrm;
+        tng = aTng;
+        bit = aBit;
+    }
+
+};
+
+
+
+==== FILE: ./transform.cpp ====
+#include "transform.h"
+
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtx/quaternion.hpp>
+
+#include <QLoggingCategory>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Transform::Transform(const btVector3 &aPosition,
+                     const btQuaternion &aRotation,
+                     const btVector3 &aScale)
+    :transform(aRotation, aPosition)
+{
+
+}
+
+Transform::Transform(const glm::vec3 &aPosition
+                    ,const glm::quat &aRotation
+                    ,const glm::vec3 &scale)
+{
+    transform.setOrigin( glmToBullet(aPosition));
+    transform.setRotation( glmToBullet( aRotation));
+
+
+}
+
+Transform::~Transform(void)
+{
+}
+
+
+void Transform::getOpenGLMatrix(btScalar *tm)
+{
+    transform.getOpenGLMatrix(tm);
+}
+
+btTransform Transform::getT() const
+{
+    return transform;
+}
+
+glm::mat4 Transform::getTransformMatrix(void) const
+{
+//    return glm::translate(position) * glm::toMat4(rotation);//* glm::scale(scale);
+
+    return bulletToGlm(transform);
+}
+
+glm::mat4 Transform::getInverseTransformMatrix(void) const
+{
+//    return bulletToGlm(transform);
+//    return glm::toMat4(rotation) * glm::translate(position);
+//    glm::mat4 rot = glm::toMat4( bulletToGlm( btQuaternion(transform.getRotation()) ));
+//    return rot * glm::translate(bulletToGlm(transform.getOrigin() * -1.0f) );
+    glm::mat4 rot = glm::toMat4( bulletToGlm( btQuaternion(transform.getRotation()) ));
+//    rot = glm::inverse(rot);
+    glm::mat4 pos = glm::translate(bulletToGlm(transform.getOrigin() ) );//* -1.0f) );
+//    return rot*pos; //Reverse if only one inverse
+    return glm::inverse(pos * rot);
+}
+
+btVector3 Transform::getPosition() const
+{
+    return transform.getOrigin();
+}
+
+glm::vec3 Transform::getGLMPosition(void) const
+{
+//    return position;
+//    return glm::vec3(transform.getOrigin().x(), transform.getOrigin().y(), transform.getOrigin().z());
+    return bulletToGlm(transform.getOrigin());
+}
+
+void Transform::setOrigin(const btVector3 &origin)
+{
+    transform.setOrigin(origin);
+}
+
+void Transform::setPosition(const btVector3 &position)
+{
+    transform.setOrigin(position);
+}
+
+void Transform::translate(const btVector3 &position)
+{
+    setPosition(transform.getOrigin() + position);
+}
+
+void Transform::setPosition(const glm::vec3 &position)
+{
+//    this->position = position;
+    transform.setOrigin(glmToBullet(position));
+}
+
+void Transform::translate(const glm::vec3 &position)
+{
+//    return setPosition(this->position + position);
+//    btVector3 v = glmToBullet(position) + transform.getOrigin();
+//    transform.setOrigin(v);
+    setPosition(bulletToGlm(transform.getOrigin()) + position);
+}
+
+btQuaternion Transform::getRotation() const
+{
+    return transform.getRotation();
+}
+
+glm::quat Transform::getGLMRotation(void) const
+{
+//    return rotation;
+    return bulletToGlm(transform.getRotation());
+}
+
+void Transform::setRotation(const btQuaternion &rotation)
+{
+    transform.setRotation(rotation);
+}
+
+void Transform::setRotation(const btVector3 &aAxis, float aAngle)
+{
+    transform.setRotation(btQuaternion(aAxis, aAngle));
+}
+
+
+
+void Transform::setRotation(const glm::quat &rotation)
+{
+    transform.setRotation( glmToBullet(rotation) );
+}
+
+void Transform::setRotation(const glm::vec3 &aAxis, float aAngle)
+{
+    transform.setRotation(glmToBullet(glm::quat(aAngle ,aAxis)) );
+}
+
+void Transform::addYawPitch(float rotYaw, float rotPitch)
+{
+
+//    m=<glm::mat4//&tm;
+//Totally suboptimal. Angels should be saved and added!
+    btScalar r,y,p;
+    transform.getBasis().getEulerZYX( p, y, r);
+    qDebug("Before %f %f %f", glm::degrees(y), glm::degrees(p), glm::degrees(r));
+
+//    y+=rotYaw;
+//    p+=rotPitch;
+//    qDebug("After %f %f %f\n", glm::degrees(y), glm::degrees(p), glm::degrees(r));
+//    transform.getBasis().setEulerZYX(0,y,0);//setEulerZYX(p, y, 0);
+
+//    btQuaternion newPitch(right(), x);
+//    btQuaternion newRot=
+//    transform.getBasis().setRotation(newPitch);
+
+    btVector3 right = glmToBullet(rightGLM());//btVector3(1.f ,0.f ,0.f));
+    btQuaternion qPitch(right , rotPitch    );
+    transform.setRotation( qPitch * transform.getRotation() );
+    btQuaternion qYaw(btVector3(0, 1, 0), rotYaw);
+//    transform.setRotation(transform.getRotation() * qYaw);
+    btQuaternion btQuat =  qYaw * qPitch ;
+    transform.setRotation(transform.getRotation() * btQuat );
+
+}
+void Transform::rotate(const float aAngle, const btVector3 &aAxis)
+{
+    transform.setRotation(btQuaternion(aAxis, aAngle));
+}
+
+void Transform::rotate(const btQuaternion aRot)
+{
+    transform.setRotation(transform.getRotation() * aRot);
+}
+
+void Transform::rotate(const btVector3 euler)
+{
+    btQuaternion quat(euler.getX(), euler.getY(), euler.getZ());
+    transform.setRotation(transform.getRotation()*quat);
+//    rotation *= glm::quat(rot);
+}
+
+void Transform::addYawPitch(const btVector3 aRot)
+{
+    addYawPitch(aRot.getY(), aRot.getX());
+}
+
+void Transform::rotate(const float aAngle, const glm::vec3 &aAxis)
+{
+    btVector3 axis = glmToBullet(aAxis);
+    transform.setRotation(btQuaternion(axis, aAngle));
+//    rotation = glm::rotate(rotation, angle, axis);
+}
+
+void Transform::rotate(const glm::quat aRot)
+{
+//    rotation *= rot;
+    transform.setRotation(transform.getRotation() * glmToBullet(aRot));
+}
+
+void Transform::rotate(const glm::vec3 aRot)
+{
+    btQuaternion quat = glmToBullet(glm::quat(aRot));
+    transform.setRotation(transform.getRotation()*quat);
+//    rotation *= glm::quat(rot);
+}
+
+void Transform::addYawPitch(const glm::vec3 aRot)
+{
+    addYawPitch(aRot.y, aRot.x);
+}
+
+glm::vec3 Transform::getDirectionGLM(void) const
+{
+//    return rotation * glm::vec4(0, 0, 1, 0);
+    return bulletToGlm(transform.getRotation())* glm::vec3(0, 0, 1);
+}
+
+btVector3 Transform::forward() const
+{
+    return transform.getBasis().getColumn(2);
+//    const btQuaternion rot = transform.getRotation();
+//    btVector3 dir = btVector3(0.0, 0.0, -1.0);
+//    dir.rotate(rot.getAxis(), rot.getAngle());
+//    return dir;
+}
+
+btVector3 Transform::right() const
+{
+    return transform.getBasis().getColumn(0);
+//    const btQuaternion rot = transform.getRotation();
+//    btVector3 dir = btVector3(1.0, 0.0, 0.0);
+//    dir.rotate(rot.getAxis(), rot.getAngle());
+//    return dir;
+}
+
+btVector3 Transform::up() const
+{
+    return transform.getBasis().getColumn(1);
+//    const btQuaternion rot = transform.getRotation();
+//    btVector3 dir = btVector3(0.0f, 1.0, 0.0);
+//    dir.rotate(rot.getAxis(), rot.getAngle());
+//    return dir;
+}
+
+glm::vec3 Transform::forwardGLM() const
+{
+//    glm::vec3 dir = glm::rotate(glm::inverse(rotation), glm::vec3(0.0, 0.0, -1.0));
+//    glm::quat rot = bulletToGlm(transform.getRotation());
+//    glm::vec3 dir = glm::rotate(glm::inverse(rot), glm::vec3(0.0, 0.0, -1.0));
+
+    glm::mat4 rot = bulletToGlm(transform);
+    glm::vec3 dir = rot[2];
+    return dir;
+}
+
+glm::vec3 Transform::rightGLM() const
+{
+//    glm::vec3 dir = glm::rotate(glm::inverse(rotation), glm::vec3(1.0, 0.0, 0.0));
+//    glm::quat rot = bulletToGlm(transform.getRotation());
+//    glm::vec3 dir = glm::rotate(glm::inverse(rot), glm::vec3(1.0, 0.0, 0.0));
+    glm::mat4 rot = bulletToGlm(transform);
+    glm::vec3 dir = rot[0];
+    return dir;
+
+}
+
+glm::vec3 Transform::upGLM() const
+{
+//    glm::vec3 dir = glm::rotate(glm::inverse(rotation), glm::vec3(0.0, 1.0, 0.0));
+//    glm::quat rot = bulletToGlm(transform.getRotation());
+//    glm::vec3 dir = glm::rotate(glm::inverse(rot), glm::vec3(0.0, 1.0, 0.0));
+    glm::mat4 rot = bulletToGlm(transform);
+    glm::vec3 dir = rot[1];
+    return dir;
+}
+
+void Transform::moveForward(const float f)
+{
+    translate(forward() * f);
+}
+
+void Transform::moveRight(const float f)
+{
+    translate(right() * f );
+}
+
+void Transform::moveUp(const float f)
+{
+    return translate(up() * f );
+}
+
+void Transform::moveForwardGLM(const float f)
+{
+    translate(forwardGLM() * f );
+}
+
+void Transform::moveRightGLM(const float f)
+{
+    translate(rightGLM() * f );
+}
+
+void Transform::moveUpGLM(const float f)
+{
+    translate(upGLM() * f );
+}
+
+glm::vec3 Transform::bulletToGlm(const btVector3& v) const { return glm::vec3(v.getX(), v.getY(), v.getZ()); }
+
+btVector3 Transform::glmToBullet(const glm::vec3& v) const { return btVector3(v.x, v.y, v.z); }
+
+glm::quat Transform::bulletToGlm(const btQuaternion& q) const  { return glm::quat(q.getW(), q.getX(), q.getY(), q.getZ()); }
+
+btQuaternion Transform::glmToBullet(const glm::quat& q) const { return btQuaternion(q.x, q.y, q.z, q.w); }
+
+btMatrix3x3 Transform::glmToBullet(const glm::mat3& m) const { return btMatrix3x3(m[0][0], m[1][0], m[2][0], m[0][1], m[1][1], m[2][1], m[0][2], m[1][2], m[2][2]); }
+
+// btTransform does not contain a full 4x4 matrix, so this transform is lossy.
+// Affine transformations are OK but perspective transformations are not.
+btTransform Transform::glmToBullet(const glm::mat4& m) const
+{
+    glm::mat3 m3(m);
+    return btTransform(glmToBullet(m3), glmToBullet(glm::vec3(m[3][0], m[3][1], m[3][2])));
+}
+
+glm::mat4 Transform::bulletToGlm(const btTransform& t) const
+{
+//    glm::mat4 m(glm::mat4::_null);
+    glm::mat4 m(1);
+    const btMatrix3x3& basis = t.getBasis();
+    // rotation
+    for (int r = 0; r < 3; r++)
+    {
+        for (int c = 0; c < 3; c++)
+        {
+            m[c][r] = basis[r][c];
+        }
+    }
+    // traslation
+    btVector3 origin = t.getOrigin();
+    m[3][0] = origin.getX();
+    m[3][1] = origin.getY();
+    m[3][2] = origin.getZ();
+    // unit scale
+    m[0][3] = 0.0f;
+    m[1][3] = 0.0f;
+    m[2][3] = 0.0f;
+    m[3][3] = 1.0f;
+    return m;
+}
+
+
+//glm::vec3 Transform::getScale(void) const
+//{
+//    return scale;
+//}
+//Transform &Transform::setScale(const glm::vec3 &scale)
+//{
+//    this->scale = scale;
+//    return *this;
+//}
+//Transform &Transform::mulScale(const float scale)
+//{
+//    return setScale(getScale() * scale);
+//}
+//Transform &Transform::mulScale(const glm::vec3 &scale)
+//{
+//    return setScale(getScale() * scale);
+//}
+
+//!GLM Version
+
+//Transform::Transform(const glm::vec3 &position
+//                    ,const glm::quat &rotation)
+////                    ,const glm::vec3 &scale)
+//{
+//    this->position = position;
+//    this->rotation = rotation;
+////    this->scale = scale;
+//}
+
+//Transform::~Transform(void)
+//{
+//}
+
+//Transform &Transform::rotate(const float angle, const glm::vec3 &axis)
+//{
+//    rotation = glm::rotate(rotation, angle, axis);
+//    return *this;
+//}
+
+//Transform &Transform::rotate(const glm::quat rot)
+//{
+//    rotation *= rot;
+//    return *this;
+//}
+
+//Transform &Transform::rotate(const glm::vec3 rot)
+//{
+//    rotation *= glm::quat(rot);
+//    return *this;
+//}
+
+//Transform &Transform::addYawPitch(const glm::vec3 rot)
+//{
+//    glm::quat qPitch = glm::angleAxis(rot.x, right());
+//    glm::quat qYaw =  glm::angleAxis(rot.y, glm::vec3(0, 1, 0));//up());
+////    glm::quat qRoll = glm::angleAxis(z, glm::vec3(0, 0, 1));
+////    glm::vec3 eul = glm::eulerAngles(rotation);
+//    rotation *= qPitch * qYaw; // * qRoll;
+//    return *this;
+//}
+
+//Transform &Transform::translate(const glm::vec3 &position)
+//{
+//    return setPosition(this->position + position);
+//}
+
+//Transform &Transform::setPosition(const glm::vec3 &position)
+//{
+//    this->position = position;
+//    return *this;
+//}
+
+//Transform &Transform::setRotation(const glm::vec3 &axis, float angle)
+//{
+//    rotation = glm::angleAxis(angle, axis);
+//    return *this;
+//}
+
+//Transform &Transform::setRotation(const glm::quat &rotation)
+//{
+//    this->rotation = rotation;
+//    return *this;
+//}
+
+//glm::vec3 Transform::getPosition(void) const
+//{
+//    return position;
+//}
+
+//glm::quat Transform::getRotation(void) const
+//{
+//    return rotation;
+//}
+////TODO: optimise
+//glm::mat4 Transform::getTransformMatrix(void) const
+//{
+//    return glm::translate(position) * glm::toMat4(rotation);//* glm::scale(scale);
+//}
+
+//glm::mat4 Transform::getCameraTransformMatrix(void) const
+//{
+//    return glm::toMat4(rotation) * glm::translate(position);
+//}
+
+//glm::vec4 Transform::getDirection(void) const
+//{
+//    return rotation * glm::vec4(0, 0, 1, 0);
+//}
+
+//glm::vec3 Transform::forward() const
+//{
+//    glm::vec3 dir = glm::rotate(glm::inverse(rotation), glm::vec3(0.0, 0.0, -1.0));
+//    return dir;
+//}
+
+//glm::vec3 Transform::right() const
+//{
+//    glm::vec3 dir = glm::rotate(glm::inverse(rotation), glm::vec3(1.0, 0.0, 0.0));
+//    return dir;
+//}
+
+//glm::vec3 Transform::up() const
+//{
+//    glm::vec3 dir = glm::rotate(glm::inverse(rotation), glm::vec3(0.0, 1.0, 0.0));
+//    return dir;
+//}
+
+//Transform &Transform::moveForward(const float f)
+//{
+//    return translate(forward() * f );
+//}
+
+//Transform &Transform::moveRight(const float f)
+//{
+//    return translate(right() * f );
+//}
+
+//Transform &Transform::moveUp(const float f)
+//{
+//    return translate(up() * f );
+//}
+
+////glm::vec3 Transform::getScale(void) const
+////{
+////    return scale;
+////}
+////Transform &Transform::setScale(const glm::vec3 &scale)
+////{
+////    this->scale = scale;
+////    return *this;
+////}
+////Transform &Transform::mulScale(const float scale)
+////{
+////    return setScale(getScale() * scale);
+////}
+
+////Transform &Transform::mulScale(const glm::vec3 &scale)
+////{
+////    return setScale(getScale() * scale);
+////}
+
+
+
+==== FILE: ./mesh.cpp ====
+#include "mesh.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <QFile>
+#include <QFileInfo>
+
+
+#include <assimp/scene.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+
+#include "qlogging.h"
+
+
+
+Mesh::Mesh()
+{
+    VAO = 0;
+    VBO = 0;
+    IBO = 0;
+    verticesSize = 0;
+    indicesSize = 0;
+}
+
+Mesh::Mesh(const Mesh &other)
+{
+    VAO = other.VAO;
+    VBO = other.VBO;
+    IBO = other.IBO;
+    verticesSize = other.verticesSize;
+    indicesSize = other.indicesSize;
+}
+
+Mesh::Mesh(const Vertex vertices[], const GLuint vertSize, const GLuint indices[], const GLuint indexSize)
+{
+    initializeOpenGLFunctions();
+    createMesh(vertices, vertSize, indices, indexSize);
+}
+
+Mesh::~Mesh(void)
+{
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+}
+
+void Mesh::render(void)
+{
+    glBindVertexArray(VAO);
+
+void Mesh::createMesh(const Vertex vertices[], const GLuint vertSize, const GLuint indices[], const GLuint indexSize)
+{
+    verticesSize  = vertSize;
+    indicesSize = indexSize;
+
+
+
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+
+
+
+    glGenBuffers(1, &IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+
+
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize * sizeof(GLuint), indices, GL_STATIC_DRAW);
+
+
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*) 0);
+
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)sizeof(glm::vec3));
+
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(sizeof(glm::vec3) + sizeof(glm::vec2)));
+
+
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(sizeof(glm::vec3) + sizeof(glm::vec2) + sizeof(glm::vec3)));
+
+
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(sizeof(glm::vec3) + sizeof(glm::vec2) + sizeof(glm::vec3) *2));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
+GLuint Mesh::getVAO() const
+{
+    return VAO;
+}
+
+GLuint Mesh::getIndicesSize() const
+{
+    return indicesSize;
+}
+
+
+
+==== FILE: ./camera.cpp ====
+#include "camera.h"
+
+Camera::Camera(const GLfloat aNear, const GLfloat aFar=1000.0f,
+               const GLfloat aFov=45.0f, const GLfloat aAspect=0.66f):
+              zNear(aNear), zFar(aFar), fov(aFov), aspect(aAspect){};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== FILE: ./glwindow.h ====
+#pragma once
+
+#include <QtOpenGL/QOpenGLWindow>
+#include <QtOpenGLWidgets/QOpenGLWidget>
+#include <QOpenGLExtraFunctions>
+#include <QBasicTimer>
+#include <QElapsedTimer>
+#include <QTime>
+
+
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
+
+#include "entity.h"
+
+class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
+{
+    Q_OBJECT
+    class Scene *sceneWorld;
+
+    GLuint framebuffer;
+    GLuint textureColorbuffer;
+    GLuint rbo;
+
+
+    GLfloat DPIScaleFactor=1;
+    GLfloat const UPScale=1.0f;
+
+
+    GLuint captureFBO;
+    GLuint captureRBO;
+    GLuint irradianceMap;
+
+    const GLuint widthShadow=1024, heightShadow=1024;
+    GLuint depthMapFBO;
+    GLuint depthMapTexture;
+    glm::mat4 orthoLightProjection;
+
+
+
+    GLuint quadVAO, quadVBO;
+
+    Entity camera;
+    Entity light;
+
+    Entity *controlledEntity=nullptr;
+    TransformComp *controlledTransform=nullptr;
+    glm::mat4 projectionMat;
+
+    QBasicTimer timer;
+
+    glm::vec2 mousePressPosition;
+    class FPSEulerComponent *eulerYP;
+
+
+
+
+
+    GLfloat aspectFowMult = 1;
+
+    const float moveSpeed = 2.0;
+    const float rotSpeed = .2;
+
+    QTime m_t0;
+    QTime m_t1;
+
+    QElapsedTimer deltaTimer;
+    float deltaTime;
+    qint64 nanoSec=0;
+    long count=0;
+
+    std::map<GLuint, GLboolean> keys;
+    glm::ivec2 mouseDelta = glm::ivec2(-1,-1);
+    glm::ivec2 lastMousePosition = glm::ivec2(-1,-1);
+    glm::ivec2 mouseWheel = glm::ivec2(-1,-1);
+
+    void initAndResizeBuffer();
+
+protected:
+    void timerEvent(QTimerEvent *e) override;
+    void mousePressEvent(QMouseEvent *e) override;
+    void mouseReleaseEvent(QMouseEvent *e) override;
+
+    void initializeGL() override;
+    void resizeGL(int w, int h) override;
+    void paintGL() override;
+    bool isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, TransformComp &actor);
+
+    bool event(QEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *mouseEvent) override;
+    Frustum createFrustumFromCamera(const Transform& cam, GLfloat nearOffset=0, GLfloat farOffset=0);
+
+public:
+    using QOpenGLWindow::QOpenGLWindow;
+    GLWindow();
+    ~GLWindow();
+
+    void setAspectFowMult();
+
+
+};
+
+
+
+
+==== FILE: ./texture.h ====
+#pragma once
+
+#include <string>
+
+#include <QOpenGLExtraFunctions>
+
+class Texture: protected QOpenGLExtraFunctions
+{
+    GLuint textureId;
+
+
+
+public:
+    Texture(const std::string &fileName="defaultXY.png", const bool gammaCorrection=false, const bool flipNormalVertically=false );
+    Texture(std::vector<std::string> faces, const bool flip = true ,const bool gammaCorrection=false);
+    ~Texture();
+
+
+
+
+    GLuint getTextureId() const;
+};
+
+
+
+==== FILE: ./model.cpp ====
+#include "model.h"
+#include "texture.h"
+#include "mesh.h"
+#include "assimpload.h"
+#include "material.h"
+
+
+#include <entt/entity/fwd.hpp>
+#include "scene.h"
+#include "components.h"
+
+
+Model::Model(): Spacial()
+{
+    mesh = nullptr;
+    material = nullptr;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Model::Model(Mesh *aMesh, Material *aMaterial)
+{
+    mesh=aMesh;
+    material=aMaterial;
+}
+
+Model::Model(Mesh *aMesh, Texture *albedo, Texture *normal)
+{
+    mesh = aMesh;
+    material = new Material(albedo, normal);
+}
+
+Model::~Model()
+{
+    delete material;
+    delete mesh;
+}
+
+void Model::renderAll()
+{
+
+        material->bind();
+
+        mesh->render();
+
+
+}
+
+Mesh *Model::getMesh() const
+{
+    return mesh;
+}
+
+void Model::setMesh(Mesh *value)
+{
+    mesh = value;
+}
+
+void Model::setMaterial(Material *value)
+{
+    material = value;
+}
+
+void Model::createEntity(Scene &scene)
+{
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
+
+
+==== FILE: ./assimpload.cpp ====
+
+#include "assimpload.h"
+
+
+
+#include "qlogging.h"
+
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+
+
+#include <string>
+#include <QFile>
+#include <QFileInfo>
+
+
+#include <iostream>
+#include <fstream>
+#include "mesh.h"
+
+
+
+std::map<std::string, std::vector<Mesh*>> AssimpLoad::sceneMeshRendererDataCache;
+
+AssimpLoad::AssimpLoad(const std::string fileName)
+{
+
+    QFile file( std::string(":/assets/").append(fileName).c_str() );
+    if(!file.open(QIODevice::ReadOnly))
+        qDebug("!!! ERROR !!! Failed to load file %s", fileName.c_str());
+    else
+        qDebug("File %s is loaded", fileName.c_str());
+
+    QByteArray DataFile = file.readAll();
+    Assimp::Importer importer;
+    const aiScene *scene = importer.ReadFileFromMemory( DataFile.data(), DataFile.size(),
+                                                        aiProcess_Triangulate |
+                                                        aiProcess_GenSmoothNormals |
+
+                                                        aiProcess_CalcTangentSpace);
+    if (!scene)
+    {
+        qDebug("!!! ERROR !!! Failed to load mesh: %s", file.symLinkTarget().toStdString().c_str());
+        return;
+    }
+    else
+    {
+        qDebug("Success to load mesh: %s", file.symLinkTarget().toStdString().c_str());
+        loadScene(scene, fileName);
+    }
+}
+
+void AssimpLoad::loadScene(const aiScene* scene, const std::string fileName)
+{
+    for (unsigned int i = 0; i < scene->mNumMeshes; i++)
+    {
+        const aiMesh* model = scene->mMeshes[i];
+
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+
+        const aiVector3D aiZeroVector(0.0f, 0.0f, 0.0f);
+        for(GLuint j = 0; j < model->mNumVertices; j++)
+        {
+            const aiVector3D* pos = &(model->mVertices[j]);
+            const aiVector3D* uv = model->HasTextureCoords(0) ? &(model->mTextureCoords[0][j]) : &aiZeroVector;
+            const aiVector3D* normal = &(model->mNormals[j]);
+            const aiVector3D* tng = model->HasTangentsAndBitangents() ? &(model->mTangents[j]) : &aiZeroVector;
+            const aiVector3D* bit = model->HasTangentsAndBitangents() ? &(model->mBitangents[j]) : &aiZeroVector;
+
+            Vertex vert(glm::vec3(pos->x, pos->y, pos->z),
+                        glm::vec2(uv->x, uv->y),
+                        glm::vec3(normal->x, normal->y, normal->z),
+                        glm::vec3(tng->x, tng->y, tng->z),
+                        glm::vec3(bit->x, bit->y, bit->z)
+                        );
+
+            vertices.push_back(vert);
+        }
+
+        for(GLuint j = 0; j < model->mNumFaces; j++)
+        {
+            const aiFace& face = model->mFaces[j];
+            indices.push_back(face.mIndices[0]);
+            indices.push_back(face.mIndices[1]);
+            indices.push_back(face.mIndices[2]);
+        }
+
+        Mesh* meshRenderData;
+        meshRenderData = new Mesh(&vertices[0], vertices.size(), &indices[0], indices.size());
+        AssimpLoad::sceneMeshRendererDataCache[fileName].push_back(meshRenderData);
+    }
+}
+
+
+
+==== FILE: ./assimpload.h ====
+#pragma once
+
+#include "mesh.h"
+
+#include <string>
+#include <map>
+#include <vector>
+
+#include <assimp/scene.h>
+
+class AssimpLoad
+{
+public:
+    AssimpLoad(const std::string file);
+
+private:
+    void loadScene(const aiScene* scene, const std::string fileName);
+
+
+public:
+    static std::map<std::string, std::vector<class Mesh*>> sceneMeshRendererDataCache;
+};
+
+
+
+==== FILE: ./spacial.h ====
+
+
+
+
+#pragma once
+
+#include <vector>
+#include <QOpenGLExtraFunctions>
+
+
+
+
+#include <LinearMath/btTransform.h>
+#include <LinearMath/btVector3.h>
+#include "transform.h"
+
+
+
+#include <entt/entity/fwd.hpp>
+
+class Spacial: protected QOpenGLExtraFunctions
+{
+protected:
+    Transform transform;
+
+
+
+
+
+    Spacial *parentSpacial;
+
+
+public:
+    entt::entity entity;
+    Spacial();
+    virtual ~Spacial();
+
+    void addChild(Spacial *child);
+
+    virtual void renderAll() {};
+
+    std::vector<Spacial *> getChildren(void);
+    btVector3 getPosition(void) const;
+    glm::vec3 getGLMPosition(void) const;
+    Transform &getTransform(void);
+
+    btVector3 getBPosition(void);
+    btTransform &getBTransform(void);
+
+    btScalar* getTransformMatrix(void) const;
+    btScalar* getTransformMatrixTemp(void) const;
+
+
+
+    Spacial *getParentSpacial() const;
+    void setParentSpacial(Spacial *value);
+
+    virtual void createEntity(class Scene &scene);
+
+
+
+
+
+};
+
+
+
+==== FILE: ./suspiria.cpp ====
+#include "suspiria.h"
+
+Suspiria::Suspiria()
+{
+    glWindow.setWidth(1024);
+    glWindow.setHeight(768);
+    glWindow.show();
+    glWindow.update();
+}
+
+
+
+==== FILE: ./entity.cpp ====
+#include "entity.h"
+#include "world.h"
+#include "components.h"
+
+
+Entity::Entity(class World *aWorld, entt::entity aHandle)
+    : world(aWorld), handle(aHandle){}
+
+
+Entity *Entity::addMeshComponent(const char *mesh)
+{
+    addComponent(MeshComp(world->getMeshManager()->get(mesh)->getVAO(),
+                               world->getMeshManager()->get(mesh)->getIndicesSize()));
+    return this;
+}
+
+Entity *Entity::addTexturePBRComp(const char *albedo, const char *normal, const char *metallic, const char *roughness, const char *ao)
+{
+    addComponent(MaterialPBRComp(world->getTextureManager()->getId(albedo),
+                                 world->getTextureManager()->getId(normal),
+                                 world->getTextureManager()->getId(metallic),
+                                 world->getTextureManager()->getId(roughness),
+                                 world->getTextureManager()->getId(ao) ));
+    return this;
+}
+
+
+Entity *Entity::addTextureAlbedoNormalComp(const char *albedo, const char *normal)
+{
+    addComponent(MaterialAlbedoNormalComp(world->getTextureManager()->getId(albedo),
+                                          world->getTextureManager()->getId(normal)));
+    return this;
+}
+
+
+Entity *Entity::addCubeMapComp(const char *albedo)
+{
+    addComponent(CubeMapComp(world->getTextureManager()->getId(albedo)));
+    return this;
+}
+
+Entity *Entity::addTransformComponent(const GLfloat x, const GLfloat y, const GLfloat z)
+{
+    addComponent(TransformComp(btVector3(x , y, z)));
+    return this;
+}
+
+Entity *Entity::addTransformComponent(TransformComp &transComp)
+{
+    addComponent(TransformComp(transComp));
+    return this;
+}
+
+Entity *Entity::addFixSphereBVComp(const float inRadius)
+{
+    addComponent(FixSphereBVComp());
+    return this;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Entity *Entity::addCameraComp(const GLfloat aNear, const GLfloat aFar, const GLfloat aFov, const GLfloat aAspect)
+{
+    if (world->registry.any_of<CameraComp>(handle))
+        world->registry.remove<CameraComp>(handle);
+
+    addComponent(CameraComp(aNear, aFar, aFov, aAspect));
+    return this;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== FILE: ./mesh.h ====
+#pragma once
+
+
+
+
+
+
+
+
+
+#include <QOpenGLExtraFunctions>
+#include <QtOpenGL/QOpenGLShaderProgram>
+#include <QtOpenGL/QOpenGLBuffer>
+
+#include "vertex.h"
+
+class Mesh: protected QOpenGLExtraFunctions
+{
+
+public:
+    GLuint VBO;
+    GLuint IBO;
+    GLuint verticesSize;
+
+    GLuint VAO;
+    GLuint indicesSize;
+
+public:
+    Mesh();
+    Mesh(const Mesh &other);
+    Mesh(const Vertex vertices[], const  GLuint vertSize, const  GLuint indices[],const  GLuint indexSize);
+    virtual ~Mesh(void);
+    void render(void);
+
+
+    void createMesh(const Vertex vertices[], const GLuint vertSize, const GLuint indices[], const GLuint indexSize);
+
+    GLuint getVAO() const;
+    GLuint getIndicesSize() const;
+};
+
+
+
+==== FILE: ./material.cpp ====
+#include "material.h"
+#include "texturemanager.h"
+
+
+Material::Material(const char *aAlbedoPath, const char *aNormalPath)
+{
+    albedo = new Texture(aAlbedoPath, true);
+    normal = new Texture(aNormalPath);
+
+}
+
+Material::Material(Texture *aAlbedo, Texture *aNormal)
+{
+  albedo = aAlbedo;
+  normal = aNormal;
+
+}
+
+Material::~Material()
+{
+    delete albedo;
+    delete normal;
+}
+
+void Material::bind()
+{
+
+
+
+}
+
+Texture *Material::getAlbedo() const
+{
+    return albedo;
+}
+
+Texture *Material::getNormal() const
+{
+    return normal;
+}
+
+
+
+==== FILE: ./world.cpp ====
+#include "world.h"
+#include "entity.h"
+#include "components.h"
+
+#include "meshmanager.h"
+#include "texturemanager.h"
+
+World::World()
+{
+    meshManager = new MeshManager();
+    textureManager = new TextureManager();
+}
+
+World::~World()
+{
+    for (auto entity : registry.view<entt::entity>()) {
+        registry.destroy(entity);
+    }
+
+
+
+
+}
+
+Entity World::CreateEntity()
+{
+    Entity e(this, registry.create());
+    return e;
+}
+
+TextureManager *World::getTextureManager() const
+{
+    return textureManager;
+}
+
+MeshManager *World::getMeshManager() const
+{
+    return meshManager;
+}
+
+entt::registry *World::reg()
+{
+    return &registry;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== FILE: ./texture.cpp ====
+#include "texture.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+#include <QFile>
+
+#ifdef GL_ES_VERSION_2_0
+    #include <qopengles2ext.h>
+    #define GL_RED					0x1903
+    #define GL_RGB8					0x8051
+    #define GL_SRGB8                0x8C41
+#endif
+
+Texture::Texture(const std::string &fileName, const bool gammaCorrection, const bool flipNormalVertically)
+{
+    initializeOpenGLFunctions();
+    stbi_set_flip_vertically_on_load(flipNormalVertically);
+
+    int width, height, nChannels;
+
+    qDebug("Loading texture: %s", std::string(":/assets/").append(fileName).c_str());
+
+    QFile file( std::string(":/assets/").append(fileName).c_str() );
+    if(!file.open(QIODevice::ReadOnly))
+        qDebug("!!! ERROR !!! Failed to load file %s", fileName.c_str());
+    else
+        qDebug("File %s is loaded", fileName.c_str());
+
+    QByteArray DataFile = file.readAll();
+    unsigned char *data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(DataFile.data()),
+                                                DataFile.size(), &width, &height, &nChannels, 0);
+
+    if (data == NULL)
+    {
+        qDebug("Unable to load texture: %s", fileName.c_str());
+        return;
+    }
+
+    GLenum internalFormat=0;
+    GLenum dataFormat = GL_RGB;
+    if (nChannels == 1)
+    {
+        internalFormat = dataFormat = GL_RED_BITS;
+    }
+    else if (nChannels == 3)
+    {
+        internalFormat = gammaCorrection ? GL_SRGB8 : GL_RGB8;
+        dataFormat = GL_RGB;
+    }
+    else if (nChannels == 4)
+    {
+        internalFormat = gammaCorrection ? GL_SRGB8_ALPHA8_EXT : GL_RGBA;
+        dataFormat = GL_RGBA;
+    }
+    else
+    {
+        qDebug("Unable to load texture, there is no solution if number of channels is %i", nChannels);
+        return;
+    }
+
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0,
+                 dataFormat, GL_UNSIGNED_BYTE, data);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+    stbi_image_free(data);
+}
+
+
+
+
+
+
+
+
+
+
+Texture::Texture(std::vector<std::string> faces, const bool flip, const bool gammaCorrection)
+{
+    initializeOpenGLFunctions();
+    stbi_set_flip_vertically_on_load(flip);
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureId);
+
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+    int width, height, nChannels;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        qDebug("Loading texture: %s", std::string(":/assets/").append(faces[i]).c_str());
+
+        QFile file( std::string(":/assets/").append(faces[i]).c_str() );
+        if(!file.open(QIODevice::ReadOnly))
+            qDebug("!!! ERROR !!!  Failed to load file %s", faces[i].c_str());
+        else
+            qDebug("File %s is loaded", faces[i].c_str());
+
+        QByteArray DataFile = file.readAll();
+
+        unsigned char *data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(DataFile.data()),
+                                                    DataFile.size(), &width, &height, &nChannels, 0);
+        if (data == NULL)
+        {
+            qDebug("Unable to load texture: %s", faces[i].c_str());
+            return;
+        }
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height,
+                     0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        stbi_image_free(data);
+    }
+
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 4);
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+}
+
+Texture::~Texture()
+{
+}
+
+
+
+
+
+
+
+GLuint Texture::getTextureId() const
+{
+    return textureId;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== FILE: ./texturemanager.cpp ====
+#include "texturemanager.h"
+#include "texture.h"
+
+TextureManager::~TextureManager()
+{
+    for ( const auto &t : texture )
+    {
+        delete t.second;
+    }
+}
+
+void TextureManager::load(const std::string fileName, bool gammaCorrection, bool flip)
+{
+    if(texture.count(fileName))
+    {
+            qDebug("Texture \"%s\" already loaded", fileName.c_str());
+            return;
+    }
+    texture[fileName] = new Texture(fileName, gammaCorrection, flip);
+}
+
+void TextureManager::loadBoxTexture(const std::string boxTextureName,
+                                    const std::vector<std::string> faces,
+                                    bool flip,
+                                    bool gammaCorrection)
+{
+
+
+
+
+
+    texture[boxTextureName] = new Texture(faces, false, gammaCorrection);
+}
+
+void TextureManager::loadBoxTexture(const std::string boxTextureName,
+                                    std::string faces[6],
+                                    bool flip,
+                                    bool gammaCorrection)
+{
+
+
+
+
+
+    texture[boxTextureName] = new Texture(faces[0], false,gammaCorrection);
+}
+
+Texture *TextureManager::get(const std::string fileName)
+{
+    if(texture.count(fileName))
+    {
+        return texture[fileName];
+    }
+    else
+    {
+        qDebug("!!! ERROR !!! Texture \"%s\" not loaded...", fileName.c_str());
+        return nullptr;
+    }
+}
+
+GLuint TextureManager::getId(const std::string fileName)
+{
+
+    if(texture.count(fileName))
+    {
+        return texture[fileName]->getTextureId();
+    }
+    else
+    {
+        qDebug("!!! ERROR !!! Texture \"%s\" not loaded...", fileName.c_str());
+        return -1;
+    }
+}
+
+
+
+==== FILE: ./meshmanager.h ====
+#pragma once
+
+#include "mesh.h"
+
+#include <string>
+#include <map>
+#include <vector>
+
+#include <assimp/scene.h>
+
+class MeshManager
+{
+    void loadScene(const aiScene* scene, const std::string fileName);
+
+
+    std::map<std::string, class Mesh *> mesh;
+public:
+
+    MeshManager() = default;
+    ~MeshManager();
+
+    void loadAssimp(const std::string file);
+    class Mesh* get(const std::string file);
+
+};
+
+
+
+==== FILE: ./transform.h ====
+#pragma once
+
+#define GLM_FORCE_SWIZZLE
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <LinearMath/btTransform.h>
+#include <LinearMath/btQuaternion.h>
+
+
+class Transform
+{
+protected:
+
+    btTransform transform;
+
+
+
+
+public:
+
+
+    Transform(const btVector3 &aPosition = btVector3(0,0,0)
+             ,const btQuaternion &aRotation = btQuaternion(0.0, 0.0, 0.0)
+             ,const btVector3 &scale = btVector3(1.0f, 1.0f, 1.0f));
+
+    Transform(const glm::vec3 &position
+             ,const glm::quat &rotation
+             ,const glm::vec3 &scale = glm::vec3(1.0f));
+    ~Transform();
+
+    void getOpenGLMatrix(btScalar *tm);
+    btTransform getT() const;
+    btScalar *getOpenGLMatrix();
+    glm::mat4 getTransformMatrix() const;
+    glm::mat4 getInverseTransformMatrix() const;
+
+
+    btVector3 getPosition() const;
+    glm::vec3 getGLMPosition() const;
+    void setPosition(const btVector3 &position);
+    void setOrigin(const btVector3 &origin);
+    void translate(const btVector3 &position);
+    void setPosition(const glm::vec3 &position);
+    void translate(const glm::vec3 &position);
+
+    btQuaternion getRotation() const;
+    glm::quat getGLMRotation() const;
+
+    void setRotation(const btQuaternion &rotation);
+    void setRotation(const btVector3 &aAxis, float aAngle);
+
+    void setRotation(const glm::quat &rotation);
+    void setRotation(const glm::vec3 &aAxis, float aAngle);
+
+    void addYawPitch(const float yaw, const float pitch);
+
+    void rotate(const float aAngle, const btVector3 &aAxis);
+    void rotate(const btQuaternion aRot);
+    void rotate(const btVector3 aRot);
+    void addYawPitch(const btVector3 aRot);
+
+    void rotate(const float aAngle, const glm::vec3 &aAxis);
+    void rotate(const glm::quat aRot);
+    void rotate(const glm::vec3 euler);
+    void addYawPitch(const glm::vec3 aRot);
+
+    glm::vec3 getDirectionGLM() const;
+    btVector3 forward() const;
+    btVector3 right() const;
+    btVector3 up() const;
+
+    glm::vec3 forwardGLM() const;
+    glm::vec3 rightGLM() const;
+    glm::vec3 upGLM() const;
+
+    void moveForward(const float f);
+    void moveRight(const float f);
+    void moveUp(const float f);
+
+    void moveForwardGLM(const float f);
+    void moveRightGLM(const float f);
+    void moveUpGLM(const float f);
+
+    glm::vec3 bulletToGlm(const btVector3 &v)const;
+    btVector3 glmToBullet(const glm::vec3 &v)const;
+    glm::quat bulletToGlm(const btQuaternion &q) const;
+    btQuaternion glmToBullet(const glm::quat &q)const;
+    btMatrix3x3 glmToBullet(const glm::mat3 &m)const;
+    btTransform glmToBullet(const glm::mat4 &m)const;
+    glm::mat4 bulletToGlm(const btTransform &t)const;
+
+
+
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== FILE: ./scene.cpp ====
+#include "scene.h"
+
+#include "components.h"
+#include "model.h"
+#include "world.h"
+
+Scene::Scene()
+{
+
+    importTextures();
+    importMeshes();
+    initEntities();
+    initShaders();
+}
+
+Scene::~Scene()
+{
+
+    delete shaderMain;
+    delete shaderIrradiance;
+    delete shaderShadow;
+    delete shaderSky;
+    delete shaderProgramFBScr;
+    delete shaderDebugQuad;
+    delete shaderBrdf;
+
+    delete renderQuad;
+}
+
+void Scene::initEntities()
+{
+    camera = CreateEntity();
+    camera.addComponent<FPSEulerComponent>(btVector3(0,0,0));
+    camera.addCameraComp(0.3f, 1500.0f, 45.0f);
+    camera.addTransformComponent(0.0f, 2.0f, 0.0f);
+
+
+
+
+
+    skyCube = CreateEntity();
+    skyCube.addComponent(TransformComp(Transform()));
+    skyCube.addMeshComponent("sky/skycubeinv.obj");
+    skyCube.addComponent(CubeMapComp(getTextureManager()->getId("reflectCube")));
+
+
+
+
+    prepareAssetsPlane();
+}
+
+void Scene::initShaders()
+{
+
+
+    const auto textureList = std::vector<std::string>(
+                {"albedoMap", "normalMap", "metallicMap", "roughnessMap",
+                 "aoMap", "shadowMap","skyCube"});
+    shaderMain = new ShaderPBR("gp");
+
+    shaderMain->setUniformNamesAndIds(textureList);
+    shaderMain->bind();
+    shaderMain->setTextureUniforms();
+
+
+
+
+    shaderIrradiance = new ShaderVP("cubemap.vs", "irradiance_convolution.fs");
+    shaderIrradiance->setUniformNamesAndIds({"skyCube"});
+    shaderIrradiance->setUniformNamesAndIds({"screenTexture"});
+    shaderIrradiance->bind();
+    shaderIrradiance->setTextureUniforms();
+
+
+    shaderShadow = new ShaderMVP("shadowmap");
+    shaderShadow->bind();
+    shaderShadow->setTextureUniforms();
+
+
+    shaderSky = new ShaderVP("sky.vs", "sky.fs");
+    shaderSky->setUniformNamesAndIds({"skyCubeTex"});
+    shaderSky->bind();
+    shaderSky->setTextureUniforms();
+
+
+
+    shaderProgramFBScr = new ShaderProgram("fbscreen");
+    shaderProgramFBScr->setUniformNamesAndIds({"screenTexture"});
+    shaderProgramFBScr->bind();
+    shaderProgramFBScr->setTextureUniforms();
+
+
+    shaderDebugQuad = new ShaderProgram("debugquad");
+    shaderDebugQuad->setUniformNamesAndIds({"depthMap"});
+    shaderDebugQuad->bind();
+    shaderDebugQuad->setTextureUniforms();
+
+    shaderBrdf = new ShaderProgram("brdf");
+
+    renderQuad = new Mesh();
+    renderQuad = getMeshManager()->get("renderquad.obj");
+}
+
+const Entity Scene::getCamera()
+{
+    return camera;
+}
+
+const Entity Scene::getSkyCube()
+{
+    return skyCube;
+}
+
+
+void Scene::importTextures()
+{
+
+    getTextureManager()->load("defaultComplex.png", true, false);
+    getTextureManager()->load("rustediron/black1x1metallic.png", false);
+    getTextureManager()->load("rustediron/white1x1metallic.png", false);
+
+    getTextureManager()->load("defaultXY.png", true, true);
+    getTextureManager()->load("normal1x1.png", false);
+    getTextureManager()->load("white.png",     false);
+
+    getTextureManager()->load("cyborg_normal.png", true, true);
+    getTextureManager()->load("cyborg_diffuse.png", false, true);
+    getTextureManager()->load("bricks2_normal.jpg", false, true );
+    getTextureManager()->load("brickwall_normal.jpg", false, true );
+    getTextureManager()->load("brickwall.jpg", false, true);
+
+
+
+    getTextureManager()->load("vulture.png",false, true);
+    getTextureManager()->load("Vulture_Diffuse.alpha_normal.jpg",true , true);
+
+
+
+    getTextureManager()->load("rustediron/albedo.png",false, true);
+    getTextureManager()->load("rustediron/normal.png", false , true);
+    getTextureManager()->load("rustediron/roughness.png");
+    getTextureManager()->load("rustediron/metallic.png");
+    getTextureManager()->load("rustediron/ao.png");
+
+
+    std::vector<std::string> faces
+    {
+
+        "sky/right.jpg",
+        "sky/left.jpg",
+        "sky/top.jpg",
+        "sky/bottom.jpg",
+        "sky/front.jpg",
+        "sky/back.jpg"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    };
+
+    std::vector<std::string> arrakis
+    {
+        "sky/arrakisday_ft.tga",
+        "sky/arrakisday_bk.tga",
+        "sky/arrakisday_up.tga",
+        "sky/arrakisday_dn.tga",
+        "sky/arrakisday_rt.tga",
+        "sky/arrakisday_lf.tga"
+    };
+
+    std::vector<std::string> sunsetcity
+    {
+        "sky/sunsetcity/px.png",
+        "sky/sunsetcity/nx.png",
+        "sky/sunsetcity/py.png",
+        "sky/sunsetcity/ny.png",
+        "sky/sunsetcity/pz.png",
+        "sky/sunsetcity/nz.png",
+    };
+
+    std::vector<std::string> sunsetport
+    {
+        "sky/sunsetport/px.png",
+        "sky/sunsetport/nx.png",
+        "sky/sunsetport/py.png",
+        "sky/sunsetport/ny.png",
+        "sky/sunsetport/pz.png",
+        "sky/sunsetport/nz.png",
+    };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   getTextureManager()->loadBoxTexture("reflectCube", sunsetport, false);
+
+
+
+
+
+
+
+}
+
+void Scene::importMeshes()
+{
+    getMeshManager()->loadAssimp("vulture.obj");
+    getMeshManager()->loadAssimp("cubemaya.obj");
+
+    getMeshManager()->loadAssimp("cubeinvertmini.obj");
+    getMeshManager()->loadAssimp("sphare.obj");
+
+    getMeshManager()->loadAssimp("sky/skycubeinv.obj");
+    getMeshManager()->loadAssimp("cyborg.obj");
+    getMeshManager()->loadAssimp("plane10x10.obj");
+    getMeshManager()->loadAssimp("renderquad.obj");
+}
+
+void Scene::prepareAssetsPlane()
+{
+    Entity e;
+    e=CreateEntity();
+
+    e.addTexturePBRComp("defaultComplex.png","normal1x1.png", "rustediron/black1x1metallic.png", "white.png", "rustediron/ao.png");
+    e.addMeshComponent("plane10x10.obj");
+
+    e.addTransformComponent( 0.0f, 0.5f, 0.0f);
+
+    e=CreateEntity();
+    e.addTransformComponent( 0.0f, 2.0f, -7.0f);
+
+    e=CreateEntity();
+    e.addTransformComponent( 3.0, 4.0f, -7.0f);
+
+    e=CreateEntity();
+    e.addTransformComponent( 0.0, 1.0f, -7.0f);
+
+    e=CreateEntity();
+    e.addTransformComponent( -3.0, 2.0f, -7.0f);
+
+    e=CreateEntity();
+
+    e.addTransformComponent( 3.0, 1.0f, -7.0f);
+
+}
+
+void Scene::prepareAssetsManyCubes()
+{
+    Entity e;
+
+    e=CreateEntity();
+    e.addTransformComponent( 0.0f, 2.0f, -7.0f);
+
+
+
+    for(int i=0; i<400; i++)
+    {
+        for(int j=0; j<250; j++)
+        {
+            e=CreateEntity();
+            e.addMeshComponent("cubemaya.obj");
+        }
+    }
+    e=CreateEntity();
+    e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");
+    e.addTransformComponent( 3.0, 4.0f, -7.0f);
+
+    e=CreateEntity();
+    e.addTextureAlbedoNormalComp("vulture.png", "Vulture_Diffuse.alpha_normal.jpg");
+    e.addTransformComponent( 0.0, 1.0f, -7.0f);
+
+    e=CreateEntity();
+    e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");
+    e.addTransformComponent( -3.0, 2.0f, -7.0f);
+
+    e=CreateEntity();
+    e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");
+    e.addTransformComponent( 3.0, 1.0f, -7.0f);
+}
+
+
+
+
+==== FILE: ./light.h ====
+#pragma once
+
+#include "spacial.h"
+#include "shaderprogram.h"
+
+class Light: public Spacial
+{
+    class ShaderProgram *shaderProgram = nullptr;
+    GLint lightID;
+public:
+    Light(ShaderProgram *aShaderProgram);
+    void renderAll();
+};
+
+
+
+
+==== FILE: ./scene.h ====
+#pragma once
+
+#include <QOpenGLExtraFunctions>
+
+
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include "entity.h"
+
+class Scene: protected QOpenGLExtraFunctions, public World
+{
+protected:
+
+    Entity camera;
+    Entity skyCube;
+
+
+public:
+
+    class Mesh *renderQuad;
+
+    class ShaderPBR *shaderMain;
+    class ShaderVP *shaderIrradiance;
+    class ShaderMVP *shaderShadow;
+    class ShaderVP *shaderSky;
+    class ShaderProgram *shaderProgramFBScr;
+    class ShaderProgram *shaderDebugQuad;
+    class ShaderProgram *shaderBrdf;
+
+    Scene();
+
+    virtual ~Scene();
+
+    void initEntities();
+    void initShaders();
+
+    const Entity getCamera();
+    const Entity getSkyCube();
+
+    void importTextures();
+    void importMeshes();
+
+    void prepareAssetsManyCubes();
+    void prepareAssetsPlane();
+
+
+
+
+
+
+
+
+
+};
+
+
+
+==== FILE: ./shaderprogram.h ====
+#pragma once
+
+#include <QtOpenGL/QOpenGLShaderProgram>
+#include <QOpenGLExtraFunctions>
+
+
+class ShaderProgram: public QOpenGLShaderProgram, protected QOpenGLExtraFunctions
+{
+protected:
+
+
+    std::vector<std::string> textureUniformName;
+    std::vector<GLuint> textureUniformId;
+public:
+
+
+    ShaderProgram(const std::string &shaderName);
+    ShaderProgram(const std::string &vsShaderName, const std::string &fsShaderName);
+
+
+    ~ShaderProgram();
+    void initShaders(const std::string &shaderName);
+    void initShaders(const std::string &vsShaderName, const std::string &fsShaderName);
+
+    GLuint getUniform(const char* name);
+    void bindShader();
+
+
+
+
+    void setUniformNamesAndIds(std::vector<std::string> aTextureUniformName);
+    void setTextureUniforms();
+
+
+};
+
+class ShaderVP: public ShaderProgram
+{
+public:
+    GLuint view;
+    GLuint projection;
+
+    ShaderVP( const std::string &shaderName): ShaderProgram(shaderName)
+    { initUniforms(); };
+    ShaderVP( const std::string &vsName, const std::string &fsName): ShaderProgram(vsName, fsName)
+    { initUniforms(); };
+
+    void initUniforms()
+    {
+        view=getUniform("view");
+        projection=getUniform("projection");
+    };
+};
+
+class ShaderMVP: public ShaderProgram
+{
+public:
+    GLuint model;
+    GLuint view;
+    GLuint projection;
+
+    ShaderMVP( const std::string &shaderName): ShaderProgram(shaderName)
+    { initUniforms(); };
+    ShaderMVP( const std::string &vsName, const std::string &fsName): ShaderProgram(vsName, fsName)
+    { initUniforms(); };
+
+
+    void initUniforms()
+    {
+        model=getUniform("model");
+        view=getUniform("view");
+        projection=getUniform("projection");
+    };
+};
+
+class ShaderPBR: public ShaderProgram
+{
+public:
+    GLuint model;
+    GLuint view;
+    GLuint projection;
+    GLuint light;
+    GLuint lightSpaceMat;
+
+    ShaderPBR( const std::string &shaderName): ShaderProgram(shaderName)
+    { initUniforms(); };
+    ShaderPBR( const std::string &vsName, const std::string &fsName): ShaderProgram(vsName, fsName)
+    { initUniforms(); };
+
+
+    void initUniforms()
+    {
+        model=getUniform("model");
+        view=getUniform("view");
+        projection=getUniform("projection");
+        light=getUniform("light");
+        lightSpaceMat=getUniform("lightSpaceMat");
+    };
+};
+
+
+
+
+
+==== FILE: ./material.h ====
+#pragma once
+
+#include <string>
+
+class Texture;
+
+class Material
+{
+private:
+    Texture *albedo = nullptr;
+    Texture *normal = nullptr;
+
+
+public:
+    Material(const char *aAlbedoPath = "defaultComplex.png", const char *aNormalPath = "normal1x1.png");
+
+    Material(Texture *aAlbedo, Texture *aNormal = nullptr);
+
+    ~Material();
+
+    void bind();
+
+    Texture *getAlbedo() const;
+    Texture *getNormal() const;
+
+};
+
+
+
