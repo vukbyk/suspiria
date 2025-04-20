@@ -23,7 +23,7 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     GLuint rbo;
 
 
-    GLfloat DPIScaleFactor=1;
+    GLfloat DPIScaleFactor=1.0f;
     GLfloat const UPScale=1.0f;
 
 
@@ -31,7 +31,7 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     GLuint captureRBO;
     GLuint irradianceMap;
 
-    const GLuint widthShadow=1024, heightShadow=1024;
+    const GLuint widthShadow=1024*4, heightShadow=1024*4;
     GLuint depthMapFBO;
     GLuint depthMapTexture;
     glm::mat4 orthoLightProjection;

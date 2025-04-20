@@ -114,11 +114,11 @@ const Entity Scene::getSkyCube()
 void Scene::importTextures()
 {
 
-    getTextureManager()->load("defaultComplex.png", true, false);
+    getTextureManager()->load("defaultComplex.png", false, true);
     getTextureManager()->load("rustediron/black1x1metallic.png", false);
     getTextureManager()->load("rustediron/white1x1metallic.png", false);
 
-    getTextureManager()->load("defaultXY.png", true, true);
+    getTextureManager()->load("defaultXY.png", false, true);
     getTextureManager()->load("normal1x1.png", false);
     getTextureManager()->load("white.png",     false);
 

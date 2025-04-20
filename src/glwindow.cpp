@@ -130,6 +130,7 @@ void GLWindow::initializeGL()
     //Vuk: I do not like this have to be changed
     //Vuk: unrelated problems with -90 pitch)
     btVector3 lightEulerRotation(0, btRadians(-90.0f), 0);
+    // btVector3 lightEulerRotation(btRadians(-90.0f), 0, btRadians(90.0f));
     //    btVector3 lightEulerRotation(0, btRadians(-45.0f), 0);
     light.addComponent<FPSEulerComponent>(lightEulerRotation);
 
@@ -204,272 +205,269 @@ void GLWindow::resizeGL(int w, int h)
 
 void GLWindow::paintGL()
 {
+    // Temporary matrix used to upload transforms (from Bullet to OpenGL)
     btScalar tm[16];
 
-    ///////////////////////////////////////////////
-    /// \brief ShadowDepthMapGenerate
-    ///
-    glViewport(0, 0, widthShadow, heightShadow);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTexture, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
+    // === Pass 1: Shadow Depth Map ===
+    // Render the scene from the light's point of view to a depth texture.
+    // This will later be used to determine if a fragment is in shadow.
+    glm::mat4 lightViewMat; // View matrix from the light's perspective
+    {
+        // Set viewport to shadow map resolution
+        glViewport(0, 0, widthShadow, heightShadow);
+
+        // Bind the framebuffer used for shadow depth map
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 
 
-    sceneWorld->shaderShadow->bindShader();
-    orthoLightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 51.0f);
-    glUniformMatrix4fv(sceneWorld->shaderShadow->projection, 1, GL_FALSE, &orthoLightProjection[0][0]);
+        // Attach the depth texture to the framebuffer
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTexture, 0);
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // Enable depth buffer
-    glEnable(GL_DEPTH_TEST);
-    glCullFace(GL_FRONT);
+        // We don't need to write or read color values, just depth
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
 
-    TransformComp &lightTransformComp = sceneWorld->reg()->get<TransformComp>(light);
-    glm::mat4 lightViewMat = lightTransformComp.transform.getInverseTransformMatrix();
-    GLint viewUniform = sceneWorld->shaderShadow->view;// getUniform("view");
-    glUniformMatrix4fv(viewUniform, 1, GL_FALSE, &lightViewMat[0][0]);
+        // Enable polygon offset to reduce shadow acne
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(2.0f, 4.0f);  // Tweak these values if needed
 
-    sceneWorld->shaderShadow->setTextureUniforms();
+        // Clear previous frame's depth data
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    GLint modelSH = sceneWorld->shaderShadow->model;//getUniform("model");
-    auto groupSH = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();//, FixSphereBVComp>();//, cMesh>();
-    GLuint lastMeshVAOLight;
-    groupSH.each([this, &modelSH, &tm, &lastMeshVAOLight]
-                 (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform)//,FixSphereBVComp)// &boundingVol)
-                 {
-                     transform.transform.getOpenGLMatrix(tm);
-                     glUniformMatrix4fv(modelSH, 1, GL_FALSE, tm);
-                     if(lastMeshVAOLight != mesh.VAO)
-                     {
-                         lastMeshVAOLight = mesh.VAO;
-                         glBindVertexArray(mesh.VAO);
-                     }
-                     glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
-                 });
+        // Enable depth testing to store only the closest fragments
+        glEnable(GL_DEPTH_TEST);
 
-    ////END ShadowDepthMapGenerate
+        // Cull front faces to reduce shadow artifacts like acne
+        glCullFace(GL_FRONT);
+
+        // Use the shadow shader program
+        sceneWorld->shaderShadow->bindShader();
+
+        // Create an orthographic projection for the light (good for directional lights)
+        orthoLightProjection = glm::ortho(-15.0f, 15.0f, -15.0f, 15.0f, 2.0f, 100.0f);
+
+        // Send the projection matrix to the shader
+        glUniformMatrix4fv(sceneWorld->shaderShadow->projection, 1, GL_FALSE, &orthoLightProjection[0][0]);
 
 
+        //get CAMERA transform
+        // Get the camera's transform (position and orientation)
+        TransformComp &cameraTransformComp = sceneWorld->reg()->get<TransformComp>(camera);
+        //set light position to be same as cameras
+        btVector3 lightPos = cameraTransformComp.transform.getPosition();
+        // lightPos *= cameraTransformComp.transform.forward() * 5.0f;
+        //set light position to be same as cameras
+        cameraTransformComp.transform.setPosition(cameraTransformComp.transform.getPosition());
 
-    ///////////////////////////////////////////////////////////////////////////////////
-    /// \brief shaderMain
-    ///
-    glViewport(0, 0, width()*DPIScaleFactor*UPScale, height()*DPIScaleFactor*UPScale);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glCullFace(GL_BACK);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // Enable depth buffer
-    glEnable(GL_DEPTH_TEST);
 
-    // Enable back face culling
-    //    glEnable(GL_CULL_FACE);
-    //    glCullFace(GL_BACK);
-    //    glFrontFace(GL_CCW);
 
-    //Separated to change of size for Perspective when window is resized,
-    //but also should have for zoom in future or jsut for evry case
-    //  //shaderProgram->bindSetPVMat(pPointerPM, cameraMat);
+        // Get the light's view matrix (position and orientation)
+        TransformComp &lightTransformComp = sceneWorld->reg()->get<TransformComp>(light);
+        lightViewMat = lightTransformComp.transform.getInverseTransformMatrix();
+        //set lightViewMat position to lightPos
+        lightViewMat[3][0] = lightPos.x();
+        lightViewMat[3][1] = lightPos.z();
+        lightViewMat[3][2] = lightPos.y()-10;
 
-    sceneWorld->shaderMain->bindShader();
-    sceneWorld->shaderMain->setTextureUniforms();
+        // Upload view matrix to shader
+        glUniformMatrix4fv(sceneWorld->shaderShadow->view, 1, GL_FALSE, &lightViewMat[0][0]);
 
-    // Get default camera transform
-    Transform* cameraTransformComp = &sceneWorld->reg()->get<TransformComp>(camera).transform;
+        // Bind any additional textures required by the shader
+        sceneWorld->shaderShadow->setTextureUniforms();
 
-    // If camera has a parent, use parent's transform instead
-    if (sceneWorld->reg()->all_of<ParentComponent>(camera)) {
-        const auto& parent = sceneWorld->reg()->get<ParentComponent>(camera);
-        if (parent.parentTransform) {
-            cameraTransformComp = parent.parentTransform;
+        // Loop through all shadow-casting entities
+        auto shadowGroup = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();
+        GLuint lastVAO = 0;
+
+        for (auto [entity, mesh, material, transform] : shadowGroup.each()) {
+            // Convert transform to OpenGL format and upload
+            transform.transform.getOpenGLMatrix(tm);
+            glUniformMatrix4fv(sceneWorld->shaderShadow->model, 1, GL_FALSE, tm);
+
+            // Only bind VAO if it changed (to avoid unnecessary state change)
+            if (mesh.VAO != lastVAO) {
+                lastVAO = mesh.VAO;
+                glBindVertexArray(mesh.VAO);
+            }
+
+            // Draw the mesh (indexed draw)
+            glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, 0);
         }
     }
 
-    // Compute view matrix and send it to the shader
-    glm::mat4 viewMat = cameraTransformComp->getInverseTransformMatrix();
-    glUniformMatrix4fv(sceneWorld->shaderMain->view, 1, GL_FALSE, &viewMat[0][0]);
-
-    // Transform &cameraTransformComp = sceneWorld->reg()->get<TransformComp>(camera);
-    // //    btVector3 cam = cameraTransformComp.getPosition();
-    // glm::mat4 viewMat = cameraTransformComp.getInverseTransformMatrix();
-
-    //    auto *viewMatRawPointer = glm::value_ptr(invertMat); //instead &nameMAT[0][0]
-    //    shaderProgramMain->setViewMat(&viewMat[0][0]);
-    glUniformMatrix4fv(sceneWorld->shaderMain->view, 1, GL_FALSE, &viewMat[0][0]);
-
-    //    Alternative with entity in ShadeProgram
-    //    mvpComp UniformMPV =  world->reg()->get<mvpComp>(*world->shaderMain->uniform);
-    //    glUniformMatrix4fv(UniformMPV.view, 1, GL_FALSE, &viewMat[0][0]);
-
-    Transform &lightTransform = sceneWorld->reg()->get<TransformComp>(light);
-    glUniformMatrix4fv(sceneWorld->shaderMain->light, 1, GL_FALSE, glm::value_ptr(lightTransform.getTransformMatrix()) );//&mtm[0][0]);
-    //    GLuint &lightCompID = world->reg()->get<LightComp>(light);
-    //    glUniformMatrix4fv(lightCompID, 1, GL_FALSE, glm::value_ptr(lightTransform.getTransformMatrix()) );//&mtm[0][0]);
-
-    //    glUniform3fv(camPosUniform, 1, &cam[0]);
-
-    glm::mat4 lightSpaceMat = orthoLightProjection * lightTransformComp.transform.getInverseTransformMatrix();
-    glUniformMatrix4fv(sceneWorld->shaderMain->lightSpaceMat, 1, GL_FALSE, glm::value_ptr(lightSpaceMat));
-    glActiveTexture(GL_TEXTURE0 + 5);//0-5???
-    glBindTexture(GL_TEXTURE_2D, depthMapTexture);
-
-    // glm::vec3 camWorldPos = cameraTransformComp.getGLMPosition(); // or whatever returns glm::vec3
-    // GLint camPosUniform = glGetUniformLocation(sceneWorld->shaderMain->programId(), "camPos");
-    // glUniform3fv(camPosUniform, 1, glm::value_ptr(camWorldPos));
-
-    GLuint lastAlbedoId;
-    GLuint lastNormalId;
-    GLuint lastMetalId;
-    GLuint lastRoughId;
-    GLuint lastAoId;
-    GLuint lastMeshVAO;
-    GLuint lastCubeMapId= sceneWorld->reg()->get<CubeMapComp>(light).cubeTextureId;
-    glActiveTexture(GL_TEXTURE0 + 6 );//0-5???
-    glBindTexture(GL_TEXTURE_CUBE_MAP, lastCubeMapId);
-
-    //world.view<cRender>().each([this](auto &render) //as alternative
-    auto group = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();//, FixSphereBVComp>();//, cMesh>();
-    group.each([this, &tm, &cameraTransformComp,
-                &lastAlbedoId, &lastNormalId, &lastMetalId, &lastRoughId, &lastAoId, &lastMeshVAO]//,&lastCubeMapId]
-               (MeshComp &mesh, MaterialPBRComp &texture, TransformComp &transform)//,FixSphereBVComp)// &boundingVol)
-               {
-                   //        if(!isInCameraFrustumAndDistance(cameraTransformComp, transform))//Moja
-                   //            return;
-                   //        if(!boundingVol.isOnFrustum(cam, frustum))
-                   //            return ;
-                   transform.transform.getOpenGLMatrix(tm);
-                   glUniformMatrix4fv(sceneWorld->shaderMain->model, 1, GL_FALSE, tm);
-
-                   //ToDo: Material and Material instance based on textures and other param
-
-                   if(lastMeshVAO != mesh.VAO)
-                   {
-                       lastMeshVAO = mesh.VAO;
-                       glBindVertexArray(mesh.VAO);
-                   }
-                   if(lastAlbedoId != texture.albedoId)
-                   {
-                       lastAlbedoId = texture.albedoId;
-                       glActiveTexture(GL_TEXTURE0 + 0);
-                       glBindTexture(GL_TEXTURE_2D, texture.albedoId);
-                   }
-                   if(lastNormalId != texture.normalId)
-                   {
-                       lastNormalId = texture.normalId;
-                       glActiveTexture(GL_TEXTURE0 + 1);
-                       glBindTexture(GL_TEXTURE_2D, texture.normalId);
-                   }
-                   if(lastMetalId != texture.metallicId)
-                   {
-                       lastMetalId = texture.metallicId;
-                       glActiveTexture(GL_TEXTURE0 + 2);
-                       glBindTexture(GL_TEXTURE_2D, texture.metallicId);
-                   }
-                   if(lastRoughId != texture.roughnessId)
-                   {
-                       lastRoughId = texture.roughnessId;
-                       glActiveTexture(GL_TEXTURE0 + 3);
-                       glBindTexture(GL_TEXTURE_2D, texture.roughnessId);
-                   }
-                   if(lastAoId != texture.aoId)
-                   {
-                       lastAoId = texture.aoId;
-                       glActiveTexture(GL_TEXTURE0 + 4);
-                       glBindTexture(GL_TEXTURE_2D, texture.aoId);
-                   }
-                   glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
-                   //        qDebug("xyz %i \n", mesh.VAO);
-               });
-    //    qDebug("xyz %f %f %f\n", norm.x(), norm.y(), norm.z());
-
-    ///////// END shaderMain //////////////
-
-
-    /////////////////////////////////////////////
-    glDepthFunc(GL_LEQUAL);
-    sceneWorld->shaderSky->bindShader();
-    GLint SkyViewUniform = sceneWorld->shaderSky->view;//getUniform("view");
-    //    shaderProgramMain->setViewMat(&viewMat[0][0]);
-    glUniformMatrix4fv(SkyViewUniform, 1, GL_FALSE, &viewMat[0][0]);
-    auto [cubeMapId, mesh] = sceneWorld->reg()->get<CubeMapComp, MeshComp>(sceneWorld->getSkyCube()); {}//<-for formating {}
-
-    glActiveTexture(GL_TEXTURE0);//!!!!!!!!!!
-    glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapId);
-
-    glBindVertexArray(mesh.VAO);
-    glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, /*(void*)*/0);
-    glBindVertexArray(0);
-    glDepthFunc(GL_LESS);
-
-
-
-    ///////////////////////////////////////////////
-    //    glViewport(0, 0, width()/2, height()/2);
-    // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-    //    glViewport(0, height()/2, width(), height());
-    glViewport(0, 0, width()*DPIScaleFactor, height()*DPIScaleFactor);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
-    //    // clear all relevant buffers
-    //set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
-    //    glClearColor(1.0f, 0.0f, 1.0f, 1.0f); // good for debuging screen size
-    glClear(GL_COLOR_BUFFER_BIT);
-
-
-    ///////////////////////////////////////////////////
-    sceneWorld->shaderProgramFBScr->bind();
-    sceneWorld->shaderProgramFBScr->setTextureUniforms();
-
-    glBindVertexArray(quadVAO);
-    glBindVertexArray(sceneWorld->renderQuad->VAO);
-    glActiveTexture(GL_TEXTURE0 + 0 );
-    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// use the color attachment texture as the texture of the quad plane
-    //    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glDrawElements(GL_TRIANGLES, sceneWorld->renderQuad->getIndicesSize(), GL_UNSIGNED_INT,/*(void*)*/0);
-
-
-    //////////////////////////////////////////////////////////////
-    /// \brief shaderDebugQuad
-    //    glViewport(0, 0, width()/2, height()/2);
-    glViewport(0, 0, widthShadow/4, heightShadow/4);
-    //    // clear all relevant buffers
-    //    glClearColor(1.0f, 0.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
-    //    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-    glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
-
-    sceneWorld->shaderDebugQuad->bind();
-    sceneWorld->shaderDebugQuad->setTextureUniforms();
-
-    glBindVertexArray(quadVAO);
-    glBindVertexArray(sceneWorld->renderQuad->VAO);
-    glActiveTexture(GL_TEXTURE0 + 0 );
-    glBindTexture(GL_TEXTURE_2D, depthMapTexture);	// use the color attachment texture as the texture of the quad plane
-    glDrawElements(GL_TRIANGLES, sceneWorld->renderQuad->getIndicesSize(), GL_UNSIGNED_INT,/*(void*)*/0);
-    //    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    //////// END shaderDebugQuad /////////
-
-    count ++;
-    nanoSec += deltaTimer.nsecsElapsed();
-    if (count >= 100)
+    // === Pass 2: Main PBR Scene ===
+    // Render the actual scene using physically-based rendering.
+    // This includes lighting, shadows, and environment reflections.
+    glm::mat4 viewMat; // View matrix from the camera
     {
-        qDebug()<< "timing:" << ( (double)nanoSec) / (count*1000000000) << "ns (ms*100)";
-        qDebug()<< "timing:" << ( (double)count*1000000000) /nanoSec  << "FPS";
-        count=0;
-        nanoSec=0;
+        // Set viewport to window size
+        glViewport(0, 0, width() * DPIScaleFactor * UPScale, height() * DPIScaleFactor * UPScale);
+
+        // Render into our offscreen framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+        // Clear color and depth buffer
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+        glCullFace(GL_BACK); // Backface culling for performance
+
+        // Bind main PBR shader and set texture bindings
+        sceneWorld->shaderMain->bindShader();
+        sceneWorld->shaderMain->setTextureUniforms();
+
+        // Get current camera transform (handle parent-child transform if needed)
+        Transform* cameraTransform = &sceneWorld->reg()->get<TransformComp>(camera).transform;
+        if (sceneWorld->reg()->all_of<ParentComponent>(camera)) {
+            auto& parent = sceneWorld->reg()->get<ParentComponent>(camera);
+            if (parent.parentTransform)
+                cameraTransform = parent.parentTransform;
+        }
+
+        // Generate view matrix (camera's inverse transform)
+        viewMat = cameraTransform->getInverseTransformMatrix();
+        glUniformMatrix4fv(sceneWorld->shaderMain->view, 1, GL_FALSE, &viewMat[0][0]);
+
+        // Calculate light space matrix for shadows
+        Transform& lightTransform = sceneWorld->reg()->get<TransformComp>(light);
+        glm::mat4 lightSpaceMat = orthoLightProjection * lightViewMat;
+        glUniformMatrix4fv(sceneWorld->shaderMain->light, 1, GL_FALSE, glm::value_ptr(lightTransform.getTransformMatrix()));
+        glUniformMatrix4fv(sceneWorld->shaderMain->lightSpaceMat, 1, GL_FALSE, glm::value_ptr(lightSpaceMat));
+
+        // Bind shadow depth texture to texture unit 5
+        glActiveTexture(GL_TEXTURE0 + 5);
+        glBindTexture(GL_TEXTURE_2D, depthMapTexture);
+
+        // Bind environment cube map to texture unit 6
+        GLuint cubeMapId = sceneWorld->reg()->get<CubeMapComp>(light).cubeTextureId;
+        glActiveTexture(GL_TEXTURE0 + 6);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapId);
+
+        // Cache last-used textures to avoid rebinding
+        GLuint lastVAO = 0, lastAlbedo = 0, lastNormal = 0, lastMetal = 0, lastRough = 0, lastAO = 0;
+        auto mainGroup = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();
+
+        // Helper to avoid redundant texture binds
+        auto bindTex = [this](GLuint& last, GLuint current, int unit) {
+            if (last != current) {
+                last = current;
+                this->glActiveTexture(GL_TEXTURE0 + unit);
+                this->glBindTexture(GL_TEXTURE_2D, current);
+            }
+        };
+
+        // Render each object in the scene
+        for (auto [entity, mesh, material, transform] : mainGroup.each()) {
+            transform.transform.getOpenGLMatrix(tm);
+            glUniformMatrix4fv(sceneWorld->shaderMain->model, 1, GL_FALSE, tm);
+
+            if (mesh.VAO != lastVAO) {
+                lastVAO = mesh.VAO;
+                glBindVertexArray(mesh.VAO);
+            }
+
+            // Bind each material texture if not already bound
+            bindTex(lastAlbedo, material.albedoId, 0);
+            bindTex(lastNormal, material.normalId, 1);
+            bindTex(lastMetal,  material.metallicId, 2);
+            bindTex(lastRough,  material.roughnessId, 3);
+            bindTex(lastAO,     material.aoId, 4);
+
+            // Draw the mesh with full PBR
+            glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, 0);
+        }
     }
-    //    //qDebug()<< "timing:" << ((double)nanoSec / count) << "ns/call";
 
-    deltaTime = (double)deltaTimer.nsecsElapsed()/1000000000;
-    //    m_t1 = QTime::currentTime();
-    //    float curDelta = m_t0.msecsTo(m_t1);
-    //    m_t0 = m_t1;
-    //    qDebug()<< "Old delta: "<<curDelta <<  "dt: " << (float)deltaTime/1000000000;//deltaTimer.nsecsElapsed();
+    // === Pass 3: Skybox ===
+    // Draw the environment cube map as the sky background.
+    {
+        // Allow skybox to pass depth test even if behind everything else
+        glDepthFunc(GL_LEQUAL);
 
-    deltaTimer.restart();
+        // Use skybox shader
+        sceneWorld->shaderSky->bindShader();
+
+        // Send view matrix (without translation usually in actual cubemap setups)
+        glUniformMatrix4fv(sceneWorld->shaderSky->view, 1, GL_FALSE, &viewMat[0][0]);
+
+        // Get cubemap texture and mesh for the skybox
+        auto [cubeMapId, mesh] = sceneWorld->reg()->get<CubeMapComp, MeshComp>(sceneWorld->getSkyCube());
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapId);
+
+        // Render the cube
+        glBindVertexArray(mesh.VAO);
+        glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+
+        // Restore normal depth test function
+        glDepthFunc(GL_LESS);
+    }
+
+    // === Pass 4: Framebuffer Quad Post-Processing ===
+    // Draw full-screen quad with the rendered scene (tone mapping, gamma, etc.)
+    {
+        // Set viewport back to window size
+        glViewport(0, 0, width() * DPIScaleFactor, height() * DPIScaleFactor);
+
+        // Render to default screen framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST); // We're rendering a 2D screen quad
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        sceneWorld->shaderProgramFBScr->bind();
+        sceneWorld->shaderProgramFBScr->setTextureUniforms();
+
+        glBindVertexArray(sceneWorld->renderQuad->VAO);
+
+        // Bind the color texture from the framebuffer
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+
+        // Draw the full-screen quad
+        glDrawElements(GL_TRIANGLES, sceneWorld->renderQuad->getIndicesSize(), GL_UNSIGNED_INT, 0);
+    }
+
+    // === Pass 5: Shadow Map Debug Quad ===
+    // Show the depth texture used for shadow mapping in a small overlay.
+    {
+        // Show in corner of screen
+        glViewport(0, 0, widthShadow / 8, heightShadow / 8);
+
+        // Use default framebuffer again
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);
+
+        sceneWorld->shaderDebugQuad->bind();
+        sceneWorld->shaderDebugQuad->setTextureUniforms();
+
+        glBindVertexArray(sceneWorld->renderQuad->VAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, depthMapTexture);
+
+        // Draw the shadow map texture on screen
+        glDrawElements(GL_TRIANGLES, sceneWorld->renderQuad->getIndicesSize(), GL_UNSIGNED_INT, 0);
+    }
+
+    // === Performance Metrics ===
+    // Track frame render time and display FPS every 100 frames
+    {
+        count++;
+        nanoSec += deltaTimer.nsecsElapsed();
+
+        if (count >= 100) {
+            qDebug() << "Avg Frame Time:" << ((double)nanoSec) / (count * 1e9) << "s";
+            qDebug() << "FPS:" << ((double)count * 1e9) / nanoSec;
+            count = 0;
+            nanoSec = 0;
+        }
+
+        // Calculate delta time for next frame
+        deltaTime = (double)deltaTimer.nsecsElapsed() / 1e9;
+        deltaTimer.restart();
+    }
 }
+
 
 //TODO: Camera to first rate citizen (add as class member pointer)
 bool GLWindow::isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, TransformComp &actor)

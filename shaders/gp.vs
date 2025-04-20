@@ -1,76 +1,57 @@
 #ifdef GL_ES
-// Set default precision for OpenGL ES
 precision highp int;
 precision highp float;
 #endif
 
-// Vertex attributes
-layout (location = 0) in vec3 pos;   // Vertex position
-layout (location = 1) in vec2 uv;    // Texture coordinates
-layout (location = 2) in vec3 nor;   // Normal vector
-layout (location = 3) in vec3 tng;   // Tangent vector
-layout (location = 4) in vec3 bit;   // Bitangent vector
+layout(location = 0) in vec3 pos;
+layout(location = 1) in vec2 uv;
+layout(location = 2) in vec3 nor;
+layout(location = 3) in vec3 tng;
+layout(location = 4) in vec3 bit;
 
-// Uniform matrices
-uniform mat4 model;       // Model matrix
-uniform mat4 view;        // View matrix
-uniform mat4 projection;  // Projection matrix
-uniform mat4 light;       // Light transformation matrix
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat4 light;
+uniform mat4 lightSpaceMat;
 
-// Derive camera position from the projection matrix's fourth column
-// Note: This approach is unconventional; typically, the camera position is passed as a separate uniform
-// vec3 camPos = projection[3].xyz;
-vec3 camPos = vec3(inverse(view)[3]);
-
-// Outputs to the fragment shader
-out vec2 uvFrag;               // Interpolated texture coordinates
-out vec3 TangentLightPos;      // Light position in tangent space
-out vec3 TangentViewPos;       // View (camera) position in tangent space
-out vec3 TangentFragPos;       // Fragment position in tangent space
-out vec3 lightPosition;        // Light position in world space
-out mat4 lightMat;             // Light transformation matrix
-out mat3 TBN;                  // TBN matrix for transforming vectors from tangent to world space
-out vec3 FragPos;              // World-space fragment position for IBL reflection
+out vec2 uvFrag;
+out vec3 TangentLightPos;
+out vec3 TangentLightDir;
+out vec3 TangentViewPos;
+out vec3 TangentFragPos;
 out vec3 CamWorldPos;
-
+out mat3 TBN;
+out vec3 FragPos;
+out vec4 FragPosLightSpace;
 
 void main()
 {
-    CamWorldPos = camPos;
-    // Pass through texture coordinates
-    uvFrag = uv;
-
-    // Store light matrix and extract light position from its fourth column
-    lightMat = light;
-    lightPosition = light[3].xyz;
-
-    // Compute fragment position in world space
     vec3 FragWorldPos = vec3(model * vec4(pos, 1.0));
     FragPos = FragWorldPos;
+    uvFrag = uv;
 
-    // Compute normal matrix (transpose of the inverse of the model matrix)
+    CamWorldPos = vec3(inverse(view)[3]);
+
+    // TBN matrix
     mat3 normalMatrix = transpose(inverse(mat3(model)));
-
-    // Transform tangent, normal, and bitangent vectors to world space
     vec3 T = normalize(normalMatrix * tng);
     vec3 N = normalize(normalMatrix * nor);
     vec3 B = normalize(normalMatrix * bit);
-
-    // Orthogonalize tangent and bitangent vectors
     T = normalize(T - dot(T, N) * N);
     B = normalize(B - dot(B, T) * T);
-
-    // Construct TBN matrix
     TBN = mat3(T, B, N);
 
-    // Compute inverse TBN matrix (transpose of TBN since it's orthonormal)
-    mat3 inverseTBN = transpose(TBN);
+    // Inverse TBN
+    mat3 invTBN = transpose(TBN);
+    vec3 lightDir = normalize(light[2].xyz);
+    vec3 lightPos = light[3].xyz;
 
-    // Transform light position, view position, and fragment position to tangent space
-    TangentLightPos = inverseTBN * lightPosition;
-    TangentViewPos  = inverseTBN * camPos;
-    TangentFragPos  = inverseTBN * FragWorldPos;
+    TangentLightDir = invTBN * lightDir;
+    TangentLightPos = invTBN * lightPos;
+    TangentViewPos  = invTBN * CamWorldPos;
+    TangentFragPos  = invTBN * FragWorldPos;
 
-    // Compute final vertex position in clip space
+    FragPosLightSpace = lightSpaceMat * vec4(FragWorldPos, 1.0);
     gl_Position = projection * view * model * vec4(pos, 1.0);
 }
