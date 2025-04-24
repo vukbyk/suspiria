@@ -31,7 +31,7 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     GLuint captureRBO;
     GLuint irradianceMap;
 
-    const GLuint widthShadow=1024*4, heightShadow=1024*4;
+    const GLuint widthShadow=1024*2, heightShadow=1024*2;
     GLuint depthMapFBO;
     GLuint depthMapTexture;
     glm::mat4 orthoLightProjection;

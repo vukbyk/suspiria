@@ -127,28 +127,15 @@ void GLWindow::initializeGL()
     initAndResizeBuffer();
 
     light = sceneWorld->CreateEntity();
-    //Vuk: I do not like this have to be changed
-    //Vuk: unrelated problems with -90 pitch)
-    btVector3 lightEulerRotation(0, btRadians(-90.0f), 0);
-    // btVector3 lightEulerRotation(btRadians(-90.0f), 0, btRadians(90.0f));
-    //    btVector3 lightEulerRotation(0, btRadians(-45.0f), 0);
-    light.addComponent<FPSEulerComponent>(lightEulerRotation);
 
-    Transform lightInitTransform(btVector3(0.0f, 10.0f, 0.0f));
-    btQuaternion lightQuatRot(lightEulerRotation.x(), lightEulerRotation.y(), 0);
+    // light.addComponent<FPSEulerComponent>(lightEulerRotation);
+
+    Transform lightInitTransform(btVector3(.0f, .0f, 0.0f));
+    btQuaternion lightQuatRot(btRadians(110.0f), btRadians(-45.0f), btRadians(0.0f));
     lightInitTransform.setRotation(lightQuatRot);
+    // lightInitTransform.setRotation(btQuaternion(btVector3(0.5f, -1.0f, 0.0f), -45.0f));// * btQuaternion(btVector3(1.0f, 0.0f, 0.0f), -45.0f) );
+
     light.addComponent(TransformComp(lightInitTransform));
-    //    TransformComp lightTrans(lightInitTransform);
-    //    light.addTransformComponent(lightTrans);
-
-
-    //    controlledEntity = &light;
-    //    eulerYP = &world->reg()->get<FPSEulerComponent>(light);
-    //    //  eulerYP->euler += btVector3(rotator.y,rotator.x,0);
-    //    eulerYP->euler = lightEulerRotation;//btVector3(rotator.y,rotator.x,0);
-    //    btQuaternion q(eulerYP->euler .x(), eulerYP->euler.y(), 0);
-    //    controlledTransform = &world->reg()->get<TransformComp>(*controlledEntity);
-    //    controlledTransform->transform.setRotation(q);
 
     //    light.addSimpleRenderComp("cubeinvertmini.obj", "white.png", "normal1x1.png");
     light.addMeshComponent("cubeinvertmini.obj");
@@ -244,30 +231,30 @@ void GLWindow::paintGL()
         sceneWorld->shaderShadow->bindShader();
 
         // Create an orthographic projection for the light (good for directional lights)
-        orthoLightProjection = glm::ortho(-15.0f, 15.0f, -15.0f, 15.0f, 2.0f, 100.0f);
+        orthoLightProjection = glm::ortho(-25.0f, 25.0f, -25.0f, 25.0f, 2.0f, 100.0f);
 
         // Send the projection matrix to the shader
         glUniformMatrix4fv(sceneWorld->shaderShadow->projection, 1, GL_FALSE, &orthoLightProjection[0][0]);
 
+        {
+            TransformComp &camTransform = sceneWorld->reg()->get<TransformComp>(camera);
+            TransformComp &lightTransform = sceneWorld->reg()->get<TransformComp>(light);
+            lightTransform.transform.setPosition(camTransform.transform.getGLMPosition());
+            btVector3 camPos = camTransform.transform.getPosition();
+            btVector3 lightPos = camPos + camTransform.transform.forward() * -10.0f;
 
-        //get CAMERA transform
-        // Get the camera's transform (position and orientation)
-        TransformComp &cameraTransformComp = sceneWorld->reg()->get<TransformComp>(camera);
-        //set light position to be same as cameras
-        btVector3 lightPos = cameraTransformComp.transform.getPosition();
-        // lightPos *= cameraTransformComp.transform.forward() * 5.0f;
-        //set light position to be same as cameras
-        cameraTransformComp.transform.setPosition(cameraTransformComp.transform.getPosition());
+
+            // Update light position
+
+            lightTransform.transform.setPosition(lightPos);
+            lightTransform.transform.translate( lightTransform.transform.forward().normalize() * 20.0f );
+        }
 
 
 
         // Get the light's view matrix (position and orientation)
         TransformComp &lightTransformComp = sceneWorld->reg()->get<TransformComp>(light);
         lightViewMat = lightTransformComp.transform.getInverseTransformMatrix();
-        //set lightViewMat position to lightPos
-        lightViewMat[3][0] = lightPos.x();
-        lightViewMat[3][1] = lightPos.z();
-        lightViewMat[3][2] = lightPos.y()-10;
 
         // Upload view matrix to shader
         glUniformMatrix4fv(sceneWorld->shaderShadow->view, 1, GL_FALSE, &lightViewMat[0][0]);
