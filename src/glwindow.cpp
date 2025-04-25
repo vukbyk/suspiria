@@ -18,6 +18,7 @@
 #include "world.h"
 #include "scene.h"
 #include "components.h"
+
 //#include "entity.h"
 
 //#include "mesh.h"
@@ -35,6 +36,10 @@ GLWindow::GLWindow()
     timer.start(1, this);
     mousePressPosition=glm::vec2(0);
     m_t1 = QTime::currentTime();
+
+    visibleEntities.reserve(10000); //Reserve only once here
+    nextVisibleEntities.reserve(10000);
+    // shadowEntities.reserve(10000);
 }
 
 GLWindow::~GLWindow()
@@ -192,115 +197,59 @@ void GLWindow::resizeGL(int w, int h)
 
 void GLWindow::paintGL()
 {
-    // Temporary matrix used to upload transforms (from Bullet to OpenGL)
+    static std::future<std::vector<entt::entity>> futureVisibleEntities;
+
     btScalar tm[16];
+    glm::mat4 lightViewMat;
+    glm::mat4 lightViewProj;
 
-    // === Pass 1: Shadow Depth Map ===
-    // Render the scene from the light's point of view to a depth texture.
-    // This will later be used to determine if a fragment is in shadow.
-    glm::mat4 lightViewMat; // View matrix from the light's perspective
     {
-        // Set viewport to shadow map resolution
         glViewport(0, 0, widthShadow, heightShadow);
-
-        // Bind the framebuffer used for shadow depth map
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-
-
-        // Attach the depth texture to the framebuffer
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTexture, 0);
-
-        // We don't need to write or read color values, just depth
         glDrawBuffer(GL_NONE);
         glReadBuffer(GL_NONE);
-
-        // Enable polygon offset to reduce shadow acne
         glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(2.0f, 4.0f);  // Tweak these values if needed
-
-        // Clear previous frame's depth data
+        glPolygonOffset(2.0f, 4.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // Enable depth testing to store only the closest fragments
         glEnable(GL_DEPTH_TEST);
-
-        // Cull front faces to reduce shadow artifacts like acne
         glCullFace(GL_FRONT);
 
-        // Use the shadow shader program
         sceneWorld->shaderShadow->bindShader();
-
-        // Create an orthographic projection for the light (good for directional lights)
         orthoLightProjection = glm::ortho(-25.0f, 25.0f, -25.0f, 25.0f, 2.0f, 100.0f);
-
-        // Send the projection matrix to the shader
         glUniformMatrix4fv(sceneWorld->shaderShadow->projection, 1, GL_FALSE, &orthoLightProjection[0][0]);
 
-        {
-            TransformComp &camTransform = sceneWorld->reg()->get<TransformComp>(camera);
-            TransformComp &lightTransform = sceneWorld->reg()->get<TransformComp>(light);
-            lightTransform.transform.setPosition(camTransform.transform.getGLMPosition());
-            btVector3 camPos = camTransform.transform.getPosition();
-            btVector3 lightPos = camPos + camTransform.transform.forward() * -10.0f;
-
-
-            // Update light position
-
-            lightTransform.transform.setPosition(lightPos);
-            lightTransform.transform.translate( lightTransform.transform.forward().normalize() * 20.0f );
-        }
-
-        // Get the light's view matrix (position and orientation)
         TransformComp &lightTransformComp = sceneWorld->reg()->get<TransformComp>(light);
         lightViewMat = lightTransformComp.transform.getInverseTransformMatrix();
-
-        // Upload view matrix to shader
         glUniformMatrix4fv(sceneWorld->shaderShadow->view, 1, GL_FALSE, &lightViewMat[0][0]);
 
-        // Bind any additional textures required by the shader
         sceneWorld->shaderShadow->setTextureUniforms();
 
-        // Loop through all shadow-casting entities
         auto shadowGroup = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();
         GLuint lastVAO = 0;
-
-        for (auto [entity, mesh, material, transform] : shadowGroup.each()) {
-            // Convert transform to OpenGL format and upload
+        for (auto [entity, mesh, material, transform] : shadowGroup.each())
+        {
             transform.transform.getOpenGLMatrix(tm);
             glUniformMatrix4fv(sceneWorld->shaderShadow->model, 1, GL_FALSE, tm);
-
-            // Only bind VAO if it changed (to avoid unnecessary state change)
             if (mesh.VAO != lastVAO) {
                 lastVAO = mesh.VAO;
                 glBindVertexArray(mesh.VAO);
             }
-
-            // Draw the mesh (indexed draw)
             glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, 0);
         }
     }
 
-    // === Pass 2: Main PBR Scene ===
-    // Render the actual scene using physically-based rendering.
-    // This includes lighting, shadows, and environment reflections.
-    glm::mat4 viewMat; // View matrix from the camera
+    glm::mat4 viewMat;
     {
-        // Set viewport to window size
         glViewport(0, 0, width() * DPIScaleFactor * UPScale, height() * DPIScaleFactor * UPScale);
-
-        // Render into our offscreen framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-        // Clear color and depth buffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
-        glCullFace(GL_BACK); // Backface culling for performance
+        glCullFace(GL_BACK);
 
-        // Bind main PBR shader and set texture bindings
         sceneWorld->shaderMain->bindShader();
         sceneWorld->shaderMain->setTextureUniforms();
 
-        // Get current camera transform (handle parent-child transform if needed)
         Transform* cameraTransform = &sceneWorld->reg()->get<TransformComp>(camera).transform;
         if (sceneWorld->reg()->all_of<ParentComponent>(camera)) {
             auto& parent = sceneWorld->reg()->get<ParentComponent>(camera);
@@ -308,40 +257,50 @@ void GLWindow::paintGL()
                 cameraTransform = parent.parentTransform;
         }
 
-        // Generate view matrix (camera's inverse transform)
         viewMat = cameraTransform->getInverseTransformMatrix();
         glUniformMatrix4fv(sceneWorld->shaderMain->view, 1, GL_FALSE, &viewMat[0][0]);
 
-        // Calculate light space matrix for shadows
         Transform& lightTransform = sceneWorld->reg()->get<TransformComp>(light);
         glm::mat4 lightSpaceMat = orthoLightProjection * lightViewMat;
         glUniformMatrix4fv(sceneWorld->shaderMain->light, 1, GL_FALSE, glm::value_ptr(lightTransform.getTransformMatrix()));
         glUniformMatrix4fv(sceneWorld->shaderMain->lightSpaceMat, 1, GL_FALSE, glm::value_ptr(lightSpaceMat));
 
-        // Bind shadow depth texture to texture unit 5
         glActiveTexture(GL_TEXTURE0 + 5);
         glBindTexture(GL_TEXTURE_2D, depthMapTexture);
-
-        // Bind environment cube map to texture unit 6
         GLuint cubeMapId = sceneWorld->reg()->get<CubeMapComp>(light).cubeTextureId;
         glActiveTexture(GL_TEXTURE0 + 6);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapId);
 
-        // Cache last-used textures to avoid rebinding
         GLuint lastVAO = 0, lastAlbedo = 0, lastNormal = 0, lastMetal = 0, lastRough = 0, lastAO = 0;
+
         auto mainGroup = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();
+        glm::mat4 viewProj = projectionMat * viewMat;
 
-        // Helper to avoid redundant texture binds
-        auto bindTex = [this](GLuint& last, GLuint current, int unit) {
-            if (last != current) {
-                last = current;
-                this->glActiveTexture(GL_TEXTURE0 + unit);
-                this->glBindTexture(GL_TEXTURE_2D, current);
-            }
-        };
+        if (futureVisibleEntities.valid() && futureVisibleEntities.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+        {
+            visibleEntities = futureVisibleEntities.get();
+        }
 
-        // Render each object in the scene
-        for (auto [entity, mesh, material, transform] : mainGroup.each()) {
+        if (!futureVisibleEntities.valid())
+        {
+            futureVisibleEntities = std::async(std::launch::async, [this, viewProj]() {
+                std::vector<entt::entity> result;
+                for (auto [entity, mesh, material, transform] : sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>().each())
+                {
+                    const btVector3 worldPos = transform.transform.getPosition();
+                    if (isInFrustumClipSpace(worldPos, 5.0f, viewProj))
+                        result.push_back(entity);
+                }
+                return result;
+            });
+        }
+
+        for (entt::entity entity : visibleEntities)
+        {
+            auto& mesh = sceneWorld->reg()->get<MeshComp>(entity);
+            auto& material = sceneWorld->reg()->get<MaterialPBRComp>(entity);
+            auto& transform = sceneWorld->reg()->get<TransformComp>(entity);
+
             transform.transform.getOpenGLMatrix(tm);
             glUniformMatrix4fv(sceneWorld->shaderMain->model, 1, GL_FALSE, tm);
 
@@ -350,14 +309,20 @@ void GLWindow::paintGL()
                 glBindVertexArray(mesh.VAO);
             }
 
-            // Bind each material texture if not already bound
+            auto bindTex = [this](GLuint& last, GLuint current, int unit) {
+                if (last != current) {
+                    last = current;
+                    this->glActiveTexture(GL_TEXTURE0 + unit);
+                    this->glBindTexture(GL_TEXTURE_2D, current);
+                }
+            };
+
             bindTex(lastAlbedo, material.albedoId, 0);
             bindTex(lastNormal, material.normalId, 1);
             bindTex(lastMetal,  material.metallicId, 2);
             bindTex(lastRough,  material.roughnessId, 3);
             bindTex(lastAO,     material.aoId, 4);
 
-            // Draw the mesh with full PBR
             glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, 0);
         }
     }
@@ -434,6 +399,28 @@ void GLWindow::paintGL()
         glDrawElements(GL_TRIANGLES, sceneWorld->renderQuad->getIndicesSize(), GL_UNSIGNED_INT, 0);
     }
 
+    // After paintGL draw is finished
+    if (visibleEntitiesReady)
+    {
+        visibleEntitiesReady = false;
+        visibleEntitiesFuture = std::async(std::launch::async, [this]() {
+            auto mainGroup = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();
+
+            std::vector<entt::entity> tempList;
+            glm::mat4 viewMat = sceneWorld->reg()->get<TransformComp>(camera).transform.getInverseTransformMatrix();
+            glm::mat4 viewProj = projectionMat * viewMat;
+
+            for (auto [entity, mesh, material, transform] : mainGroup.each())
+            {
+                const btVector3 worldPos = transform.transform.getPosition();
+                if (isInFrustumClipSpace(worldPos, 5.0f, viewProj)) {
+                    tempList.push_back(entity);
+                }
+            }
+            nextVisibleEntities = std::move(tempList);
+            visibleEntitiesReady = true;
+        });
+    }
     // === Performance Metrics ===
     // Track frame render time and display FPS every 100 frames
     {
@@ -445,6 +432,7 @@ void GLWindow::paintGL()
             qDebug() << "FPS:" << ((double)count * 1e9) / nanoSec;
             count = 0;
             nanoSec = 0;
+            //printlog
         }
 
         // Calculate delta time for next frame
@@ -454,22 +442,44 @@ void GLWindow::paintGL()
 }
 
 
-//TODO: Camera to first rate citizen (add as class member pointer)
-bool GLWindow::isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, TransformComp &actor)
-{
-    btVector3 forward = cameraTransformComp.transform.forward();
-    btVector3 offsetPos = cameraTransformComp.transform.getPosition() + (-forward * -1.0f);
-    btVector3 relativPos=actor.transform.getPosition() - offsetPos;
+////TODO: Camera to first rate citizen (add as class member pointer)
+// bool GLWindow::isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, TransformComp &actor)
+// {
+//     const float offsetBehindCamera = 12.0f; // units behind the camera to allow
 
-    //    btScalar nearPlaneDist=forward.dot( relativPos );
-    //    if(nearPlaneDist > 0 )//|| relativPos.length2()>200*200 )
-    //        return false;
-    Camera &camPersp = sceneWorld->reg()->get<CameraComp>(camera);
-    if( //relativPos.length2()>200*200   ||
-        relativPos.angle(-forward) > qDegreesToRadians(camPersp.fov * aspectFowMult))
-        return false;
-    return true;
-}
+//     const btVector3 forward   = -cameraTransformComp.transform.forward().normalized();
+//     const btVector3 cameraPos = cameraTransformComp.transform.getPosition();
+//     const btVector3 offsetPos = cameraPos + forward * offsetBehindCamera;
+
+//     const btVector3 actorPos = actor.transform.getPosition();
+//     const btVector3 toActor  = actorPos - offsetPos;
+
+//     if (toActor.dot(forward) <= 0.0f)
+//         return false;
+
+//     // Optional max distance
+//     if (toActor.length2() > 10.0f * 10.0f)
+//         return false;
+
+//     return true;
+// }
+// bool GLWindow::isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, TransformComp &actor)
+// {
+//     btVector3 forward = cameraTransformComp.transform.forward();
+//     btVector3 offsetPos = cameraTransformComp.transform.getPosition() + (-forward * -1.0f);
+//     btVector3 relativPos=actor.transform.getPosition() - offsetPos;
+
+//    btScalar nearPlaneDist=forward.dot( relativPos );
+//    if(nearPlaneDist > 0 || relativPos.length2()>200*200 )
+//        return false;
+
+
+//     // Camera &camPersp = sceneWorld->reg()->get<CameraComp>(camera);
+//     // if( //relativPos.length2()>200*200   ||
+//     //     relativPos.angle(-forward) > qDegreesToRadians(camPersp.fov * aspectFowMult))
+//     //     return false;
+//     return true;
+// }
 
 void GLWindow::setAspectFowMult()
 {
@@ -528,7 +538,7 @@ void GLWindow::timerEvent(QTimerEvent *)
         Transform t = sceneWorld->reg()->get<TransformComp>(camera).transform.getPosition();
 
         // Re-parent the camera to the light
-       sceneWorld->AttachToParent(camera, light);
+        sceneWorld->AttachToParent(camera, light);
 
         controlledEntity = &light;
         eulerYP = &sceneWorld->reg()->get<FPSEulerComponent>(light);
@@ -632,7 +642,7 @@ void GLWindow::mouseMoveEvent(QMouseEvent *mouseEvent)
     lastMousePosition = glm::ivec2(mouseEvent->position().x(), mouseEvent->position().y());
 
     //    qDebug() << "x: " << mouseDelta.x << " y: " << mouseDelta.y;
-    //    qDebug() << "x: " << mouseEvent->globalPos().x()  << "y: " << mouseEvent->globalPos().y();
+    //    qDebug() << "x: " << mouseEvent->globalPos().x()  << "y: " << misInFrustumClipSpaceouseEvent->globalPos().y();
 }
 
 bool GLWindow::event(QEvent *event)
@@ -695,24 +705,29 @@ void GLWindow::mouseReleaseEvent(QMouseEvent *e)
 }
 
 
-Frustum GLWindow::createFrustumFromCamera(const Transform& cam, float nearOffset, float farOffset)
+bool GLWindow::isInFrustumClipSpace(const btVector3& worldPos, float radius, const glm::mat4& viewProj)
 {
-    Frustum frustum;
-    Camera &camPersp = sceneWorld->reg()->get<CameraComp>(camera);
-    const float halfVSide = camPersp.zFar * tanf(camPersp.fov * .5f);
-    const float halfHSide = halfVSide * camPersp.aspect;
-    const btVector3 frontMultFar = camPersp.zFar * cam.forward();
-
-    frustum.nearFace = { cam.getPosition() + camPersp.zNear * cam.forward(), cam.forward() };
-    frustum.farFace = { cam.getPosition() + frontMultFar, -cam.forward() };
-    frustum.rightFace = { cam.getPosition(),
-                         btCross(cam.up(),frontMultFar + cam.right() * halfHSide) };
-    frustum.leftFace = { cam.getPosition(),
-                        btCross(frontMultFar - cam.right() * halfHSide, cam.up()) };
-    frustum.topFace = { cam.getPosition(),
-                       btCross(cam.right(), frontMultFar - cam.up() * halfVSide) };
-    frustum.bottomFace =
-        { cam.getPosition(), btCross(frontMultFar + cam.up() * halfVSide, cam.right()) };
-
-    return frustum;
+    glm::vec4 clipPos = viewProj * glm::vec4(worldPos.x(), worldPos.y(), worldPos.z(), 1.0f);
+    float w = clipPos.w;
+    return clipPos.x > -w - radius && clipPos.x < w + radius &&
+           clipPos.y > -w - radius && clipPos.y < w + radius &&
+           clipPos.z > -w - radius && clipPos.z < w + radius;
 }
+
+// bool GLWindow::isInFrustumClipSpace(const btVector3& worldPos, float radius, const glm::mat4& projection)
+// {
+//     // Build ViewProjection matrix from current camera
+//     const glm::mat4 view = sceneWorld->reg()->get<TransformComp>(camera).transform.getInverseTransformMatrix();
+//     const glm::mat4 viewProj = projection * view;
+
+//     // Transform world position to clip space
+//     glm::vec4 clipPos = viewProj * glm::vec4(worldPos.x(), worldPos.y(), worldPos.z(), 1.0f);
+
+//     float w = clipPos.w;
+//     float r = radius;
+
+//     // Check if the transformed sphere is within clip space (-w to w)
+//     return clipPos.x > -w - r && clipPos.x < w + r &&
+//            clipPos.y > -w - r && clipPos.y < w + r &&
+//            clipPos.z > -w - r && clipPos.z < w + r;
+// }

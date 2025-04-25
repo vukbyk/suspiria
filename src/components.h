@@ -4,6 +4,7 @@
 #include "transform.h"
 #include "camera.h"
 // #include "glmtransform.h"
+#include <glm/gtc/type_ptr.hpp>
 #include "shaderprogram.h"
 #include <QOpenGLExtraFunctions>
 // #include <string>
@@ -276,35 +277,28 @@ struct NormalTextureComponent
     operator const GLuint&() const {return textureId;}
 };
 
-struct Plan
-{
-    btVector3 normal = { 0.f, 1.f, 0.f }; // unit vector
-    float     distance = 0.f;        // Distance with origin
+struct Plan {
+    btVector3 normal;
+    float distance;
 
     Plan() = default;
 
-    Plan(const btVector3& p1, const btVector3& norm)
-        : normal(norm.normalized()),
-        distance(normal.dot( p1))
-    {}
+    Plan(const btVector3& normal, float distance)
+        : normal(normal), distance(distance) {}
 
-    float getSignedDistanceToPlan(const btVector3& point) const
+    // Plane from 4 coefficients
+    Plan(float a, float b, float c, float d)
     {
-        btScalar norm = normal.dot(point);
-        return norm - distance;
+        normal = btVector3(a, b, c);
+        float length = normal.length();
+        normal /= length;
+        distance = d / length;
+    }
+
+    float getSignedDistanceToPlan(const btVector3& point) const {
+        return normal.dot(point) + distance;
     }
 };
-
-struct FPSEulerComponent
-{
-    btVector3 euler;
-    FPSEulerComponent(const btVector3 val):euler(val){};
-
-    operator btVector3&() {return euler;};
-    operator const btVector3&() const {return euler;}
-};
-
-//struct ControlComponent
 
 
 struct Frustum
@@ -319,7 +313,32 @@ struct Frustum
     Plan nearFace;
 };
 
+// Frustum extractFrustumPlanes(const glm::mat4& viewProj)
+// {
+//     Frustum frustum;
 
+//     // Row-major access to matrix elements
+//     const float* m = glm::value_ptr(viewProj);
+
+//     frustum.leftFace   = Plan(m[3]  + m[0], m[7]  + m[4], m[11] + m[8],  m[15] + m[12]);
+//     frustum.rightFace  = Plan(m[3]  - m[0], m[7]  - m[4], m[11] - m[8],  m[15] - m[12]);
+//     frustum.bottomFace = Plan(m[3]  + m[1], m[7]  + m[5], m[11] + m[9],  m[15] + m[13]);
+//     frustum.topFace    = Plan(m[3]  - m[1], m[7]  - m[5], m[11] - m[9],  m[15] - m[13]);
+//     frustum.nearFace   = Plan(m[3]  + m[2], m[7]  + m[6], m[11] + m[10], m[15] + m[14]);
+//     frustum.farFace    = Plan(m[3]  - m[2], m[7]  - m[6], m[11] - m[10], m[15] - m[14]);
+
+//     return frustum;
+// };
+
+
+struct FPSEulerComponent
+{
+    btVector3 euler;
+    FPSEulerComponent(const btVector3 val):euler(val){};
+
+    operator btVector3&() {return euler;};
+    operator const btVector3&() const {return euler;}
+};
 
 struct FixSphereBVComp
 {

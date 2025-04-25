@@ -44,8 +44,8 @@ void Scene::initEntities()
 //    skyCube.addCubeMapComp("skyCubeTex");
 
 
-//    prepareAssetsManyCubes();
-    prepareAssetsPlane();
+   prepareAssetsManyCubes();
+    // prepareAssetsPlane();
 }
 
 void Scene::initShaders()
@@ -124,7 +124,7 @@ void Scene::importTextures()
 
     getTextureManager()->load("cyborg_normal.png", true, true);
     getTextureManager()->load("cyborg_diffuse.png", false, true);
-    getTextureManager()->load("cyborg_specular.png", false, true);
+    getTextureManager()->load("cyborg_specular.png", true, true);
     getTextureManager()->load("bricks2_normal.jpg", false, true );
     getTextureManager()->load("brickwall_normal.jpg", false, true );
     getTextureManager()->load("brickwall.jpg", false, true);
@@ -141,6 +141,8 @@ void Scene::importTextures()
     getTextureManager()->load("rustediron/roughness.png");
     getTextureManager()->load("rustediron/metallic.png");
     getTextureManager()->load("rustediron/ao.png");
+
+    getTextureManager()->load("default_specular.jpg", false, true);
 
 
     std::vector<std::string> faces
@@ -240,16 +242,29 @@ void Scene::prepareAssetsPlane()
 {
     Entity e;
     e=CreateEntity();
-//    e.addTextureAlbedoNormalComp("white.png", "normal1x1.png");//"brickwall_normal.jpg");
-    e.addTexturePBRComp("defaultComplex.png","normal1x1.png", "rustediron/black1x1metallic.png", "white.png", "rustediron/ao.png");
+   // e.addTexturePBRComp("white.png", "normal1x1.png", "defaultComplex.png", "white.png", "white.png");//"brickwall_normal.jpg");
+    e.addTexturePBRComp("defaultComplex.png", "normal1x1.png", "rustediron/black1x1metallic.png", "rustediron/white1x1metallic.png", "rustediron/ao.png");
     e.addMeshComponent("plane10x10.obj");
     // e.addMeshComponent("sphare.obj");
     e.addTransformComponent( 0.0f, 0.5f, 0.0f);
 
     e=CreateEntity();
-    e.addTexturePBRComp("white.png",/*"normal1x1.png"*/ "cyborg_normal.png", "cyborg_specular.png", "cyborg_specular.png", "rustediron/ao.png");
+    e.addTexturePBRComp("white.png", "normal1x1.png" /*"rustediron/normal.png"*/, "default_specular.jpg", "rustediron/black1x1metallic.png", "rustediron/ao.png");
+    e.addMeshComponent("sphare.obj");
+    e.addTransformComponent( -3.0, 2.0f, -7.0f);
+
+    e=CreateEntity();
+    e.addTexturePBRComp("cyborg_diffuse.png","cyborg_normal.png", "cyborg_specular.png", "cyborg_specular.png", "rustediron/ao.png");
     e.addMeshComponent("cyborg.obj");
     e.addTransformComponent( 0.0f, 2.0f, -7.0f);
+
+
+
+    e=CreateEntity();
+    e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
+    e.addMeshComponent("vulture.obj");
+    e.addTransformComponent( 0.0, 1.0f, -7.0f);
+
 
     e=CreateEntity();
     e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
@@ -257,17 +272,6 @@ void Scene::prepareAssetsPlane()
     e.addTransformComponent( 3.0, 4.0f, -7.0f);
 
     e=CreateEntity();
-    e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
-    e.addMeshComponent("vulture.obj");
-    e.addTransformComponent( 0.0, 1.0f, -7.0f);
-
-    e=CreateEntity();
-    e.addTexturePBRComp("white.png","normal1x1.png" /*"rustediron/normal.png"*/, "rustediron/black1x1metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
-    e.addMeshComponent("sphare.obj");
-    e.addTransformComponent( -3.0, 2.0f, -7.0f);
-
-    e=CreateEntity();
-
     e.addTexturePBRComp("white.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");
     e.addMeshComponent("cubemaya.obj");
     e.addTransformComponent( 3.0, 1.0f, -7.0f);
@@ -285,9 +289,9 @@ void Scene::prepareAssetsManyCubes()
 //    e.addTextureAlbedoNormalComp("cyborg_diffuse.png", "cyborg_normal.png");//"brickwall_normal.jpg");
 
     //100000 = 28fpsGentoo/Suse 24dbg-53dbg (56.5 after  remove rot and pos separate ~80 fursturm
-    for(int i=0; i<400; i++)
+    for(int i=0; i<300; i++)
     {
-        for(int j=0; j<250; j++)
+        for(int j=0; j<300; j++)
         {
             e=CreateEntity();
             e.addTexturePBRComp("rustediron/albedo.png",/*"normal1x1.png"*/ "rustediron/normal.png", "rustediron/metallic.png", "rustediron/roughness.png", "rustediron/ao.png");

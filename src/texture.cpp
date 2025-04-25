@@ -40,7 +40,8 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection, const 
     GLenum dataFormat = GL_RGB;
     if (nChannels == 1)
     {
-        internalFormat = dataFormat = GL_RED_BITS;
+        internalFormat = GL_R8;          // Internal storage (8-bit red channel)
+        dataFormat    = GL_RED;         // Pixel data format (single channel)
     }
     else if (nChannels == 3)
     {
@@ -108,12 +109,13 @@ Texture::Texture(const std::string &fileName, const bool gammaCorrection, const 
 
 //     set the texture wrapping/filtering options (on the currently bound texture object)
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);//GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);//GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 8);
     glGenerateMipmap(GL_TEXTURE_2D);
-    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
     stbi_image_free(data);
 }
@@ -170,7 +172,7 @@ Texture::Texture(std::vector<std::string> faces, const bool flip, const bool gam
     // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 4);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 8);
     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
 }
