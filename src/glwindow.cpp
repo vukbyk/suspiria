@@ -250,8 +250,6 @@ void GLWindow::paintGL()
             lightTransform.transform.translate( lightTransform.transform.forward().normalize() * 20.0f );
         }
 
-
-
         // Get the light's view matrix (position and orientation)
         TransformComp &lightTransformComp = sceneWorld->reg()->get<TransformComp>(light);
         lightViewMat = lightTransformComp.transform.getInverseTransformMatrix();

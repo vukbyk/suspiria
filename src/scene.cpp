@@ -124,6 +124,7 @@ void Scene::importTextures()
 
     getTextureManager()->load("cyborg_normal.png", true, true);
     getTextureManager()->load("cyborg_diffuse.png", false, true);
+    getTextureManager()->load("cyborg_specular.png", false, true);
     getTextureManager()->load("bricks2_normal.jpg", false, true );
     getTextureManager()->load("brickwall_normal.jpg", false, true );
     getTextureManager()->load("brickwall.jpg", false, true);
@@ -246,7 +247,7 @@ void Scene::prepareAssetsPlane()
     e.addTransformComponent( 0.0f, 0.5f, 0.0f);
 
     e=CreateEntity();
-    e.addTexturePBRComp("cyborg_diffuse.png",/*"normal1x1.png"*/ "cyborg_normal.png", "rustediron/white1x1metallic.png", "rustediron/black1x1metallic.png", "rustediron/ao.png");
+    e.addTexturePBRComp("white.png",/*"normal1x1.png"*/ "cyborg_normal.png", "cyborg_specular.png", "cyborg_specular.png", "rustediron/ao.png");
     e.addMeshComponent("cyborg.obj");
     e.addTransformComponent( 0.0f, 2.0f, -7.0f);
 
