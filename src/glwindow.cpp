@@ -1,4 +1,6 @@
-﻿#include "glwindow.h"
+﻿
+
+#include "glwindow.h"
 
 //#include <QOpenGLShaderProgram>
 //#include <QOpenGLBuffer>
@@ -203,42 +205,95 @@ void GLWindow::paintGL()
     glm::mat4 lightViewMat;
     glm::mat4 lightViewProj;
 
+    // === Pass 1: Shadow Depth Map ===
+    // Render the scene from the light's point of view to a depth texture.
+    // This will later be used to determine if a fragment is in shadow.
     {
+        // Set viewport to shadow map resolution
         glViewport(0, 0, widthShadow, heightShadow);
+
+        // Bind the framebuffer used for shadow depth map
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+
+
+        // Attach the depth texture to the framebuffer
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTexture, 0);
+
+        // We don't need to write or read color values, just depth
         glDrawBuffer(GL_NONE);
         glReadBuffer(GL_NONE);
+
+        // Enable polygon offset to reduce shadow acne
         glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(2.0f, 4.0f);
+        glPolygonOffset(2.0f, 4.0f);  // Tweak these values if needed
+
+        // Clear previous frame's depth data
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Enable depth testing to store only the closest fragments
         glEnable(GL_DEPTH_TEST);
+
+        // Cull front faces to reduce shadow artifacts like acne
         glCullFace(GL_FRONT);
 
+        // Use the shadow shader program
         sceneWorld->shaderShadow->bindShader();
+
+        // Create an orthographic projection for the light (good for directional lights)
         orthoLightProjection = glm::ortho(-25.0f, 25.0f, -25.0f, 25.0f, 2.0f, 100.0f);
+
+        // Send the projection matrix to the shader
         glUniformMatrix4fv(sceneWorld->shaderShadow->projection, 1, GL_FALSE, &orthoLightProjection[0][0]);
 
+        {
+            TransformComp &camTransform = sceneWorld->reg()->get<TransformComp>(camera);
+            TransformComp &lightTransform = sceneWorld->reg()->get<TransformComp>(light);
+            lightTransform.transform.setPosition(camTransform.transform.getGLMPosition());
+            btVector3 camPos = camTransform.transform.getPosition();
+            btVector3 lightPos = camPos + camTransform.transform.forward() * -10.0f;
+
+
+            // Update light position
+
+            lightTransform.transform.setPosition(lightPos);
+            lightTransform.transform.translate( lightTransform.transform.forward().normalize() * 20.0f );
+        }
+
+
+
+        // Get the light's view matrix (position and orientation)
         TransformComp &lightTransformComp = sceneWorld->reg()->get<TransformComp>(light);
         lightViewMat = lightTransformComp.transform.getInverseTransformMatrix();
+
+        // Upload view matrix to shader
         glUniformMatrix4fv(sceneWorld->shaderShadow->view, 1, GL_FALSE, &lightViewMat[0][0]);
 
+        // Bind any additional textures required by the shader
         sceneWorld->shaderShadow->setTextureUniforms();
 
+        // Loop through all shadow-casting entities
         auto shadowGroup = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();
         GLuint lastVAO = 0;
-        for (auto [entity, mesh, material, transform] : shadowGroup.each())
-        {
+
+        for (auto [entity, mesh, material, transform] : shadowGroup.each()) {
+            // Convert transform to OpenGL format and upload
             transform.transform.getOpenGLMatrix(tm);
             glUniformMatrix4fv(sceneWorld->shaderShadow->model, 1, GL_FALSE, tm);
+
+            // Only bind VAO if it changed (to avoid unnecessary state change)
             if (mesh.VAO != lastVAO) {
                 lastVAO = mesh.VAO;
                 glBindVertexArray(mesh.VAO);
             }
+
+            // Draw the mesh (indexed draw)
             glDrawElements(GL_TRIANGLES, mesh.indicesSize, GL_UNSIGNED_INT, 0);
         }
     }
 
+    // === Pass 2: Main PBR Scene ===
+    // Render the actual scene using physically-based rendering.
+    // This includes lighting, shadows, and environment reflections.
     glm::mat4 viewMat;
     {
         glViewport(0, 0, width() * DPIScaleFactor * UPScale, height() * DPIScaleFactor * UPScale);
