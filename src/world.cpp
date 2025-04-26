@@ -24,8 +24,8 @@ World::~World()
 
 Entity World::CreateEntity()
 {
-    Entity e(this, registry.create());
-    return e;
+    entt::entity handle = registry.create();
+    return Entity(this, handle);
 }
 
 TextureManager *World::getTextureManager() const

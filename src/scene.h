@@ -7,12 +7,15 @@
 #include <glm/gtx/quaternion.hpp>
 #include "entity.h"
 
+
+
 class Scene: protected QOpenGLExtraFunctions, public World
 {
 protected:
 //    class World *world;//for multy scene
     Entity camera;
     Entity skyCube;
+
 
 
 public:

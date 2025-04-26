@@ -31,17 +31,14 @@
 
 GLWindow::GLWindow()
 {
-    //    QTimer *refereshTimer = new QTimer(this);
-    //    connect(refereshTimer, SIGNAL(timeout()), this, SLOT(update()));
-    //    refereshTimer->start(1);
-    // Use QBasicTimer because its faster than QTimer
+
     timer.start(1, this);
     mousePressPosition=glm::vec2(0);
     m_t1 = QTime::currentTime();
 
-    visibleEntities.reserve(10000); //Reserve only once here
-    nextVisibleEntities.reserve(10000);
-    // shadowEntities.reserve(10000);
+    visibleEntities[0].reserve(10000);
+    visibleEntities[1].reserve(10000);
+
 }
 
 GLWindow::~GLWindow()
@@ -123,6 +120,7 @@ void GLWindow::initializeGL()
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     // now that we actually created the framebuffer and added all
     // attachments we want to check if it is actually complete now
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -140,7 +138,6 @@ void GLWindow::initializeGL()
     Transform lightInitTransform(btVector3(.0f, .0f, 0.0f));
     btQuaternion lightQuatRot(btRadians(110.0f), btRadians(-45.0f), btRadians(0.0f));
     lightInitTransform.setRotation(lightQuatRot);
-    // lightInitTransform.setRotation(btQuaternion(btVector3(0.5f, -1.0f, 0.0f), -45.0f));// * btQuaternion(btVector3(1.0f, 0.0f, 0.0f), -45.0f) );
 
     light.addComponent(TransformComp(lightInitTransform));
 
@@ -150,15 +147,6 @@ void GLWindow::initializeGL()
     //    light.addTextureBoxComp(/*"reflectCube"*/"skyCubeTex");
     CubeMapComp cubeMap((sceneWorld->getTextureManager()->getId("reflectCube")));
     light.addComponent(cubeMap);
-
-
-    //    GLint lightID = shaderProgramMain->getUniform("light");
-    //    light.addComponent(LightComp(lightID));
-    //    light.addFixSphereBVComp();
-
-
-    // Enable depth buffer
-    //    glEnable(GL_DEPTH_TEST);
 
     // Enable back face culling
     glEnable(GL_CULL_FACE);
@@ -195,6 +183,30 @@ void GLWindow::resizeGL(int w, int h)
 
     initAndResizeBuffer();
 
+}
+
+void GLWindow::updateVisibleEntitiesAsync(const glm::mat4& viewProj)
+{
+    if (!visibleEntitiesFuture.valid() ||
+        visibleEntitiesFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+    {
+        const int nextBuffer = (currentBuffer + 1) % 2;
+
+        visibleEntitiesFuture = std::async(std::launch::async, [this, viewProj, nextBuffer]() {
+            auto& buffer = visibleEntities[nextBuffer];
+            buffer.clear();
+
+            for (auto [entity, mesh, material, transform] : sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>().each())
+            {
+                const btVector3 worldPos = transform.transform.getPosition();
+                if (isInFrustumClipSpace(worldPos, 25.0f, viewProj))
+                    buffer.push_back(entity);
+            }
+
+            // Atomically switch buffers
+            currentBuffer.store(nextBuffer, std::memory_order_release);
+        });
+    }
 }
 
 void GLWindow::paintGL()
@@ -248,18 +260,16 @@ void GLWindow::paintGL()
         {
             TransformComp &camTransform = sceneWorld->reg()->get<TransformComp>(camera);
             TransformComp &lightTransform = sceneWorld->reg()->get<TransformComp>(light);
+
             lightTransform.transform.setPosition(camTransform.transform.getGLMPosition());
             btVector3 camPos = camTransform.transform.getPosition();
             btVector3 lightPos = camPos + camTransform.transform.forward() * -10.0f;
-
 
             // Update light position
 
             lightTransform.transform.setPosition(lightPos);
             lightTransform.transform.translate( lightTransform.transform.forward().normalize() * 20.0f );
         }
-
-
 
         // Get the light's view matrix (position and orientation)
         TransformComp &lightTransformComp = sceneWorld->reg()->get<TransformComp>(light);
@@ -272,10 +282,14 @@ void GLWindow::paintGL()
         sceneWorld->shaderShadow->setTextureUniforms();
 
         // Loop through all shadow-casting entities
-        auto shadowGroup = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();
+        // auto shadowGroup = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();
+        auto shadowGroup = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp, DynamicShadowComp>();
+
         GLuint lastVAO = 0;
 
-        for (auto [entity, mesh, material, transform] : shadowGroup.each()) {
+
+        for (auto [entity, mesh, material, transform] : shadowGroup.each())
+        {
             // Convert transform to OpenGL format and upload
             transform.transform.getOpenGLMatrix(tm);
             glUniformMatrix4fv(sceneWorld->shaderShadow->model, 1, GL_FALSE, tm);
@@ -331,30 +345,17 @@ void GLWindow::paintGL()
         auto mainGroup = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();
         glm::mat4 viewProj = projectionMat * viewMat;
 
-        if (futureVisibleEntities.valid() && futureVisibleEntities.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
-        {
-            visibleEntities = futureVisibleEntities.get();
-        }
+        updateVisibleEntitiesAsync(viewProj);
+        const auto& entitiesToRender = visibleEntities[currentBuffer.load(std::memory_order_acquire)];
 
-        if (!futureVisibleEntities.valid())
-        {
-            futureVisibleEntities = std::async(std::launch::async, [this, viewProj]() {
-                std::vector<entt::entity> result;
-                for (auto [entity, mesh, material, transform] : sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>().each())
-                {
-                    const btVector3 worldPos = transform.transform.getPosition();
-                    if (isInFrustumClipSpace(worldPos, 5.0f, viewProj))
-                        result.push_back(entity);
-                }
-                return result;
-            });
-        }
-
-        for (entt::entity entity : visibleEntities)
+        for (entt::entity entity : entitiesToRender)
         {
             auto& mesh = sceneWorld->reg()->get<MeshComp>(entity);
             auto& material = sceneWorld->reg()->get<MaterialPBRComp>(entity);
             auto& transform = sceneWorld->reg()->get<TransformComp>(entity);
+
+            transform.transform.getOpenGLMatrix(tm);
+            glUniformMatrix4fv(sceneWorld->shaderMain->model, 1, GL_FALSE, tm);
 
             transform.transform.getOpenGLMatrix(tm);
             glUniformMatrix4fv(sceneWorld->shaderMain->model, 1, GL_FALSE, tm);
@@ -454,28 +455,7 @@ void GLWindow::paintGL()
         glDrawElements(GL_TRIANGLES, sceneWorld->renderQuad->getIndicesSize(), GL_UNSIGNED_INT, 0);
     }
 
-    // After paintGL draw is finished
-    if (visibleEntitiesReady)
-    {
-        visibleEntitiesReady = false;
-        visibleEntitiesFuture = std::async(std::launch::async, [this]() {
-            auto mainGroup = sceneWorld->reg()->group<MeshComp, MaterialPBRComp, TransformComp>();
 
-            std::vector<entt::entity> tempList;
-            glm::mat4 viewMat = sceneWorld->reg()->get<TransformComp>(camera).transform.getInverseTransformMatrix();
-            glm::mat4 viewProj = projectionMat * viewMat;
-
-            for (auto [entity, mesh, material, transform] : mainGroup.each())
-            {
-                const btVector3 worldPos = transform.transform.getPosition();
-                if (isInFrustumClipSpace(worldPos, 5.0f, viewProj)) {
-                    tempList.push_back(entity);
-                }
-            }
-            nextVisibleEntities = std::move(tempList);
-            visibleEntitiesReady = true;
-        });
-    }
     // === Performance Metrics ===
     // Track frame render time and display FPS every 100 frames
     {
@@ -497,25 +477,19 @@ void GLWindow::paintGL()
 }
 
 
-////TODO: Camera to first rate citizen (add as class member pointer)
 // bool GLWindow::isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, TransformComp &actor)
 // {
 //     const float offsetBehindCamera = 12.0f; // units behind the camera to allow
-
 //     const btVector3 forward   = -cameraTransformComp.transform.forward().normalized();
 //     const btVector3 cameraPos = cameraTransformComp.transform.getPosition();
 //     const btVector3 offsetPos = cameraPos + forward * offsetBehindCamera;
-
 //     const btVector3 actorPos = actor.transform.getPosition();
 //     const btVector3 toActor  = actorPos - offsetPos;
-
 //     if (toActor.dot(forward) <= 0.0f)
 //         return false;
-
 //     // Optional max distance
 //     if (toActor.length2() > 10.0f * 10.0f)
 //         return false;
-
 //     return true;
 // }
 // bool GLWindow::isInCameraFrustumAndDistance(TransformComp &cameraTransformComp, TransformComp &actor)
@@ -523,12 +497,9 @@ void GLWindow::paintGL()
 //     btVector3 forward = cameraTransformComp.transform.forward();
 //     btVector3 offsetPos = cameraTransformComp.transform.getPosition() + (-forward * -1.0f);
 //     btVector3 relativPos=actor.transform.getPosition() - offsetPos;
-
 //    btScalar nearPlaneDist=forward.dot( relativPos );
 //    if(nearPlaneDist > 0 || relativPos.length2()>200*200 )
 //        return false;
-
-
 //     // Camera &camPersp = sceneWorld->reg()->get<CameraComp>(camera);
 //     // if( //relativPos.length2()>200*200   ||
 //     //     relativPos.angle(-forward) > qDegreesToRadians(camPersp.fov * aspectFowMult))

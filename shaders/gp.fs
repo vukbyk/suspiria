@@ -24,10 +24,10 @@ uniform samplerCube skyCube;
 uniform sampler2D brdfLUT;
 uniform sampler2D shadowMap;
 
-const float lightStrength   = 0.70;
-const float ambientStrength = 0.1 ;
+const float lightStrength   = 0.80;
+const float ambientStrength = 0.2 ;
 const float shadowBias      = -0.025;
-const float specularStrength = 0.01;
+const float specularStrength = 0.1;
 
 const vec3 lightColor = vec3(1.0, 0.94, 0.88);
 const float PI = 3.14159265359;

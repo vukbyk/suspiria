@@ -51,6 +51,11 @@ struct CameraComp
     operator const Camera&() const {return camera;}
 };
 
+struct DynamicShadowComp
+{
+    // Empty: presence of this component = "entity casts dynamic shadow"
+};
+
 
 //struct PerspectiveComp
 //{

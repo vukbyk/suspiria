@@ -20,10 +20,13 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
 
     class Scene *sceneWorld;
 
-    std::vector<entt::entity> visibleEntities;
-    std::vector<entt::entity> nextVisibleEntities;
+    std::vector<entt::entity> visibleEntities[2]; // double buffering
+    std::atomic<int> currentBuffer{0}; // atomic index to buffers
     std::future<void> visibleEntitiesFuture;
-    bool visibleEntitiesReady = true;
+
+    void updateVisibleEntitiesAsync(const glm::mat4& viewProj);
+
+
 
     GLuint framebuffer;
     GLuint textureColorbuffer;
@@ -76,7 +79,7 @@ class GLWindow : public QOpenGLWindow, protected QOpenGLExtraFunctions
     glm::ivec2 mouseWheel = glm::ivec2(-1,-1);
 
     void initAndResizeBuffer();
-    void updateVisibleEntities(const glm::mat4& viewProj);
+
 
 protected:
     void timerEvent(QTimerEvent *e) override;

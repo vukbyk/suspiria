@@ -17,46 +17,51 @@ public:
 public:
     Entity() = default;
     Entity(class World *aWorld, entt::entity aHandle);
-
-    operator entt::entity() const { return handle; }
     Entity(const Entity& other) = default;
 
+    // Conversion to entt::entity
+    operator entt::entity() const { return handle; }
+
+    // Validity check
+    operator bool() const { return handle != entt::null; }
+
     template<typename T>//,  typename... Args>
-    Entity *addComponent(T component)
+    Entity &addComponent(T component)
     {
         world->registry.emplace<T>(handle, component);
-        return this;
+        return *this;
     }
 
-    Entity *addMeshComponent(const char *mesh);
+    Entity &addMeshComponent(const char *mesh);
 
-    Entity *addTexturePBRComp(const char *albedo,
+    Entity &addTexturePBRComp(const char *albedo,
                               const char *normal,
                               const char *metallic,
                               const char *roughness,
                               const char *ao);
 
-    Entity *addTextureAlbedoNormalComp(const char *albedo, const char *normal);
+    Entity &addTextureAlbedoNormalComp(const char *albedo, const char *normal);
 
-    Entity *addCubeMapComp(const char *albedo);
+    Entity &addCubeMapComp(const char *albedo);
 
-    Entity *addTransformComponent(const GLfloat x, const GLfloat y, const GLfloat z);
-    Entity *addTransformComponent(TransformComp &transComp);
+    Entity &addTransformComponent(const GLfloat x, const GLfloat y, const GLfloat z);
+    Entity &addTransformComponent(TransformComp &transComp);
 
-    Entity *addFixSphereBVComp(const float inRadius=2.5f);
+    Entity &addFixSphereBVComp(const float inRadius=2.5f);
 
-    Entity *addCameraComp(const GLfloat aFar=0.3f, const GLfloat aNear=1000.0f,
+    Entity &addCameraComp(const GLfloat aFar=0.3f, const GLfloat aNear=1000.0f,
                           const GLfloat aFov=45.0f, const GLfloat aAspect=0.66f);
 
-//    Entity *addShaderComp(const std::string &val);
+    Entity &addDynamicShadowComp();
+//    Entity &addShaderComp(const std::string &val);
 
-//    Entity *addPerspectiveComp(PerspectiveComp &perspective);
-//    Entity *addPerspectiveComp( const GLfloat aFar=0.3f, const GLfloat aNear=1000.0f,
+//    Entity &addPerspectiveComp(PerspectiveComp &perspective);
+//    Entity &addPerspectiveComp( const GLfloat aFar=0.3f, const GLfloat aNear=1000.0f,
 //                                const GLfloat aFov=45.0f, const GLfloat aAspect=0.66f);
 
-//    Entity *addSimpleRenderComp(const char* mesh, const char* albedo, const char* normal);
-//    Entity *addTransformComponent();
-//    Entity *addTransformComponent(const glm::vec3 v);
+//    Entity &addSimpleRenderComp(const char* mesh, const char* albedo, const char* normal);
+//    Entity &addTransformComponent();
+//    Entity &addTransformComponent(const glm::vec3 v);
 //    operator bool() const { return handle != entt::null; }
 //    operator uint32_t() const { return (uint32_t)handle; }
 
@@ -99,6 +104,7 @@ public:
 //            qDebug("Entity does not have component!");
 //        world->registry.remove<T>(handle);
     //    }
+
 };
 
 #endif // ENTITY_H
